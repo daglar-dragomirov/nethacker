@@ -1,0 +1,8 @@
+{
+  "schema": "nethackers.solution/v1",
+  "name": "autoascend-dive",
+  "root": "autoascend",
+  "parents": ["github.com/Komershan/nethacker@132b7c2d662f40bf7f86335c98709025b8b23967"],
+  "influences": ["github.com/Komershan/nethacker@132b7c2d662f40bf7f86335c98709025b8b23967"],
+  "entrypoint": "bot.py"
+}
