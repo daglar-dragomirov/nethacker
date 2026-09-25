@@ -565,7 +565,10 @@ class GlobalLogic:
                 level = (Level.SOKOBAN, 1)
 
             elif self.milestone == Milestone.FIND_MINES_END:
-                condition = lambda: self.agent.current_level().key() == (Level.GNOMISH_MINES, 9)  # TODO
+                # the Mines are 8 or 9 levels deep, so waiting for level 9 left every 8-level Mines
+                # stuck at its bottom forever; level 8 is the bottom or one short of it
+                condition = lambda: self.agent.current_level().dungeon_number == Level.GNOMISH_MINES and \
+                                    self.agent.current_level().level_number >= 8
                 level = (Level.GNOMISH_MINES, 9)  # TODO
 
             else:
@@ -600,10 +603,12 @@ class GlobalLogic:
                 # Exception: races the Mines' dwarves are hostile to go there first, only as far
                 # as Minetown, to kill dwarves for the pick-axe most of them carry -- with a pick
                 # the milestone above switches to GO_DOWN and dig_down takes over in the main
-                # dungeon. Dwarves and gnomes find those dwarves peaceful, so they skip the hunt.
-                if self.milestone == Milestone.BE_ON_FIRST_LEVEL and \
-                        self.agent.character.race != Character.GNOME:
-                    if PICK_HUNT_TURNS > 0 and self.agent.character.race != Character.DWARF:
+                # dungeon. Dwarves and gnomes find those dwarves peaceful, so they skip the hunt and
+                # instead walk the peaceful Mines straight to Mines' End (Dlvl 10-13), skipping the
+                # long and risky Sokoban detour, before diving the main dungeon.
+                mines_folk = self.agent.character.race in (Character.GNOME, Character.DWARF)
+                if self.milestone == Milestone.BE_ON_FIRST_LEVEL and not mines_folk:
+                    if PICK_HUNT_TURNS > 0:
                         self._pick_hunt_start = self.agent.blstats.time
                         self.milestone = Milestone.FIND_GNOMISH_MINES
                     else:
@@ -611,6 +616,9 @@ class GlobalLogic:
                     continue
                 if self.milestone == Milestone.FIND_MINETOWN and self._pick_hunt_start is not None:
                     self.milestone = Milestone.GO_DOWN
+                    continue
+                if self.milestone == Milestone.FIND_MINETOWN and mines_folk:
+                    self.milestone = Milestone.FIND_MINES_END
                     continue
                 self.milestone = Milestone(int(self.milestone) + 1)
                 continue
