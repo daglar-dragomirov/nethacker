@@ -166,7 +166,7 @@ EARLY_DIG_XL = 5
 # grind before it gives up and dives by the stairs; 0 disables the hunt
 PICK_HUNT_TURNS = 3000
 # experience level the Dlvl 1 grind stops at before the deep phase begins
-GRIND_XL = 8
+GRIND_XL = 5
 
 
 class GlobalLogic:
