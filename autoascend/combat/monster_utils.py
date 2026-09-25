@@ -21,8 +21,10 @@ def imminent_death_on_melee(agent, monster):
     # the very fights that would level them up, so they stall at low XP. Engaging at lower HP
     # trades meaningless survival for extra kills / XP, which is what actually scores.
     if is_dangerous_monster(monster):
-        return agent.blstats.hitpoints <= 10
-    return agent.blstats.hitpoints <= 5
+        return agent.blstats.hitpoints <= 16
+    # hypothesis: retreating from ordinary monsters below 10 HP avoids the
+    # common two-hit deaths while retaining normal aggression at full health.
+    return agent.blstats.hitpoints <= 10
 
 
 def is_dangerous_monster(monster):

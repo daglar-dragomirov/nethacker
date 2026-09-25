@@ -58,9 +58,11 @@ class Agent:
         self.last_bfs_dis = None
         self.last_bfs_step = None
         self.last_prayer_turn = None
+        self._monk_meat_meals = 0
         self._previous_glyphs = None
         self._last_turn = -1
         self._inactivity_counter = 0
+        self._pass_turn_after_error = False
         self._is_updating_state = False
 
         self._no_step_calls = False
@@ -1142,7 +1144,7 @@ class Agent:
                 actions = list(filter(lambda x: x[1][0] != 'ranged', actions))
 
             if allow_attack_all:
-                attack_actions = [a for a in actions if a[1][0] in ('melee', 'ranged', 'zap')]
+                attack_actions = [a for a in actions if a[1][0] in ('melee', 'kick', 'ranged', 'zap')]
                 if attack_actions:
                     actions = attack_actions
 
@@ -1176,6 +1178,12 @@ class Agent:
                 self.melee_attack(target_y, target_x)
                 wait_counter = 0
                 return wait_counter
+
+        elif best_action[0] == 'kick':
+            _, dy, dx = best_action
+            self.kick(self.blstats.y + dy, self.blstats.x + dx)
+            wait_counter = 0
+            return wait_counter
 
         elif best_action[0] == 'ranged':
             _, dy, dx = best_action
@@ -1750,19 +1758,36 @@ class Agent:
         if isinstance(exc, (KeyboardInterrupt, AgentFinished, SystemExit)):
             raise exc
         if isinstance(exc, BaseException):
-            # hypothesis: any unexpected in-game bug (a failed assertion on an unusual message such
-            # as "Without a free hand, you cannot loot anything.", a parse error, ...) used to be
-            # re-raised here, killing the agent thread -- the game then idles on ESC until the
-            # no-progress timeout, forfeiting all further progress of an otherwise healthy (often
-            # Xp7-9) run. Recovering from ordinary exceptions exactly like an AgentPanic (reset the
-            # state, re-plan) lets those runs keep playing and progressing; games that never hit a
-            # bug are unaffected. Genuinely stuck loops are still caught by the cyclic-panic guard.
-            if not isinstance(exc, (AgentPanic, Exception)) and not self.panic_on_errors:
-                raise exc
+            # hypothesis: many games end early because the bot crashes, not because the
+            # character dies. The Sokoban map strings were indented, so every scripted push
+            # failed an assertion, and other errors (unhandled prompts, hallucination missed on
+            # the abbreviated status line, weightless items, stale-state assertions) were
+            # re-raised. Either way the AutoAscend thread died, the arena only got ESC fallbacks
+            # and NLE aborted ~29% of games with a healthy character. Fixing those crash sources
+            # and recovering from every error like an AgentPanic (letting a turn pass when the
+            # same error repeats) keeps the games alive to gain more experience levels and depth.
+            if not isinstance(exc, AgentPanic):
+                self._drop_state_after_error()
             self.stats_logger.log_event('agent_panic')
             self.all_panics.append(exc)
             if self.verbose:
                 print(f'PANIC!!!! : {exc}')
+
+    def _drop_state_after_error(self):
+        # An unexpected error can leave caches half-updated (e.g. the items below the agent
+        # cleared but never re-read). The recovery ESC steps run update() before on_panic()
+        # gets a chance to reset them, so drop them here (without stepping) to have them rebuilt.
+        if self._inactivity_counter >= 199:
+            # the 'turn inactivity' guard fired: the strategies loop without the game advancing
+            self._pass_turn_after_error = True
+        self._inactivity_counter = 0
+        self._is_reading_message_or_popup = False
+        self.inventory.items_below_me = None
+        self.inventory.letters_below_me = None
+        self.inventory.engraving_below_me = None
+        self.inventory._previous_blstats = None
+        self.inventory.items.on_panic()
+        self.monster_tracker.on_panic()
 
     def main(self):
         try:
@@ -1793,18 +1818,35 @@ class Agent:
 
             last_step = self.step_count
             inactivity_counter = 0
+            forced_turns = 0
+            turn_after_forced = None
             while 1:
                 inactivity_counter += 1
                 if self.step_count != last_step:
                     inactivity_counter = 0
 
-                if inactivity_counter >= 5:
+                if inactivity_counter >= 5 or self._pass_turn_after_error:
                     try:
                         panics = sorted({p.args[0] for p in self.all_panics[-5:]})
                     except (TypeError, IndexError):
                         panics = 'UNKNOWN'
 
-                    raise RuntimeError(f'Cyclic Panic: {panics}')
+                    # The same error keeps recurring without the game advancing. Let a turn pass
+                    # (so e.g. a monster in the way or a temporary status can change) instead of
+                    # giving up at once, unless nothing else has advanced the game for too long.
+                    if turn_after_forced is None or self.blstats.time != turn_after_forced:
+                        forced_turns = 0
+                    if forced_turns >= 300:
+                        raise RuntimeError(f'Cyclic Panic: {panics}')
+                    forced_turns += 1
+                    inactivity_counter = 0
+                    self._pass_turn_after_error = False
+                    try:
+                        self.step(A.Command.SEARCH)
+                    except BaseException as e:
+                        self.handle_exception(e)
+                    turn_after_forced = self.blstats.time
+                    last_step = self.step_count
 
                 try:
                     try:

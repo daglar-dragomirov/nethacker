@@ -3,6 +3,9 @@
   "name": "autoascend-dive",
   "root": "autoascend",
   "parents": ["github.com/Komershan/nethacker@132b7c2d662f40bf7f86335c98709025b8b23967"],
-  "influences": ["github.com/Komershan/nethacker@132b7c2d662f40bf7f86335c98709025b8b23967"],
+  "influences": [
+    "github.com/Komershan/nethacker@132b7c2d662f40bf7f86335c98709025b8b23967",
+    "github.com/DT6A/nethacker@464e1662a4cb60567c7946d2d952278c64eefe84"
+  ],
   "entrypoint": "bot.py"
 }

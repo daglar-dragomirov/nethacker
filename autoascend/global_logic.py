@@ -47,7 +47,9 @@ class ItemPriority(ItemPriorityBase):
 
             how_many_already_total = ret_inv.get(item, 0) + ret_bag.get(item, 0)
             how_many_already = ret.get(item, 0)
-            max_to_add = int(remaining_weight // item.unit_weight(with_content=False))
+            unit_weight = item.unit_weight(with_content=False)
+            # weightless items (e.g. wraith corpses) would make this an infinite count
+            max_to_add = item.count if unit_weight <= 0 else int(remaining_weight // unit_weight)
             if count is not None:
                 max_to_add = min(max_to_add, count)
             ret[item] = min(item.count, how_many_already_total + max_to_add) - (how_many_already_total - how_many_already)
@@ -163,6 +165,8 @@ EARLY_DIG_XL = 5
 # turns a non-gnome, non-dwarf spends hunting the Mines' dwarves for a pick-axe after the Dlvl 1
 # grind before it gives up and dives by the stairs; 0 disables the hunt
 PICK_HUNT_TURNS = 3000
+# experience level the Dlvl 1 grind stops at before the deep phase begins
+GRIND_XL = 8
 
 
 class GlobalLogic:
@@ -413,7 +417,8 @@ class GlobalLogic:
             candidate = self.agent.inventory.move_to_inventory(candidate)
             self.agent.step(A.Command.DIP)
             self.agent.type_text(self.agent.inventory.items.get_letter(candidate))
-            if 'What do you want to dip ' in self.agent.message and 'into?' in self.agent.message:
+            if ('What do you want to dip ' in self.agent.message and 'into?' in self.agent.message) or \
+                    "You don't have anything to dip " in self.agent.message:
                 raise AgentPanic('no fountain here')
 
     def can_sacrify(self, item):
@@ -532,7 +537,7 @@ class GlobalLogic:
         while 1:
             explore_stairs_condition = lambda: False
             if self.milestone == Milestone.BE_ON_FIRST_LEVEL:
-                condition = lambda: self.agent.blstats.experience_level >= 8
+                condition = lambda: self.agent.blstats.experience_level >= GRIND_XL
                 # explore_stairs_condition = lambda: self.agent.inventory.items.total_nutrition() == 0 and \
                 #                                    self.agent.blstats.hunger_state >= Hunger.NOT_HUNGRY
                 level = (Level.DUNGEONS_OF_DOOM, 1)
