@@ -1632,6 +1632,20 @@ class Agent:
             self.direction('>')
             return
 
+        # Most deaths past the grind (Xp 5-8 on Dlvl 2-6: soldier ants, rothes, werejackals) happen a
+        # few squares from a known down staircase, while the rule above only fires on '>'. Below half
+        # HP with a mobile hostile close by, walk to a nearby known '>' and take it: only adjacent
+        # monsters follow, the new level usually has a quiet spot to rest, and the depth is banked.
+        # From github.com/Komershan/nethacker@615e07b.
+        step = self._flee_downstairs_step()
+        if step is not None:
+            yield True
+            if step == '>':
+                self.direction('>')
+            else:
+                self.move(*step)
+            return
+
         # hypothesis: many runs die in melee at low XP (Xp5-7) across all four identities. This
         # Elbereth last resort sits at the very bottom of emergency_strategy -- below the healing
         # cast, healing potion, fruit juice and prayer -- so it only fires when the Healer is at
@@ -1651,6 +1665,65 @@ class Agent:
             return
 
         yield False
+
+    def _flee_downstairs_step(self, max_dist=12, threat_dist=5):
+        level = self.current_level()
+        if level.dungeon_number not in (Level.DUNGEONS_OF_DOOM, Level.GNOMISH_MINES) or \
+                level.level_number < 2:
+            return None
+        if self.blstats.hitpoints * 2 >= self.blstats.max_hitpoints:
+            return None
+        y, x = self.blstats.y, self.blstats.x
+        threats = [m for m in self.get_visible_monsters()
+                   if max(abs(m[1] - y), abs(m[2] - x)) <= threat_dist and
+                   m[3].mname not in combat.monster_utils.ONLY_RANGED_SLOW_MONSTERS]
+        if not threats:
+            return None
+        if level.objects[y, x] in G.STAIR_DOWN:
+            return '>'
+        dis = self.bfs()
+        stairs = [(sy, sx) for sy, sx in zip(*utils.isin(level.objects, G.STAIR_DOWN).nonzero())
+                  if 0 < dis[sy, sx] <= max_dist]
+        if not stairs:
+            return None
+        sy, sx = min(stairs, key=lambda p: dis[p])
+        ny, nx = self.path(y, x, sy, sx, dis=dis)[1]
+        if self.monster_tracker.monster_mask[ny, nx]:
+            return None
+        return ny, nx
+
+    def _can_rest(self):
+        if self.blstats.hitpoints * 2 >= self.blstats.max_hitpoints:
+            return False
+        if self.blstats.hunger_state >= Hunger.HUNGRY or self.character.prop.hallu:
+            return False
+        if self.current_level().shop[self.blstats.y, self.blstats.x]:
+            return False
+        for _, y, x, _, _ in self.get_visible_monsters():
+            if max(abs(y - self.blstats.y), abs(x - self.blstats.x)) <= 6:
+                return False
+        return True
+
+    @utils.debug_log('rest_to_heal')
+    @Strategy.wrap
+    def rest_to_heal(self):
+        # The bot never rests: after a fight it walks on (explores, takes stairs, digs) at whatever HP
+        # it has left, so the next monster meets a half-dead character. Below half HP with no hostile
+        # in sight and not hungry, stand on a dust Elbereth and search until HP is back to 90%.
+        # fight2, emergency and eating preempt this, so a monster showing up interrupts the rest.
+        # From github.com/Komershan/nethacker@9b873ea.
+        if not self._can_rest():
+            yield False
+        yield True
+        level = self.current_level()
+        y, x = self.blstats.y, self.blstats.x
+        if self.inventory.engraving_below_me.lower() != 'elbereth' and self.can_engrave() and \
+                level.objects[y, x] not in G.STAIR_UP and level.objects[y, x] not in G.STAIR_DOWN and \
+                level.objects[y, x] not in G.ALTAR and level.objects[y, x] not in G.FOUNTAIN:
+            self.engrave('Elbereth')
+        while self.blstats.hitpoints * 10 < self.blstats.max_hitpoints * 9 and \
+                self.blstats.hunger_state < Hunger.HUNGRY:
+            self.search(5)
 
     @utils.debug_log('proactive_sleep')
     @Strategy.wrap
