@@ -175,7 +175,20 @@ MINES_FOLK_ROUTE = True
 ROLE_GRIND_XL = {
     Character.BARBARIAN: 8, Character.KNIGHT: 8, Character.PRIEST: 8, Character.VALKYRIE: 8,
     Character.ROGUE: 8, Character.SAMURAI: 8, Character.HEALER: 8, Character.WIZARD: 8,
+    # from github.com/eL1fe/nethacker@ff8e491: a bare-handed Monk at Xp 5 dies to the hostile
+    # Mines packs it meets on the pick hunt; martial arts scale with level
+    Character.MONK: 5,
 }
+# Xp from which a character carrying a pick digs down, where it differs from EARLY_DIG_XL
+ROLE_EARLY_DIG_XL = {}
+# ablation switches for fixes made while diving (see their call sites)
+DIVE_SKIPS_EXPLORATION = True
+LEAVE_GRIND_WHEN_HUNGRY = True
+
+
+def early_dig_xl(character):
+    return ROLE_EARLY_DIG_XL.get(character.role, EARLY_DIG_XL)
+
 ROLES_WITHOUT_MINES_ROUTES = {Character.ROGUE, Character.SAMURAI}
 
 
@@ -271,6 +284,16 @@ class GlobalLogic:
             else:
                 assert 0, 'sokomap not found'
 
+            def simulate_move(y, x, dy, dx):
+                # the real level diverged from the solver (a boulder got destroyed,
+                # displaced or buried), so the stored solution no longer applies
+                try:
+                    sokomap.move(y, x, dy, dx)
+                except AssertionError:
+                    self.agent.stats_logger.log_event('sokoban_dropped')
+                    self.milestone = Milestone(int(self.milestone) + 1)
+                    raise AgentPanic('sokomap desynced')
+
             possible_mimics = set()
             last_resort_move = None
             for (y, x), (dy, dx) in answer:
@@ -284,7 +307,7 @@ class GlobalLogic:
                         self.agent.glyphs[ty + dy, tx + dx] in G.BOULDER:
 
                     soko_dis1 = sokomap.bfs()
-                    sokomap.move(y, x, dy, dx)
+                    simulate_move(y, x, dy, dx)
                     soko_dis2 = sokomap.bfs()
 
                     # see points that will no longer be accessible
@@ -316,7 +339,7 @@ class GlobalLogic:
                         return
 
                 else:
-                    sokomap.move(y, x, dy, dx)
+                    simulate_move(y, x, dy, dx)
 
                 if (~soko_boulder_mask | mask).all():
                     if self.agent.bfs()[ty, tx] != -1 and \
@@ -557,7 +580,7 @@ class GlobalLogic:
                 # there, fainting in front of the next pack of jackals. Hungry with nothing left to
                 # eat, move on down where corpses (and experience) come faster.
                 condition = lambda: self.agent.blstats.experience_level >= self._grind_xl() or \
-                    (self.agent.blstats.hunger_state >= Hunger.HUNGRY and
+                    (LEAVE_GRIND_WHEN_HUNGRY and self.agent.blstats.hunger_state >= Hunger.HUNGRY and
                      self.agent.inventory.items.total_nutrition() == 0)
                 # explore_stairs_condition = lambda: self.agent.inventory.items.total_nutrition() == 0 and \
                 #                                    self.agent.blstats.hunger_state >= Hunger.NOT_HUNGRY
@@ -605,7 +628,7 @@ class GlobalLogic:
             # a character that can dig heads straight down instead of grinding on Dlvl 1 (see
             # Agent.dig_down); otherwise the Dlvl 1 milestone walks it back up after every hole
             if self.milestone < Milestone.GO_DOWN and \
-                    self.agent.blstats.experience_level >= EARLY_DIG_XL and \
+                    self.agent.blstats.experience_level >= early_dig_xl(self.agent.character) and \
                     self.agent.pick_for_digging() is not None:
                 self.milestone = Milestone.GO_DOWN
                 continue
@@ -687,7 +710,7 @@ class GlobalLogic:
             # explored it for 9000 turns instead of walking up to the main dungeon to dig. When
             # diving, skip the exhaustive pass and head for the level the plan wants.
             def diving():
-                return self.milestone in (Milestone.GO_DOWN, Milestone.FIND_MINES_END) or \
+                return DIVE_SKIPS_EXPLORATION and self.milestone in (Milestone.GO_DOWN, Milestone.FIND_MINES_END) or \
                     (self.milestone == Milestone.FIND_MINETOWN and self._pick_hunt_start is None)
 
             step_count_before = self.agent.step_count
