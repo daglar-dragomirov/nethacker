@@ -804,10 +804,18 @@ class Inventory:
             items = self.items
         items = flatten_items(items)
 
+        # "You cannot swing a two-handed weapon while wearing a shield": when our only digging tool
+        # is a dwarvish mattock, go without a shield so Agent.dig_down can apply it (see
+        # GlobalLogic._update_squeeze_cap)
+        pick = self.agent.pick_for_digging()
+        no_shield = pick is not None and pick.objs[0].name == 'dwarvish mattock'
+
         best_items = [None] * O.ARM_NUM
         best_ac = [None] * O.ARM_NUM
         for item in items:
             if not item.is_armor() or not item.is_unambiguous():
+                continue
+            if no_shield and item.object.sub == O.ARM_SHIELD:
                 continue
 
             # TODO: consider other always allowed items than dragon hide
@@ -1348,7 +1356,14 @@ class Inventory:
         self.item_manager.price_identification()
         if self.agent.current_level().shop_interior[self.agent.blstats.y, self.agent.blstats.x]:
             yield False
-        if len(self.items_below_me) == 0:
+        if len(self.items_below_me) == 0 and not self.over_squeeze_cap():
             yield False
 
         yield from self.arrange_items().strategy()
+
+    def over_squeeze_cap(self):
+        # see GlobalLogic._update_squeeze_cap: drop down to the cap right where we stand
+        from autoascend.global_logic import SQUEEZE_WEIGHT_LIMIT
+        return self.agent.global_logic.squeeze_cap and \
+               self.items.total_weight > SQUEEZE_WEIGHT_LIMIT and \
+               any(i.can_be_dropped_from_inventory() for i in flatten_items(self.items))
