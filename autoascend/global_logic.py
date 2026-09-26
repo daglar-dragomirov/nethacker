@@ -164,11 +164,11 @@ class Milestone(IntEnum):
 EARLY_DIG_XL = 5
 # turns a non-gnome, non-dwarf spends hunting the Mines' dwarves for a pick-axe after the Dlvl 1
 # grind before it gives up and dives by the stairs; 0 disables the hunt
-PICK_HUNT_TURNS = 3000
+PICK_HUNT_TURNS = 0
 # experience level the Dlvl 1 grind stops at before the deep phase begins
-GRIND_XL = 5
+GRIND_XL = 8
 # gnomes and dwarves walk the peaceful Mines to Mines' End before diving the main dungeon
-MINES_FOLK_ROUTE = True
+MINES_FOLK_ROUTE = False
 
 
 class GlobalLogic:
