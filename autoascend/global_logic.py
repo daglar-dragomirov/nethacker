@@ -161,7 +161,7 @@ class Milestone(IntEnum):
 
 
 # experience level from which a character carrying a pick-axe skips the Dlvl 1 grind and digs down
-EARLY_DIG_XL = 5
+EARLY_DIG_XL = 3
 # turns a non-gnome, non-dwarf spends hunting the Mines' dwarves for a pick-axe after the Dlvl 1
 # grind before it gives up and dives by the stairs; 0 disables the hunt
 PICK_HUNT_TURNS = 3000
