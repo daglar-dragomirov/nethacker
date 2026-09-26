@@ -12,7 +12,8 @@
     "github.com/Komershan/nethacker@132b7c2d662f40bf7f86335c98709025b8b23967",
     "github.com/Komershan/nethacker@5deb412e988e8b8e99ad225bd69f2de86c0c63fd",
     "github.com/Komershan/nethacker@8e0e320501ad2b70f8d912e3e555d4f1e59f786e",
-    "github.com/eL1fe/nethacker@ff8e49187df304cbd0ad2bbbe8109feb19e48e0b"
+    "github.com/eL1fe/nethacker@ff8e49187df304cbd0ad2bbbe8109feb19e48e0b",
+    "github.com/eL1fe/nethacker@dc2765b9a90074e2823521afb721b7ee16ef35a7"
   ],
   "entrypoint": "bot.py"
 }

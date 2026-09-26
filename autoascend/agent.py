@@ -921,7 +921,17 @@ class Agent:
                     (self.blstats.y, self.blstats.x)] = (level.key(), (expected_y, expected_x))
 
         else:
+            level = self.current_level()
+            my_y, my_x = self.blstats.y, self.blstats.x
             self.direction(dir)
+
+            # a doorway the map shows as doorless can still hold an (open or broken-looking) door;
+            # remember it or the diagonal-shortest path retries the same refused step forever.
+            # From github.com/eL1fe/nethacker@dc2765b.
+            if "move diagonally into an intact doorway" in self.message:
+                level.no_diagonal[expected_y, expected_x] = True
+            if "move diagonally out of an intact doorway" in self.message:
+                level.no_diagonal[my_y, my_x] = True
 
             if self.blstats.y != expected_y or self.blstats.x != expected_x:
                 raise AgentPanic(f'agent position do not match after "move": '
@@ -1011,7 +1021,8 @@ class Agent:
 
         dis = utils.bfs(y, x,
                         walkable=walkable,
-                        walkable_diagonally=walkable & ~utils.isin(level.objects, G.DOORS) & (level.objects != -1),
+                        walkable_diagonally=walkable & ~utils.isin(level.objects, G.DOORS) & (level.objects != -1) &
+                                            ~level.no_diagonal,
                         can_squeeze=(self.inventory.items.total_weight <= 600 if default_squeeze else can_squeeze) and \
                                     self.current_level().dungeon_number != Level.SOKOBAN,
                         )

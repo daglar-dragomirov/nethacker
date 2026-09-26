@@ -539,17 +539,19 @@ class GlobalLogic:
             # sufficient condition for being an initial pet
             return False
 
-        if self.agent.character.alignment != Character.CHAOTIC:
-            mapping = {
-                Character.HUMAN: MON.M2_HUMAN | MON.M2_WERE,
-                Character.DWARF: MON.M2_DWARF,
-                Character.ELF: MON.M2_ELF,
-                Character.GNOME: MON.M2_GNOME,
-                Character.ORC: MON.M2_ORC,
-            }
-            f2 = MON.permonst(item.monster_id + nh.GLYPH_MON_OFF).mflags2
-            if (f2 & mapping[self.agent.character.race]) > 0:
-                return False
+        # a chaotic character offering a corpse of its own race summons a demon lord (Juiblex,
+        # Orcus, ...) onto the altar; never offer same-race corpses, whatever the alignment.
+        # From github.com/eL1fe/nethacker@dc2765b.
+        mapping = {
+            Character.HUMAN: MON.M2_HUMAN | MON.M2_WERE,
+            Character.DWARF: MON.M2_DWARF,
+            Character.ELF: MON.M2_ELF,
+            Character.GNOME: MON.M2_GNOME,
+            Character.ORC: MON.M2_ORC,
+        }
+        f2 = MON.permonst(item.monster_id + nh.GLYPH_MON_OFF).mflags2
+        if (f2 & mapping[self.agent.character.race]) > 0:
+            return False
 
         return True
 

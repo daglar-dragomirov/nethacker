@@ -45,6 +45,8 @@ class Level:
 
         # e.g. ad aerarium -- avoid valut entrance
         self.forbidden = np.zeros((C.SIZE_Y, C.SIZE_X), bool)
+        # doorways that refused a diagonal step
+        self.no_diagonal = np.zeros((C.SIZE_Y, C.SIZE_X), bool)
 
     def key(self):
         return (self.dungeon_number, self.level_number)
