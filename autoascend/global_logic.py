@@ -183,7 +183,7 @@ ROLE_GRIND_XL = {
 ROLE_EARLY_DIG_XL = {}
 # ablation switches for fixes made while diving (see their call sites)
 DIVE_SKIPS_EXPLORATION = True
-LEAVE_GRIND_WHEN_HUNGRY = True
+LEAVE_GRIND_WHEN_HUNGRY = False
 
 
 def early_dig_xl(character):
