@@ -1781,7 +1781,7 @@ class Agent:
         # Dig in the Mines too, down to Mines' End (Dlvl 10-13), instead of walking a found pick back
         # up through hostile packs; a floor "too hard to dig in" (Mines' End, Sokoban, Medusa...) is
         # remembered so it is not retried. From github.com/Komershan/nethacker@5deb412.
-        if self.current_level().dungeon_number not in (Level.DUNGEONS_OF_DOOM, Level.GNOMISH_MINES):
+        if self.current_level().dungeon_number != Level.DUNGEONS_OF_DOOM:
             yield False
             return
         if self.current_level().dungeon_number == Level.GNOMISH_MINES and self._mines_bottom_found:
