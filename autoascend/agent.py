@@ -30,6 +30,19 @@ BLStats = namedtuple('BLStats',
                      'x y strength_percentage strength dexterity constitution intelligence wisdom charisma score hitpoints max_hitpoints depth gold energy max_energy armor_class monster_level experience_level experience_points time hunger_state carrying_capacity dungeon_number level_number prop_mask alignment')
 
 
+# a hunger prayer waits this many turns after the previous prayer: a timeout drawn from rnz(350)
+# is still above the major-trouble limit (200) ~7% of the time after 900 turns, ~2.5% after 1200
+HUNGER_PRAYER_GAP = 1200
+# ...unless the character has been fainting this long (hunger then drops at 1/10 the rate)
+FAINTING_PRAYER_DEADLINE = 300
+# ...or as soon as a hostile that can move shows up this close while the character is Fainting,
+# provided at least this many turns have passed since the previous prayer
+THREAT_PRAYER_GAP = 950
+THREAT_PRAYER_DISTANCE = 6
+PRAYER_FAILED_MESSAGES = ('is displeased', 'Thou hast angered me', 'Thou art arrogant', 'Thou hast strayed',
+                          'Thou durst', 'relearn thy lessons', 'is bummed')
+
+
 class Agent:
     def __init__(self, env, seed=0, verbose=False, panic_on_errors=False):
         self.env = env
@@ -62,6 +75,8 @@ class Agent:
         self.last_bfs_dis = None
         self.last_bfs_step = None
         self.last_prayer_turn = None
+        self.prayer_failed = False  # the god was angered: every later prayer only smites again
+        self._fainting_since = None
         self._monk_meat_meals = 0
         self._previous_glyphs = None
         self._last_turn = -1
@@ -84,6 +99,7 @@ class Agent:
 
         self.last_cast_fail_turn = defaultdict(lambda: -float('inf'))
         self._pick_dig_attempts = dict()
+        self._dig_engrave_attempts = dict()
         self._undiggable_levels = set()  # level keys whose floor refused a dig
         self._mines_bottom_found = False  # Mines' End reached: no more digging in the Mines
         self._mapped_levels = set()
@@ -757,6 +773,8 @@ class Agent:
     def is_safe_to_pray(self, limit=500):
         # the prayer timeout starts at 300 and drops by one a turn; major trouble is fixed once it is
         # at most 200, so the first prayer is safe from about turn 100 (not 300: a diver is long dead)
+        if self.prayer_failed:
+            return False
         return (
                 (self.last_prayer_turn is None and self.blstats.time > 110) or
                 (self.last_prayer_turn is not None and self.blstats.time - self.last_prayer_turn > limit)
@@ -765,6 +783,8 @@ class Agent:
     def pray(self):
         self.step(A.Command.PRAY)
         self.last_prayer_turn = self.blstats.time
+        if any(s in self.message for s in PRAYER_FAILED_MESSAGES):
+            self.prayer_failed = True
         # TODO: return value
         return True
 
@@ -1470,6 +1490,11 @@ class Agent:
     @utils.debug_log('emergency_strategy')
     @Strategy.wrap
     def emergency_strategy(self):
+        if self.blstats.hunger_state >= Hunger.FAINTING:
+            if self._fainting_since is None:
+                self._fainting_since = self.blstats.time
+        else:
+            self._fainting_since = None
 
         if self.blstats.experience_level >= 8 or self.character.role == Character.MONK:
             if self.should_cast_extra_heal():
@@ -1547,17 +1572,43 @@ class Agent:
                     self.zap(sleep_wand, direction)
                     return
 
-        # Pray exactly when the god sees major trouble (pray.c critically_low_hp): praying above
-        # it is answered "displeased" with -3 Luck and an angrier god, below it the character may
-        # already be dead. Hunger is major trouble from Weak on; waiting for Fainting left long
-        # Dlvl 1 grinds passing out between packs of jackals that ate them while unconscious.
+        # hypothesis: prayer is the Dlvl 1 grind's food supply (a hunger prayer every ~1000 turns for
+        # 15-20k turns), and traces show that is what ends most grinds: the bot prays at the first
+        # faint, ~900-1000 turns after the previous prayer, while the rnz(350) prayer timeout has a
+        # long tail -- about 1 in 10 such prayers come too soon, the god is angered (Luck -3, anger),
+        # and every later prayer (re-tried each 400 turns) smites again (lost levels) while the
+        # character faints over and over until a newt, rat or bat kills it. Waiting until
+        # HUNGER_PRAYER_GAP turns have passed cuts that failure rate to ~2-3%; fainting-phase
+        # hunger drops at a tenth of the rate while unconscious, so starvation is still far away,
+        # and the helpless fainting spells are spent standing on Elbereth, which the grind's
+        # animals and humanoids respect. After a failed prayer the bot no longer prays at all.
+        hunger_prayer_due = self.blstats.hunger_state >= Hunger.FAINTING and (
+                self.last_prayer_turn is None or
+                self.blstats.time - self.last_prayer_turn >= HUNGER_PRAYER_GAP or
+                self.blstats.time - self._fainting_since >= FAINTING_PRAYER_DEADLINE or
+                self.blstats.hitpoints * 2 < self.blstats.max_hitpoints or
+                self._fainting_threat_prayer_due())
+        # Pray at the game's exact major-trouble HP threshold (pray.c critically_low_hp); for
+        # hunger, only once the timeout tail is safe (see above).
         if (
                 (self.is_safe_to_pray(500) and self.critically_low_hp())
-                or (self.is_safe_to_pray(400) and self.blstats.hunger_state >= Hunger.WEAK)
+                or (self.is_safe_to_pray(400) and hunger_prayer_due)
         ):
             yield True
             self.pray()
             return
+
+        if self.blstats.hunger_state >= Hunger.FAINTING and not self.prayer_failed and \
+                not hunger_prayer_due and not self._has_food_in_reach():
+            if self.inventory.engraving_below_me.lower() != 'elbereth':
+                if self.can_engrave():
+                    yield True
+                    self.engrave('Elbereth')
+                    return
+            else:
+                yield True
+                self.search(5)
+                return
 
         # standing on a down staircase at crisis HP with prayer spent: take it. Only adjacent
         # monsters follow, the new level is a fresh start, and the depth is banked either way.
@@ -1739,15 +1790,6 @@ class Agent:
         if self.current_level().key() in self._undiggable_levels:
             yield False
             return
-        # stay safe: let fight2 / emergency_strategy handle threats before we spend turns digging
-        if self.blstats.hitpoints < 0.7 * self.blstats.max_hitpoints:
-            yield False
-            return
-        for _, my, mx, _, _ in self.get_visible_monsters():
-            if max(abs(my - self.blstats.y), abs(mx - self.blstats.x)) <= 1:
-                yield False
-                return
-
         wand = None
         for item in flatten_items(self.inventory.items):
             if item.is_wand() and item.is_unambiguous() and item.object.name == 'digging' \
@@ -1755,6 +1797,43 @@ class Agent:
                         and not self.wand_is_empty(item):
                 wand = item
                 break
+
+        # A pick-axe dive dies in the ~5 turns per hole it spends digging while monsters walk up and
+        # maul it, or after it stops digging below 70% HP and wanders the deep level instead. Dig
+        # under a dust Elbereth: engraved before starting and again once the pit is dug (digging the
+        # pit wipes it). Every monster but @ (humans, elves) and minotaurs then refuses to melee us,
+        # and a scared monster does not interrupt the dig, so keep digging with such monsters
+        # adjacent and at any HP short of the prayer / healing-potion emergencies.
+        # From github.com/DT6A/nethacker@e3f389b.
+        shielded = wand is None and self.pick_for_digging() is not None and self.can_engrave()
+        adjacent = [m for m in self.get_visible_monsters()
+                    if max(abs(m[1] - self.blstats.y), abs(m[2] - self.blstats.x)) <= 1]
+        if shielded:
+            if any(not self._respects_elbereth(m[3]) for m in adjacent):
+                yield False
+                return
+            if self.critically_low_hp() and self.is_safe_to_pray(500):
+                yield False
+                return
+            hp, max_hp = self.blstats.hitpoints, self.blstats.max_hitpoints
+            if (hp < max_hp / 3 or hp < 8) and any(
+                    item.is_unambiguous() and item.category == nh.POTION_CLASS and
+                    item.object.name in ['healing', 'extra healing', 'full healing']
+                    for item in flatten_items(self.inventory.items)):
+                yield False
+                return
+            if self.blstats.hunger_state >= Hunger.HUNGRY:
+                yield False
+                return
+        else:
+            # stay safe: let fight2 / emergency_strategy handle threats before we spend turns digging
+            if self.blstats.hitpoints < 0.7 * self.blstats.max_hitpoints:
+                yield False
+                return
+            if adjacent:
+                yield False
+                return
+
         if wand is not None:
             yield True
             self.zap(wand, '>')
@@ -1783,9 +1862,22 @@ class Agent:
         # fall through, a wielding problem, ...) so this can never loop forever
         key = (self.current_level().key(), y, x)
         attempts = self._pick_dig_attempts.get(key, 0)
-        if attempts >= 8:
+        # under Elbereth the dig is still interrupted by monsters coming into view, so allow more
+        if attempts >= (16 if shielded else 8):
             yield False
             return
+
+        if shielded and self.inventory.engraving_below_me.lower() != 'elbereth':
+            # a dust engraving garbles a letter now and then, so allow a few rewrites per spot
+            engraves = self._dig_engrave_attempts.get(key, 0)
+            if engraves < 4:
+                yield True
+                self._dig_engrave_attempts[key] = engraves + 1
+                self.engrave('Elbereth')
+                return
+            if adjacent or self.blstats.hitpoints < 0.7 * self.blstats.max_hitpoints:
+                yield False
+                return
 
         yield True
         self._pick_dig_attempts[key] = attempts + 1
@@ -1797,15 +1889,53 @@ class Agent:
                 self.direction('>')
                 self._check_undiggable_floor()
             else:
-                self._pick_dig_attempts[key] = 8
+                self._pick_dig_attempts[key] = 99
                 if 'direction' in self.message:
                     self.step(A.Command.ESC)
+
+    @staticmethod
+    def _respects_elbereth(mon):
+        # @ (humans and elves) and minotaurs ignore Elbereth; so may whatever we cannot see
+        return mon.mname not in ('unknown', 'minotaur') and ord(mon.mlet) != MON.S_HUMAN
 
     def _check_undiggable_floor(self):
         if 'too hard to dig' in self.message:
             self._undiggable_levels.add(self.current_level().key())
             if self.current_level().dungeon_number == Level.GNOMISH_MINES:
                 self._mines_bottom_found = True
+
+    def _fainting_threat_prayer_due(self):
+        # hypothesis: every Dlvl 1 grind death traced (kni s0, rog-orc s1/s10, rog-hum s5) is the same:
+        # the Fainting vigil waits for HUNGER_PRAYER_GAP (1200) turns after the last prayer, a newt,
+        # rat, bat or zombie wanders in, and the character -- unconscious for most of the next turns,
+        # its dust Elbereth scuffed -- is bitten from full HP to death a few dozen turns before the
+        # prayer would come (the "HP < max/2" trigger never fires: the character cannot act while
+        # fainted). Fainting only starts 900-1200 turns after a prayer, where a prayer comes too soon
+        # just ~3-6% of the time (rnz(350) tail), while a monster next to a fainting character is
+        # nearly always fatal. So pay the small prayer risk exactly when the danger shows up: pray at
+        # once when a hostile mobile monster comes within THREAT_PRAYER_DISTANCE during the vigil.
+        if self.last_prayer_turn is None or \
+                self.blstats.time - self.last_prayer_turn < THREAT_PRAYER_GAP:
+            return False
+        for _, y, x, permonst, _ in self.get_visible_monsters():
+            if getattr(permonst, 'mmove', 12) == 0:
+                continue
+            if max(abs(y - self.blstats.y), abs(x - self.blstats.x)) <= THREAT_PRAYER_DISTANCE:
+                return True
+        return False
+
+    def _has_food_in_reach(self):
+        for item in flatten_items(self.inventory.items):
+            if item.category == nh.FOOD_CLASS and \
+                    item.objs[0].name != 'sprig of wolfsbane' and \
+                    (not item.is_corpse() or
+                     item.monster_id in [MON.from_name(n) - nh.GLYPH_MON_OFF for n in ['lizard', 'lichen']]):
+                return True
+        for corpse_mapping in self.current_level().corpses_to_eat.values():
+            for monster_id, corpse_age in corpse_mapping.items():
+                if self._is_corpse_editable(monster_id, corpse_age):
+                    return True
+        return False
 
     @utils.debug_log('eat_from_inventory')
     @Strategy.wrap
