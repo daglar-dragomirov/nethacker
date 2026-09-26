@@ -1284,8 +1284,6 @@ class Inventory:
                 if item.is_chest() and not (item.is_unambiguous() and item.object.name == 'ice box'):
                     fail_msg = self.agent.untrap_container_below_me()
                     if fail_msg == 'hands busy':
-                        # "Your hands seem to be too busy for that": retrying loops until the
-                        # no-progress guard ends the game, so leave this container alone
                         self._unopenable_containers.add(spot)
                         continue
                     if fail_msg is not None and check_if_triggered_container_trap(fail_msg):

@@ -278,8 +278,6 @@ def get_available_actions(agent, monsters):
 
             actions.extend(get_potential_wand_usages(agent, monsters, dy, dx))
 
-    actions.extend(force_bolt_actions(agent, monsters))
-
     to_pickup = decide_what_to_pickup(agent)
     if to_pickup:
         actions.append((15, ('pickup', to_pickup)))
@@ -288,49 +286,6 @@ def get_available_actions(agent, monsters):
     actions.extend(wait_action(agent, monsters))
 
     return actions
-
-
-FORCE_BOLT_RANGE = 6  # the bolt flies rn1(8, 6) squares, so 6 always reaches
-
-
-def force_bolt_actions(agent, monsters):
-    """Cast force bolt (2d6, rarely misses) at the nearest hostile on a straight, clear line.
-
-    Wizards start knowing it and it hits about twice as hard as their quarterstaff, yet the
-    fight heuristic only ever meleed; this ranks the bolt just above meleeing the same monster.
-    """
-    character = agent.character
-    if 'force bolt' not in character.known_spells or agent.blstats.energy < 5:
-        return []
-    if character.spell_fail_chance.get('force bolt', 1) > 0.3:
-        return []
-    if agent.inventory.engraving_below_me.lower() == 'elbereth':
-        return []
-    y0, x0 = agent.blstats.y, agent.blstats.x
-    walkable = agent.current_level().walkable
-    peaceful = agent.monster_tracker.peaceful_monster_mask
-    best = None
-    for monster in monsters:
-        _, y, x, mon, _ = monster
-        dy, dx = y - y0, x - x0
-        dist = max(abs(dy), abs(dx))
-        if dist == 0 or dist > FORCE_BOLT_RANGE or not (dy == 0 or dx == 0 or abs(dy) == abs(dx)):
-            continue
-        if mon.mname in EXPLODING_MONSTERS and dist == 1:
-            continue
-        sy, sx = int(np.sign(dy)), int(np.sign(dx))
-        cy, cx, clear = y0, x0, True
-        for _ in range(dist - 1):
-            cy, cx = cy + sy, cx + sx
-            if not walkable[cy, cx] or agent.glyphs[cy, cx] in G.PETS or peaceful[cy, cx]:
-                clear = False
-                break
-        if not clear:
-            continue
-        priority = melee_monster_priority(agent, monsters, monster) + 2 if dist == 1 else 14
-        if best is None or priority > best[0]:
-            best = (priority, ('force_bolt', sy, sx))
-    return [best] if best is not None else []
 
 
 def decide_what_to_pickup(agent):

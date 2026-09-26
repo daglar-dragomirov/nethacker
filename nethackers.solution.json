@@ -1,11 +1,16 @@
 {
   "schema": "nethackers.solution/v1",
-  "name": "autoascend-dive",
+  "name": "autoascend-monk-plus",
   "root": "autoascend",
-  "parents": ["github.com/Komershan/nethacker@132b7c2d662f40bf7f86335c98709025b8b23967"],
+  "parents": [
+    "github.com/eL1fe/nethacker@ff8e49187df304cbd0ad2bbbe8109feb19e48e0b"
+  ],
   "influences": [
+    "github.com/DT6A/nethacker@464e1662a4cb60567c7946d2d952278c64eefe84",
     "github.com/Komershan/nethacker@132b7c2d662f40bf7f86335c98709025b8b23967",
-    "github.com/DT6A/nethacker@464e1662a4cb60567c7946d2d952278c64eefe84"
+    "github.com/daglar-dragomirov/nethacker@cb527267cc6e3562ea8e02ccc09c90ff17fe8ccf",
+    "github.com/eL1fe/nethacker@6585733dcf31afb57bb0b113cc735f9991cfd968",
+    "github.com/eL1fe/nethacker@ff8e49187df304cbd0ad2bbbe8109feb19e48e0b"
   ],
   "entrypoint": "bot.py"
 }

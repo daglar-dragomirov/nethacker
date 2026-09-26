@@ -100,7 +100,7 @@ class AutoAscendDriver:
         self._thread_error = None
         self._sent_first_action = False
         self._env = ArenaEnvAdapter()
-        self._agent = autoascend_agent.Agent(self._env, panic_on_errors=False)
+        self._agent = autoascend_agent.Agent(self._env, panic_on_errors=True)
         self._thread = threading.Thread(target=self._run_agent, name="autoascend", daemon=True)
         self._thread.start()
 
