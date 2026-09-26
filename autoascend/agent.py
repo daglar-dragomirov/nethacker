@@ -13,11 +13,7 @@ from . import utils
 from .character import Character
 from .exceptions import AgentPanic, AgentFinished, AgentChangeStrategy
 from .exploration_logic import ExplorationLogic
-from .global_logic import GlobalLogic, early_dig_xl
-
-# ablation switches
-CORPSE_MAX_AGE = 30
-PRAY_AT_EXACT_THRESHOLD = True
+from .global_logic import GlobalLogic, EARLY_DIG_XL
 from .glyph import MON, C, Hunger, G, SHOP
 from .item import Item, flatten_items
 from .item.inventory import Inventory
@@ -433,8 +429,6 @@ class Agent:
 
         self._is_reading_message_or_popup = False
         self._message_history.append(self.message)
-        if len(self._message_history) > 400:
-            del self._message_history[:-200]  # only the last 50 are ever read
 
         # should_update = True
 
@@ -718,8 +712,6 @@ class Agent:
             self.step(A.MiscAction.MORE)
             assert self.single_message == "In what direction?", self.single_message
             self.type_text('.')
-            if 'too busy' in self.message:
-                return 'hands busy'
             if 'There is a container and a ' in self.message:
                 self.type_text('n')
             if 'You know of no traps there.' in self.message:
@@ -747,8 +739,6 @@ class Agent:
         hp, max_hp, level = self.blstats.hitpoints, self.blstats.max_hitpoints, self.blstats.experience_level
         max_hp = min(max_hp, 15 * level)
         divisor = 5 if level <= 5 else 6 if level <= 13 else 7 if level <= 21 else 8 if level <= 29 else 9
-        if not PRAY_AT_EXACT_THRESHOLD:
-            divisor, max_hp = 7, self.blstats.max_hitpoints
         return hp <= 5 or hp * divisor <= max_hp
 
     def is_safe_to_pray(self, limit=500):
@@ -1162,8 +1152,6 @@ class Agent:
                 actions = list(filter(lambda x: x[1][0] != 'ranged', actions))
             actions = [a for a in actions if not self._touch_petrifies(a[1])]
 
-            actions = [a for a in actions if not self._touch_petrifies(a[1])]
-
             if allow_attack_all:
                 attack_actions = [a for a in actions if a[1][0] in ('melee', 'kick', 'ranged', 'zap', 'force_bolt')]
                 if attack_actions:
@@ -1355,11 +1343,8 @@ class Agent:
         if permonst.mflags2 & race_flag:
             return False
 
-        # corpse aging: a corpse turns tainted once (age / (10 + rn2(20))) > 5, and from > 3 it can
-        # blind, confuse or knock you out; the age recorded here is only the kill we saw, so an
-        # older corpse of the same kind on that square passes for fresh. 30 turns keeps even the
-        # worst roll at rotted <= 3.
-        if self.blstats.time - age_turn >= CORPSE_MAX_AGE and \
+        # corpse aging
+        if self.blstats.time - age_turn >= 50 and \
                 monster_id not in [MON.id_from_name('lizard'), MON.id_from_name('lichen')]:
             return False
 
@@ -1709,7 +1694,7 @@ class Agent:
         # of depth and experience level, so a fresh character falls through levels faster than
         # the dungeon can catch up with it, and depth is worth far more than the Xp 8 it forgoes.
         if self.blstats.experience_level < 8 and not (
-                self.blstats.experience_level >= early_dig_xl(self.character) and self.pick_for_digging() is not None):
+                self.blstats.experience_level >= EARLY_DIG_XL and self.pick_for_digging() is not None):
             yield False
             return
         if self.character.prop.polymorph:
@@ -1836,13 +1821,7 @@ class Agent:
             if not isinstance(exc, AgentPanic):
                 self._drop_state_after_error()
             self.stats_logger.log_event('agent_panic')
-            # Keep only the last few, without their tracebacks: each traceback pins every frame
-            # and the observation arrays they hold, and a 70000-turn game that recovers from
-            # thousands of errors grew one bot to 6-7 GB -- the verifier's box OOMs on that and
-            # drops the whole program as crashed.
-            exc.__traceback__ = None
             self.all_panics.append(exc)
-            del self.all_panics[:-20]
             if self.verbose:
                 print(f'PANIC!!!! : {exc}')
 

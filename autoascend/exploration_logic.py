@@ -229,10 +229,7 @@ class ExplorationLogic:
             with self.agent.atom_operation():
                 self.agent.step(A.Command.LOOK)
                 r = re.search(r'There is an altar to [a-zA-Z- ]+ \(([a-z]+)\) here.', self.agent.message or self.agent.popup[0])
-                if r is None:
-                    # the remembered altar is not here (misread glyph or stale map)
-                    del level.altars[pos]
-                    return
+                assert r is not None, (self.agent.message, self.agent.popup)
                 alignment = r.groups()[0]
                 assert alignment in Character.name_to_alignment, (alignment, self.agent.message)
                 alignment = Character.name_to_alignment[alignment]

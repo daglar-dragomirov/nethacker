@@ -165,37 +165,10 @@ EARLY_DIG_XL = 5
 # turns a non-gnome, non-dwarf spends hunting the Mines' dwarves for a pick-axe after the Dlvl 1
 # grind before it gives up and dives by the stairs; 0 disables the hunt
 PICK_HUNT_TURNS = 3000
-# roles whose pick hunt paid off when doubled (73-identity A/B)
-ROLE_PICK_HUNT_TURNS = {Character.CAVEMAN: 6000, Character.MONK: 6000, Character.RANGER: 6000}
 # experience level the Dlvl 1 grind stops at before the deep phase begins
 GRIND_XL = 5
 # gnomes and dwarves walk the peaceful Mines to Mines' End before diving the main dungeon
 MINES_FOLK_ROUTE = True
-# Per-role overrides picked from a 73-identity A/B on the public seeds (Xp 5 vs Xp 8 grind,
-# with and without the Mines routes): fighters and fragile casters both do better grinding
-# to Xp 8 first; Rogues and Samurai dive the main dungeon without the Mines detours.
-# A later sweep over Xp 5/6/7/8 moved Knights and Valkyries to 7 and Healers to 6.
-ROLE_GRIND_XL = {
-    Character.BARBARIAN: 8, Character.KNIGHT: 7, Character.PRIEST: 8, Character.VALKYRIE: 7,
-    Character.ROGUE: 8, Character.SAMURAI: 8, Character.HEALER: 6, Character.WIZARD: 8,
-}
-# Xp from which a character carrying a pick digs down, where it differs from EARLY_DIG_XL
-# (a Monk-only Xp 8 dig, as in github.com/eL1fe/nethacker@ff8e491, measured worse here)
-ROLE_EARLY_DIG_XL = {}
-# ablation switches for fixes made while diving (see their call sites)
-DIVE_SKIPS_EXPLORATION = True
-LEAVE_GRIND_WHEN_HUNGRY = True
-# Roles for which leaving the Dlvl 1 grind when out of food pays (73-identity A/B): the others
-# (Healers, Knights, Priests, Rogues, Tourists, Valkyries) do better finishing the grind.
-ROLES_LEAVING_GRIND_WHEN_HUNGRY = {Character.ARCHEOLOGIST, Character.BARBARIAN, Character.CAVEMAN,
-                                   Character.RANGER, Character.SAMURAI, Character.MONK,
-                                   Character.WIZARD}
-
-
-def early_dig_xl(character):
-    return ROLE_EARLY_DIG_XL.get(character.role, EARLY_DIG_XL)
-
-ROLES_WITHOUT_MINES_ROUTES = {Character.ROGUE, Character.SAMURAI}
 
 
 class GlobalLogic:
@@ -211,12 +184,6 @@ class GlobalLogic:
         self.minetown_level = None
 
         self._got_artifact = False
-
-    def _grind_xl(self):
-        return ROLE_GRIND_XL.get(self.agent.character.role, GRIND_XL)
-
-    def _role_routes(self):
-        return self.agent.character.role not in ROLES_WITHOUT_MINES_ROUTES
 
     def update(self):
         if not self.agent.character.prop.hallu:
@@ -290,16 +257,6 @@ class GlobalLogic:
             else:
                 assert 0, 'sokomap not found'
 
-            def simulate_move(y, x, dy, dx):
-                # the real level diverged from the solver (a boulder got destroyed,
-                # displaced or buried), so the stored solution no longer applies
-                try:
-                    sokomap.move(y, x, dy, dx)
-                except AssertionError:
-                    self.agent.stats_logger.log_event('sokoban_dropped')
-                    self.milestone = Milestone(int(self.milestone) + 1)
-                    raise AgentPanic('sokomap desynced')
-
             possible_mimics = set()
             last_resort_move = None
             for (y, x), (dy, dx) in answer:
@@ -313,7 +270,7 @@ class GlobalLogic:
                         self.agent.glyphs[ty + dy, tx + dx] in G.BOULDER:
 
                     soko_dis1 = sokomap.bfs()
-                    simulate_move(y, x, dy, dx)
+                    sokomap.move(y, x, dy, dx)
                     soko_dis2 = sokomap.bfs()
 
                     # see points that will no longer be accessible
@@ -345,7 +302,7 @@ class GlobalLogic:
                         return
 
                 else:
-                    simulate_move(y, x, dy, dx)
+                    sokomap.move(y, x, dy, dx)
 
                 if (~soko_boulder_mask | mask).all():
                     if self.agent.bfs()[ty, tx] != -1 and \
@@ -585,10 +542,8 @@ class GlobalLogic:
                 # Dlvl 1 has few monsters and fewer corpses: a grind that runs out of food starves
                 # there, fainting in front of the next pack of jackals. Hungry with nothing left to
                 # eat, move on down where corpses (and experience) come faster.
-                condition = lambda: self.agent.blstats.experience_level >= self._grind_xl() or \
-                    (LEAVE_GRIND_WHEN_HUNGRY and
-                     self.agent.character.role in ROLES_LEAVING_GRIND_WHEN_HUNGRY and
-                     self.agent.blstats.hunger_state >= Hunger.HUNGRY and
+                condition = lambda: self.agent.blstats.experience_level >= GRIND_XL or \
+                    (self.agent.blstats.hunger_state >= Hunger.HUNGRY and
                      self.agent.inventory.items.total_nutrition() == 0)
                 # explore_stairs_condition = lambda: self.agent.inventory.items.total_nutrition() == 0 and \
                 #                                    self.agent.blstats.hunger_state >= Hunger.NOT_HUNGRY
@@ -636,7 +591,7 @@ class GlobalLogic:
             # a character that can dig heads straight down instead of grinding on Dlvl 1 (see
             # Agent.dig_down); otherwise the Dlvl 1 milestone walks it back up after every hole
             if self.milestone < Milestone.GO_DOWN and \
-                    self.agent.blstats.experience_level >= early_dig_xl(self.agent.character) and \
+                    self.agent.blstats.experience_level >= EARLY_DIG_XL and \
                     self.agent.pick_for_digging() is not None:
                 self.milestone = Milestone.GO_DOWN
                 continue
@@ -644,8 +599,7 @@ class GlobalLogic:
             # a pick hunt in the upper Mines that has not paid off: dive by the stairs instead
             if self.milestone in (Milestone.FIND_GNOMISH_MINES, Milestone.FIND_MINETOWN) and \
                     self._pick_hunt_start is not None and \
-                    self.agent.blstats.time - self._pick_hunt_start > \
-                    ROLE_PICK_HUNT_TURNS.get(self.agent.character.role, PICK_HUNT_TURNS):
+                    self.agent.blstats.time - self._pick_hunt_start > PICK_HUNT_TURNS:
                 self.milestone = Milestone.GO_DOWN
                 continue
 
@@ -665,10 +619,10 @@ class GlobalLogic:
                 # instead walk the peaceful Mines straight to Mines' End (Dlvl 10-13), skipping the
                 # long and risky Sokoban detour, before diving the main dungeon.
                 race = self.agent.character.race
-                mines_folk = MINES_FOLK_ROUTE and self._role_routes() and race in (Character.GNOME, Character.DWARF)
+                mines_folk = MINES_FOLK_ROUTE and race in (Character.GNOME, Character.DWARF)
                 if self.milestone == Milestone.BE_ON_FIRST_LEVEL and race != Character.GNOME and \
                         not mines_folk:
-                    if PICK_HUNT_TURNS > 0 and self._role_routes() and race != Character.DWARF:
+                    if PICK_HUNT_TURNS > 0 and race != Character.DWARF:
                         self._pick_hunt_start = self.agent.blstats.time
                         self.milestone = Milestone.FIND_GNOMISH_MINES
                     else:
@@ -719,7 +673,7 @@ class GlobalLogic:
             # explored it for 9000 turns instead of walking up to the main dungeon to dig. When
             # diving, skip the exhaustive pass and head for the level the plan wants.
             def diving():
-                return DIVE_SKIPS_EXPLORATION and self.milestone in (Milestone.GO_DOWN, Milestone.FIND_MINES_END) or \
+                return self.milestone in (Milestone.GO_DOWN, Milestone.FIND_MINES_END) or \
                     (self.milestone == Milestone.FIND_MINETOWN and self._pick_hunt_start is None)
 
             step_count_before = self.agent.step_count

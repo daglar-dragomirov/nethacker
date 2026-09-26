@@ -20,11 +20,15 @@ def imminent_death_on_melee(agent, monster):
     # cautious defaults (flee any dangerous monster below 16 HP) make fragile Healers avoid
     # the very fights that would level them up, so they stall at low XP. Engaging at lower HP
     # trades meaningless survival for extra kills / XP, which is what actually scores.
+    # Fixed thresholds (flee ordinary monsters at HP <= 10) suit a 40+ HP fighter, but a Healer
+    # or Tourist with 12-15 max HP is then always "about to die", never fights and never levels.
+    # Scale them with max HP, keeping the fixed values as caps for sturdy characters.
+    hp, max_hp = agent.blstats.hitpoints, agent.blstats.max_hitpoints
     if is_dangerous_monster(monster):
-        return agent.blstats.hitpoints <= 16
+        return hp <= max(5, min(16, 0.4 * max_hp))
     # hypothesis: retreating from ordinary monsters below 10 HP avoids the
     # common two-hit deaths while retaining normal aggression at full health.
-    return agent.blstats.hitpoints <= 10
+    return hp <= max(4, min(10, 0.25 * max_hp))
 
 
 def is_dangerous_monster(monster):
