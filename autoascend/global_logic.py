@@ -182,6 +182,11 @@ ROLE_EARLY_DIG_XL = {}
 # ablation switches for fixes made while diving (see their call sites)
 DIVE_SKIPS_EXPLORATION = True
 LEAVE_GRIND_WHEN_HUNGRY = False
+# Dungeon level of the Xp grind (default Dlvl 1). New monsters are at most (depth + Xp) / 2 levels
+# and a kill is worth 1 + level^2 experience, so a Dlvl 1 grind crawls (Xp 4 -> 5 took 2400+ turns
+# in traces) while hunger runs out. Grinding on Dlvl 2 cost every role but the Ranger (73-identity
+# A/B), whose bow kills the tougher monsters there before they reach it.
+ROLE_GRIND_DLVL = {Character.RANGER: 2}
 # Roles for which leaving the Dlvl 1 grind when out of food pays (73-identity A/B): the others
 # (Healers, Knights, Priests, Rogues, Tourists, Valkyries) do better finishing the grind.
 ROLES_LEAVING_GRIND_WHEN_HUNGRY = {Character.ARCHEOLOGIST, Character.BARBARIAN, Character.CAVEMAN,
@@ -589,7 +594,7 @@ class GlobalLogic:
                      self.agent.inventory.items.total_nutrition() == 0)
                 # explore_stairs_condition = lambda: self.agent.inventory.items.total_nutrition() == 0 and \
                 #                                    self.agent.blstats.hunger_state >= Hunger.NOT_HUNGRY
-                level = (Level.DUNGEONS_OF_DOOM, 1)
+                level = (Level.DUNGEONS_OF_DOOM, ROLE_GRIND_DLVL.get(self.agent.character.role, 1))
 
             elif self.milestone == Milestone.FIND_SOKOBAN:
                 condition = lambda: self.agent.current_level().dungeon_number == Level.SOKOBAN
