@@ -165,6 +165,8 @@ EARLY_DIG_XL = 5
 # turns a non-gnome, non-dwarf spends hunting the Mines' dwarves for a pick-axe after the Dlvl 1
 # grind before it gives up and dives by the stairs; 0 disables the hunt
 PICK_HUNT_TURNS = 3000
+# roles whose pick hunt paid off when doubled (73-identity A/B)
+ROLE_PICK_HUNT_TURNS = {Character.CAVEMAN: 6000, Character.MONK: 6000, Character.RANGER: 6000}
 # experience level the Dlvl 1 grind stops at before the deep phase begins
 GRIND_XL = 5
 # gnomes and dwarves walk the peaceful Mines to Mines' End before diving the main dungeon
@@ -172,9 +174,10 @@ MINES_FOLK_ROUTE = True
 # Per-role overrides picked from a 73-identity A/B on the public seeds (Xp 5 vs Xp 8 grind,
 # with and without the Mines routes): fighters and fragile casters both do better grinding
 # to Xp 8 first; Rogues and Samurai dive the main dungeon without the Mines detours.
+# A later sweep over Xp 5/6/7/8 moved Knights and Valkyries to 7 and Healers to 6.
 ROLE_GRIND_XL = {
-    Character.BARBARIAN: 8, Character.KNIGHT: 8, Character.PRIEST: 8, Character.VALKYRIE: 8,
-    Character.ROGUE: 8, Character.SAMURAI: 8, Character.HEALER: 8, Character.WIZARD: 8,
+    Character.BARBARIAN: 8, Character.KNIGHT: 7, Character.PRIEST: 8, Character.VALKYRIE: 7,
+    Character.ROGUE: 8, Character.SAMURAI: 8, Character.HEALER: 6, Character.WIZARD: 8,
 }
 # Xp from which a character carrying a pick digs down, where it differs from EARLY_DIG_XL
 # (a Monk-only Xp 8 dig, as in github.com/eL1fe/nethacker@ff8e491, measured worse here)
@@ -641,7 +644,8 @@ class GlobalLogic:
             # a pick hunt in the upper Mines that has not paid off: dive by the stairs instead
             if self.milestone in (Milestone.FIND_GNOMISH_MINES, Milestone.FIND_MINETOWN) and \
                     self._pick_hunt_start is not None and \
-                    self.agent.blstats.time - self._pick_hunt_start > PICK_HUNT_TURNS:
+                    self.agent.blstats.time - self._pick_hunt_start > \
+                    ROLE_PICK_HUNT_TURNS.get(self.agent.character.role, PICK_HUNT_TURNS):
                 self.milestone = Milestone.GO_DOWN
                 continue
 
