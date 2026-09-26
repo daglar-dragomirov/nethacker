@@ -14,6 +14,10 @@ from .character import Character
 from .exceptions import AgentPanic, AgentFinished, AgentChangeStrategy
 from .exploration_logic import ExplorationLogic
 from .global_logic import GlobalLogic, early_dig_xl
+
+# ablation switches
+CORPSE_MAX_AGE = 30
+PRAY_AT_EXACT_THRESHOLD = True
 from .glyph import MON, C, Hunger, G, SHOP
 from .item import Item, flatten_items
 from .item.inventory import Inventory
@@ -80,6 +84,10 @@ class Agent:
 
         self.last_cast_fail_turn = defaultdict(lambda: -float('inf'))
         self._pick_dig_attempts = dict()
+        self._undiggable_levels = set()  # level keys whose floor refused a dig
+        self._mines_bottom_found = False  # Mines' End reached: no more digging in the Mines
+        self._mapped_levels = set()
+        self._empty_wand_letters = set()  # inventory letters of wands that did nothing when zapped
 
         self.stats_logger = StatsLogger()
 
@@ -428,6 +436,8 @@ class Agent:
 
         self._is_reading_message_or_popup = False
         self._message_history.append(self.message)
+        if len(self._message_history) > 400:
+            del self._message_history[:-200]  # only the last 50 are ever read
 
         # should_update = True
 
@@ -735,6 +745,15 @@ class Agent:
             self.stats_logger.log_event('container_untrap_fail')
             return self.message
 
+    def critically_low_hp(self):
+        """NetHack 3.6 pray.c critically_low_hp(): low HP counts as major trouble."""
+        hp, max_hp, level = self.blstats.hitpoints, self.blstats.max_hitpoints, self.blstats.experience_level
+        max_hp = min(max_hp, 15 * level)
+        divisor = 5 if level <= 5 else 6 if level <= 13 else 7 if level <= 21 else 8 if level <= 29 else 9
+        if not PRAY_AT_EXACT_THRESHOLD:
+            divisor, max_hp = 7, self.blstats.max_hitpoints
+        return hp <= 5 or hp * divisor <= max_hp
+
     def is_safe_to_pray(self, limit=500):
         # the prayer timeout starts at 300 and drops by one a turn; major trouble is fixed once it is
         # at most 200, so the first prayer is safe from about turn 100 (not 300: a diver is long dead)
@@ -764,11 +783,18 @@ class Agent:
         return True
 
     def zap(self, item, direction):
+        letter = self.inventory.items.get_letter(item)
         with self.atom_operation():
             self.step(A.Command.ZAP)
-            self.type_text(self.inventory.items.get_letter(item))
+            self.type_text(letter)
             self.direction(direction)
+        if 'Nothing happens' in self.message or 'You wrest' in self.message:
+            # an empty wand: zapping it again in the next crisis wastes the turn that kills us
+            self._empty_wand_letters.add(letter)
         return True
+
+    def wand_is_empty(self, item):
+        return self.inventory.items.get_letter(item) in self._empty_wand_letters
 
     def fire(self, item, direction):
         if self.character.prop.polymorph:
@@ -1136,7 +1162,7 @@ class Agent:
                 self.character.parse_enhance_view()
                 # only parse spells in the deep phase so the early level-1 grind (and its RNG) is
                 # left exactly as the parent plays it; this is what keeps the strong runs intact
-                if self.blstats.experience_level >= 8:
+                if self.blstats.experience_level >= 8 or self.character.role in (Character.WIZARD, Character.MONK):
                     self.character.parse_spellcast_view()
 
             move_priority_heatmap, actions = combat.fight_heur.get_priorities(self)
@@ -1144,11 +1170,12 @@ class Agent:
 
             if self.character.prop.polymorph:
                 actions = list(filter(lambda x: x[1][0] != 'ranged', actions))
+            actions = [a for a in actions if not self._touch_petrifies(a[1])]
 
             actions = [a for a in actions if not self._touch_petrifies(a[1])]
 
             if allow_attack_all:
-                attack_actions = [a for a in actions if a[1][0] in ('melee', 'kick', 'ranged', 'zap')]
+                attack_actions = [a for a in actions if a[1][0] in ('melee', 'kick', 'ranged', 'zap', 'force_bolt')]
                 if attack_actions:
                     actions = attack_actions
 
@@ -1218,6 +1245,11 @@ class Agent:
                 assert fired, (ammo, dir)
                 return wait_counter
 
+        elif best_action[0] == 'force_bolt':
+            _, dy, dx = best_action
+            self.cast('force bolt', direction=(dy, dx))
+            return wait_counter
+
         elif best_action[0] == 'elbereth':
             assert self.inventory.engraving_below_me.lower() != 'elbereth'
             self.engrave("Elbereth")
@@ -1233,7 +1265,7 @@ class Agent:
             else:
                 _, dy, dx, = best_action
                 for item in self.inventory.items:
-                    if item.is_offensive_usable_wand():
+                    if item.is_offensive_usable_wand() and not self.wand_is_empty(item):
                         wand = item
                         break
                 else:
@@ -1333,9 +1365,11 @@ class Agent:
         if permonst.mflags2 & race_flag:
             return False
 
-        # corpse aging
-        # corpse aging: 30 keeps even the worst roll at rotted <= 3 (no tainting, no knock-outs)
-        if self.blstats.time - age_turn >= 30 and \
+        # corpse aging: a corpse turns tainted once (age / (10 + rn2(20))) > 5, and from > 3 it can
+        # blind, confuse or knock you out; the age recorded here is only the kill we saw, so an
+        # older corpse of the same kind on that square passes for fresh. 30 turns keeps even the
+        # worst roll at rotted <= 3.
+        if self.blstats.time - age_turn >= CORPSE_MAX_AGE and \
                 monster_id not in [MON.id_from_name('lizard'), MON.id_from_name('lichen')]:
             return False
 
@@ -1404,6 +1438,7 @@ class Agent:
             yield False
 
     def should_cast_heal(self):
+        # TODO: consider casting for other classes
         # a third of Monks start with the healing spellbook
         if self.character.role not in (self.character.HEALER, self.character.MONK):
             return False
@@ -1436,7 +1471,7 @@ class Agent:
     @Strategy.wrap
     def emergency_strategy(self):
 
-        if self.blstats.experience_level >= 8:
+        if self.blstats.experience_level >= 8 or self.character.role == Character.MONK:
             if self.should_cast_extra_heal():
                 yield True
                 self.cast('extra healing', direction=(0, 0))
@@ -1495,7 +1530,8 @@ class Agent:
             sleep_wand = None
             for item in flatten_items(self.inventory.items):
                 if item.is_wand() and item.is_unambiguous() and item.object.name == 'sleep' \
-                        and item.uses != 'no charges' and not str(item.uses).endswith(':0'):
+                        and item.uses != 'no charges' and not str(item.uses).endswith(':0') \
+                        and not self.wand_is_empty(item):
                     sleep_wand = item
                     break
             if sleep_wand is not None:
@@ -1511,12 +1547,13 @@ class Agent:
                     self.zap(sleep_wand, direction)
                     return
 
-        # low HP is only "major trouble" to the god at HP <= 5 or HP <= max/7 (pray.c in_trouble);
-        # above that the prayer is answered "displeased", fixes nothing and burns the timeout
+        # Pray exactly when the god sees major trouble (pray.c critically_low_hp): praying above
+        # it is answered "displeased" with -3 Luck and an angrier god, below it the character may
+        # already be dead. Hunger is major trouble from Weak on; waiting for Fainting left long
+        # Dlvl 1 grinds passing out between packs of jackals that ate them while unconscious.
         if (
-                (self.is_safe_to_pray(500) and
-                 (self.blstats.hitpoints * 7 <= self.blstats.max_hitpoints or self.blstats.hitpoints <= 5))
-                or (self.is_safe_to_pray(400) and self.blstats.hunger_state >= Hunger.FAINTING)
+                (self.is_safe_to_pray(500) and self.critically_low_hp())
+                or (self.is_safe_to_pray(400) and self.blstats.hunger_state >= Hunger.WEAK)
         ):
             yield True
             self.pray()
@@ -1575,7 +1612,8 @@ class Agent:
         sleep_wand = None
         for item in flatten_items(self.inventory.items):
             if item.is_wand() and item.is_unambiguous() and item.object.name == 'sleep' \
-                    and item.uses != 'no charges' and not str(item.uses).endswith(':0'):
+                    and item.uses != 'no charges' and not str(item.uses).endswith(':0') \
+                        and not self.wand_is_empty(item):
                 sleep_wand = item
                 break
         if sleep_wand is None:
@@ -1638,6 +1676,29 @@ class Agent:
         direction = self.calc_direction(y0, x0, best[1], best[2], allow_nonunit_distance=True)
         self.zap(sleep_wand, direction)
 
+    @utils.debug_log('read_magic_mapping')
+    @Strategy.wrap
+    def read_magic_mapping(self):
+        # Tourists start with scrolls of magic mapping; while diving, a level whose down
+        # staircase is still unknown is mapped at once instead of explored room by room.
+        level = self.current_level()
+        if self.global_logic.milestone.name != 'GO_DOWN' or                 level.dungeon_number != Level.DUNGEONS_OF_DOOM or                 level.key() in self._mapped_levels or level.get_stairs(down=True):
+            yield False
+            return
+        scroll = None
+        for item in flatten_items(self.inventory.items):
+            if item.category == nh.SCROLL_CLASS and item.is_unambiguous() and                     item.object.name == 'magic mapping' and item.status != Item.CURSED:
+                scroll = item
+                break
+        if scroll is None:
+            yield False
+            return
+        yield True
+        self._mapped_levels.add(level.key())
+        with self.atom_operation():
+            self.step(A.Command.READ)
+            self.type_text(self.inventory.items.get_letter(scroll))
+
     def pick_for_digging(self):
         for item in flatten_items(self.inventory.items):
             if item.is_unambiguous() and item.objs[0].name in ('pick-axe', 'dwarvish mattock')                     and item.status != Item.CURSED:
@@ -1666,8 +1727,16 @@ class Agent:
         if self.character.prop.polymorph:
             yield False
             return
-        # only the main dungeon: the Mines bottom out at Dlvl 10-13, the Dungeons of Doom at Medusa
-        if self.current_level().dungeon_number != Level.DUNGEONS_OF_DOOM:
+        # Dig in the Mines too, down to Mines' End (Dlvl 10-13), instead of walking a found pick back
+        # up through hostile packs; a floor "too hard to dig in" (Mines' End, Sokoban, Medusa...) is
+        # remembered so it is not retried. From github.com/Komershan/nethacker@5deb412.
+        if self.current_level().dungeon_number not in (Level.DUNGEONS_OF_DOOM, Level.GNOMISH_MINES):
+            yield False
+            return
+        if self.current_level().dungeon_number == Level.GNOMISH_MINES and self._mines_bottom_found:
+            yield False
+            return
+        if self.current_level().key() in self._undiggable_levels:
             yield False
             return
         # stay safe: let fight2 / emergency_strategy handle threats before we spend turns digging
@@ -1682,12 +1751,14 @@ class Agent:
         wand = None
         for item in flatten_items(self.inventory.items):
             if item.is_wand() and item.is_unambiguous() and item.object.name == 'digging' \
-                    and item.uses != 'no charges' and not str(item.uses).endswith(':0'):
+                    and item.uses != 'no charges' and not str(item.uses).endswith(':0') \
+                        and not self.wand_is_empty(item):
                 wand = item
                 break
         if wand is not None:
             yield True
             self.zap(wand, '>')
+            self._check_undiggable_floor()
             return
 
         # hypothesis: a wand of digging is rare and runs dry after a few levels, but pick-axes and
@@ -1724,10 +1795,17 @@ class Agent:
             self.type_text(self.inventory.items.get_letter(pick))
             if 'direction' in self.message and '>' in self.message:
                 self.direction('>')
+                self._check_undiggable_floor()
             else:
                 self._pick_dig_attempts[key] = 8
                 if 'direction' in self.message:
                     self.step(A.Command.ESC)
+
+    def _check_undiggable_floor(self):
+        if 'too hard to dig' in self.message:
+            self._undiggable_levels.add(self.current_level().key())
+            if self.current_level().dungeon_number == Level.GNOMISH_MINES:
+                self._mines_bottom_found = True
 
     @utils.debug_log('eat_from_inventory')
     @Strategy.wrap
@@ -1787,7 +1865,13 @@ class Agent:
             if not isinstance(exc, AgentPanic):
                 self._drop_state_after_error()
             self.stats_logger.log_event('agent_panic')
+            # Keep only the last few, without their tracebacks: each traceback pins every frame
+            # and the observation arrays they hold, and a 70000-turn game that recovers from
+            # thousands of errors grew one bot to 6-7 GB -- the verifier's box OOMs on that and
+            # drops the whole program as crashed.
+            exc.__traceback__ = None
             self.all_panics.append(exc)
+            del self.all_panics[:-20]
             if self.verbose:
                 print(f'PANIC!!!! : {exc}')
 
