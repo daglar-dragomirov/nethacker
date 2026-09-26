@@ -433,6 +433,8 @@ class Agent:
 
         self._is_reading_message_or_popup = False
         self._message_history.append(self.message)
+        if len(self._message_history) > 400:
+            del self._message_history[:-200]  # only the last 50 are ever read
 
         # should_update = True
 
@@ -1834,7 +1836,13 @@ class Agent:
             if not isinstance(exc, AgentPanic):
                 self._drop_state_after_error()
             self.stats_logger.log_event('agent_panic')
+            # Keep only the last few, without their tracebacks: each traceback pins every frame
+            # and the observation arrays they hold, and a 70000-turn game that recovers from
+            # thousands of errors grew one bot to 6-7 GB -- the verifier's box OOMs on that and
+            # drops the whole program as crashed.
+            exc.__traceback__ = None
             self.all_panics.append(exc)
+            del self.all_panics[:-20]
             if self.verbose:
                 print(f'PANIC!!!! : {exc}')
 

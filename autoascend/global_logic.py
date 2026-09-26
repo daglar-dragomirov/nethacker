@@ -175,15 +175,18 @@ MINES_FOLK_ROUTE = True
 ROLE_GRIND_XL = {
     Character.BARBARIAN: 8, Character.KNIGHT: 8, Character.PRIEST: 8, Character.VALKYRIE: 8,
     Character.ROGUE: 8, Character.SAMURAI: 8, Character.HEALER: 8, Character.WIZARD: 8,
-    # from github.com/eL1fe/nethacker@ff8e491: a bare-handed Monk at Xp 5 dies to the hostile
-    # Mines packs it meets on the pick hunt; martial arts scale with level
-    Character.MONK: 5,
 }
 # Xp from which a character carrying a pick digs down, where it differs from EARLY_DIG_XL
+# (a Monk-only Xp 8 dig, as in github.com/eL1fe/nethacker@ff8e491, measured worse here)
 ROLE_EARLY_DIG_XL = {}
 # ablation switches for fixes made while diving (see their call sites)
 DIVE_SKIPS_EXPLORATION = True
-LEAVE_GRIND_WHEN_HUNGRY = False
+LEAVE_GRIND_WHEN_HUNGRY = True
+# Roles for which leaving the Dlvl 1 grind when out of food pays (73-identity A/B): the others
+# (Healers, Knights, Priests, Rogues, Tourists, Valkyries) do better finishing the grind.
+ROLES_LEAVING_GRIND_WHEN_HUNGRY = {Character.ARCHEOLOGIST, Character.BARBARIAN, Character.CAVEMAN,
+                                   Character.RANGER, Character.SAMURAI, Character.MONK,
+                                   Character.WIZARD}
 
 
 def early_dig_xl(character):
@@ -580,7 +583,9 @@ class GlobalLogic:
                 # there, fainting in front of the next pack of jackals. Hungry with nothing left to
                 # eat, move on down where corpses (and experience) come faster.
                 condition = lambda: self.agent.blstats.experience_level >= self._grind_xl() or \
-                    (LEAVE_GRIND_WHEN_HUNGRY and self.agent.blstats.hunger_state >= Hunger.HUNGRY and
+                    (LEAVE_GRIND_WHEN_HUNGRY and
+                     self.agent.character.role in ROLES_LEAVING_GRIND_WHEN_HUNGRY and
+                     self.agent.blstats.hunger_state >= Hunger.HUNGRY and
                      self.agent.inventory.items.total_nutrition() == 0)
                 # explore_stairs_condition = lambda: self.agent.inventory.items.total_nutrition() == 0 and \
                 #                                    self.agent.blstats.hunger_state >= Hunger.NOT_HUNGRY
