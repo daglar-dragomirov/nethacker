@@ -13,7 +13,11 @@ from . import utils
 from .character import Character
 from .exceptions import AgentPanic, AgentFinished, AgentChangeStrategy
 from .exploration_logic import ExplorationLogic
-from .global_logic import GlobalLogic, EARLY_DIG_XL
+from .global_logic import GlobalLogic, early_dig_xl
+
+# ablation switches
+CORPSE_MAX_AGE = 30
+PRAY_AT_EXACT_THRESHOLD = True
 from .glyph import MON, C, Hunger, G, SHOP
 from .item import Item, flatten_items
 from .item.inventory import Inventory
@@ -81,6 +85,7 @@ class Agent:
         self.last_cast_fail_turn = defaultdict(lambda: -float('inf'))
         self._pick_dig_attempts = dict()
         self._mapped_levels = set()
+        self._engrave_tested = set()  # item texts of wands already engrave-tested
 
         self.stats_logger = StatsLogger()
 
@@ -429,6 +434,8 @@ class Agent:
 
         self._is_reading_message_or_popup = False
         self._message_history.append(self.message)
+        if len(self._message_history) > 400:
+            del self._message_history[:-200]  # only the last 50 are ever read
 
         # should_update = True
 
@@ -712,6 +719,8 @@ class Agent:
             self.step(A.MiscAction.MORE)
             assert self.single_message == "In what direction?", self.single_message
             self.type_text('.')
+            if 'too busy' in self.message:
+                return 'hands busy'
             if 'There is a container and a ' in self.message:
                 self.type_text('n')
             if 'You know of no traps there.' in self.message:
@@ -739,6 +748,8 @@ class Agent:
         hp, max_hp, level = self.blstats.hitpoints, self.blstats.max_hitpoints, self.blstats.experience_level
         max_hp = min(max_hp, 15 * level)
         divisor = 5 if level <= 5 else 6 if level <= 13 else 7 if level <= 21 else 8 if level <= 29 else 9
+        if not PRAY_AT_EXACT_THRESHOLD:
+            divisor, max_hp = 7, self.blstats.max_hitpoints
         return hp <= 5 or hp * divisor <= max_hp
 
     def is_safe_to_pray(self, limit=500):
@@ -1152,6 +1163,8 @@ class Agent:
                 actions = list(filter(lambda x: x[1][0] != 'ranged', actions))
             actions = [a for a in actions if not self._touch_petrifies(a[1])]
 
+            actions = [a for a in actions if not self._touch_petrifies(a[1])]
+
             if allow_attack_all:
                 attack_actions = [a for a in actions if a[1][0] in ('melee', 'kick', 'ranged', 'zap', 'force_bolt')]
                 if attack_actions:
@@ -1343,8 +1356,11 @@ class Agent:
         if permonst.mflags2 & race_flag:
             return False
 
-        # corpse aging
-        if self.blstats.time - age_turn >= 50 and \
+        # corpse aging: a corpse turns tainted once (age / (10 + rn2(20))) > 5, and from > 3 it can
+        # blind, confuse or knock you out; the age recorded here is only the kill we saw, so an
+        # older corpse of the same kind on that square passes for fresh. 30 turns keeps even the
+        # worst roll at rotted <= 3.
+        if self.blstats.time - age_turn >= CORPSE_MAX_AGE and \
                 monster_id not in [MON.id_from_name('lizard'), MON.id_from_name('lichen')]:
             return False
 
@@ -1678,6 +1694,59 @@ class Agent:
                 return item
         return None
 
+    def wand_for_digging(self):
+        for item in flatten_items(self.inventory.items):
+            if item.is_wand() and item.is_unambiguous() and item.object.name == 'digging'                     and item.uses != 'no charges' and not str(item.uses).endswith(':0'):
+                return item
+        return None
+
+    @utils.debug_log('engrave_test_wands')
+    @Strategy.wrap
+    def engrave_test_wands(self):
+        # Engrave-testing an unknown wand is how players identify it: digging, fire and lightning
+        # announce themselves and the game names the wand. A wand of digging found this way turns
+        # into free levels through dig_down. Only when nothing is in sight and HP is comfortable.
+        if self.blstats.hitpoints < 0.6 * self.blstats.max_hitpoints or self.get_visible_monsters():
+            yield False
+            return
+        if self.inventory.engraving_below_me.lower() == 'elbereth' or                 getattr(self, '_forbidden_engrave_position', None) == (self.blstats.y, self.blstats.x):
+            yield False
+            return
+        wand = None
+        for item in flatten_items(self.inventory.items):
+            if item.is_wand() and not item.is_unambiguous() and \
+                    self.inventory.items.get_letter(item) not in self._engrave_tested:
+                wand = item
+                break
+        if wand is None:
+            yield False
+            return
+        yield True
+        letter = self.inventory.items.get_letter(wand)
+        self._engrave_tested.add(letter)  # the text changes once charges show; the letter stays
+
+        def gen():
+            if 'What do you want to write with?' not in self.single_message:
+                yield A.Command.ESC
+                return
+            yield letter
+            for _ in range(10):
+                if 'Do you want to add to the current engraving?' in self.single_message:
+                    yield 'n'
+                elif 'here?' in self.single_message and 'What do you want to' in self.single_message:
+                    yield 'x'
+                    yield '\r'
+                    return
+                elif self._observation['misc'][2]:
+                    yield ' '
+                else:
+                    return
+
+        with self.atom_operation():
+            self.step(A.Command.ENGRAVE, gen())
+            self.inventory.get_items_below_me()
+        self.stats_logger.log_event('engrave_test_wand')
+
     @utils.debug_log('dig_down')
     @Strategy.wrap
     def dig_down(self):
@@ -1694,7 +1763,8 @@ class Agent:
         # of depth and experience level, so a fresh character falls through levels faster than
         # the dungeon can catch up with it, and depth is worth far more than the Xp 8 it forgoes.
         if self.blstats.experience_level < 8 and not (
-                self.blstats.experience_level >= EARLY_DIG_XL and self.pick_for_digging() is not None):
+                self.blstats.experience_level >= early_dig_xl(self.character) and
+                (self.pick_for_digging() is not None or self.wand_for_digging() is not None)):
             yield False
             return
         if self.character.prop.polymorph:
@@ -1821,7 +1891,13 @@ class Agent:
             if not isinstance(exc, AgentPanic):
                 self._drop_state_after_error()
             self.stats_logger.log_event('agent_panic')
+            # Keep only the last few, without their tracebacks: each traceback pins every frame
+            # and the observation arrays they hold, and a 70000-turn game that recovers from
+            # thousands of errors grew one bot to 6-7 GB -- the verifier's box OOMs on that and
+            # drops the whole program as crashed.
+            exc.__traceback__ = None
             self.all_panics.append(exc)
+            del self.all_panics[:-20]
             if self.verbose:
                 print(f'PANIC!!!! : {exc}')
 

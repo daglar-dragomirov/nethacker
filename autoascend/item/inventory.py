@@ -40,6 +40,7 @@ class Inventory:
         self.agent = agent
         self.item_manager = ItemManager(self.agent)
         self.items = InventoryItems(self.agent)
+        self._unopenable_containers = set()  # (level key, y, x) of containers our hands can't handle
 
         self._previous_blstats = None
         self.items_below_me = None
@@ -1277,8 +1278,16 @@ class Inventory:
                 if not yielded:
                     yielded = True
                     yield True
+                spot = (self.agent.current_level().key(), self.agent.blstats.y, self.agent.blstats.x)
+                if spot in self._unopenable_containers:
+                    continue
                 if item.is_chest() and not (item.is_unambiguous() and item.object.name == 'ice box'):
                     fail_msg = self.agent.untrap_container_below_me()
+                    if fail_msg == 'hands busy':
+                        # "Your hands seem to be too busy for that": retrying loops until the
+                        # no-progress guard ends the game, so leave this container alone
+                        self._unopenable_containers.add(spot)
+                        continue
                     if fail_msg is not None and check_if_triggered_container_trap(fail_msg):
                         raise AgentPanic('triggered trap while looting')
                 self.check_container_content(item)

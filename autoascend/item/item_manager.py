@@ -519,6 +519,8 @@ class ItemManager:
             name = 'eucalyptus leaf'
         elif name == 'pair of lenses':
             name = 'lenses'
+        elif name.startswith('set of ') and name.endswith(' dragon scales'):
+            name = name[len('set of '):]
         elif name.startswith('small glob'):
             name = name[len('small '):]
         elif name == 'knives':
