@@ -33,7 +33,7 @@ SKIP_SOKOBAN = False
 # pray for HP only at pray.c's critically_low_hp (DT6A's 'HP < 12' prays with no trouble to fix: no
 # heal, and a failure if the timeout isn't 0), and allow the first prayer from turn 100 (the timeout
 # starts at 300; major trouble needs <= 200)
-EXACT_PRAYER = False
+EXACT_PRAYER = True
 # minimum turns since the last prayer for a hunger prayer while Fainting (DT6A: 400). Most first prayer
 # failures were Fainting prayers 900-1100 turns after the last one (rnz(350) timeout: ~6% fail there,
 # ~2% past 1100); a longer gap means fainting longer instead
