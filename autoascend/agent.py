@@ -1601,14 +1601,6 @@ class Agent:
                 self.blstats.time - self._fainting_since >= FAINTING_PRAYER_DEADLINE or
                 self.blstats.hitpoints * 2 < self.blstats.max_hitpoints or
                 self._fainting_threat_prayer_due())
-        # Weak is already major trouble (pray.c in_trouble: u.uhs >= WEAK). When the timeout is
-        # surely safe -- the first prayer, or HUNGER_PRAYER_GAP turns after the last -- waiting on for
-        # Fainting gains nothing and spends the wait passing out, helpless, in front of whatever
-        # walks up; pray while still conscious.
-        hunger_prayer_due = hunger_prayer_due or (
-                self.blstats.hunger_state >= Hunger.WEAK and not self._has_food_in_reach() and
-                (self.last_prayer_turn is None or
-                 self.blstats.time - self.last_prayer_turn >= HUNGER_PRAYER_GAP))
         # Pray at the game's exact major-trouble HP threshold (pray.c critically_low_hp); for
         # hunger, only once the timeout tail is safe (see above).
         if (

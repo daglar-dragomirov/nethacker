@@ -293,6 +293,12 @@ def get_available_actions(agent, monsters):
 FORCE_BOLT_RANGE = 6  # the bolt flies rn1(8, 6) squares, so 6 always reaches
 
 
+# Off: Wizards casting force bolt scored lower than Wizards that melee, on the public seeds (0.090 vs
+# 0.107 over 10 identities) and on held-out seeds (0.089 vs 0.123 over 5 x 20 games); every cast
+# also spends the Pw and the turn a Dlvl 1 fight rarely needs.
+FORCE_BOLT = False
+
+
 def force_bolt_actions(agent, monsters):
     """Cast force bolt (2d6, rarely misses) at the nearest hostile on a straight, clear line.
 
@@ -300,6 +306,8 @@ def force_bolt_actions(agent, monsters):
     fight heuristic only ever meleed; this ranks the bolt just above meleeing the same monster.
     """
     character = agent.character
+    if not FORCE_BOLT:
+        return []
     if 'force bolt' not in character.known_spells or agent.blstats.energy < 5:
         return []
     if agent.blstats.hunger_state >= Hunger.WEAK:  # "You are too hungry to cast that spell."
