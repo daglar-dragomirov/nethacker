@@ -217,6 +217,11 @@ HUNT_MIN_XL = 8
 # and keep one during the tour (it drops them for lighter loot).
 DIG_DIVE_XL = 8
 KEEP_TOOL_IN_TOUR = False
+# arc-early-dig (daglar c131c7c EARLY_DIG_XL 3; Komershan/DT6A 5): an Archeologist starts with a pick-axe
+# and leaves the Dlvl-1 grind for the dig-dive at this XL, keeping the pick through the tour. Random
+# monsters are capped at difficulty (level_difficulty() + u.ulevel) / 2 (makemon.c mkclass/rndmonst), so a
+# low-XL digger meets weaker ones; a sheltered hole costs a few turns per level. None: DIG_DIVE_XL.
+ARC_DIG_DIVE_XL = 3
 # The portal sweep (Home 1 = 0.366) costs ~1500 turns of exploring the level; digging reaches
 # Dlvl 20+ (0.38+) within a few hundred turns, so no sweep while holding a digging tool.
 SWEEP_WITH_TOOL = False
@@ -877,7 +882,7 @@ class DiveLogic:
         # and flesh golems -- difficulty 10-11, impossible below XL ~8 there)
         planned = bool(EARLY_DIVE_XL) and gl.milestone == Milestone.BE_ON_FIRST_LEVEL and xl >= EARLY_DIVE_XL \
             and not agent.prayer_failed
-        xl_trigger = xl >= DIVE_XL or (xl >= self._min_xl(DIG_DIVE_XL) and self.digging_tool() is not None)
+        xl_trigger = xl >= DIVE_XL or (xl >= self._dig_dive_xl() and self.digging_tool() is not None)
         if xl_trigger and gl.milestone == Milestone.BE_ON_FIRST_LEVEL and not self.fed_for_dive():
             xl_trigger = False   # DIVE_FED: finish the hunger cycle on Dlvl 1 first
         if xl_trigger or gl.milestone >= Milestone.GO_DOWN or agent.blstats.time >= DIVE_TURN or \
@@ -2319,7 +2324,21 @@ class DiveLogic:
         return sorted(found)
 
     def keep_digging_tool(self):
-        return self.diving or KEEP_TOOL_IN_TOUR or bool(jf_config.PICK_TRIP_XL) or bool(GRIND_HUNT_XL)
+        return self.diving or KEEP_TOOL_IN_TOUR or bool(jf_config.PICK_TRIP_XL) or bool(GRIND_HUNT_XL) or \
+            self._arc_early_dig()
+
+    def _arc_early_dig(self):
+        """ARC_DIG_DIVE_XL applies: the character is an Archeologist."""
+        try:
+            return ARC_DIG_DIVE_XL is not None and self.agent.character.role == Character.ARCHEOLOGIST
+        except Exception:
+            return False
+
+    def _dig_dive_xl(self):
+        """The XL from which a digging-tool holder leaves the tour for the dig-dive."""
+        if self._arc_early_dig():
+            return min(ARC_DIG_DIVE_XL, self._min_xl(DIG_DIVE_XL))
+        return self._min_xl(DIG_DIVE_XL)
 
     def _grind_hunting(self):
         """GRIND_HUNT_XL: the tour hunts dwarves too (the Dlvl-1 grind meets them from XL 7)."""
