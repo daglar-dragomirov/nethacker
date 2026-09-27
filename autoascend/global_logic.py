@@ -12,6 +12,7 @@ from . import power
 from . import castle_power
 from .character import Character
 from .dive_logic import DiveLogic
+from .kni_steed import SteedKeeper
 from .exceptions import AgentPanic
 from .glyph import Hunger, G, MON
 from .item import Item, flatten_items
@@ -221,9 +222,12 @@ class GlobalLogic:
         self.mines_not_found = False
 
         self.dive = DiveLogic(agent)
+        # Knight only (kni_steed.py): feed the saddled pony so hunger never turns it on us
+        self.steed = SteedKeeper(agent)
 
     def update(self):
         self.dive.update()
+        self.steed.update()
 
         if not self.agent.character.prop.hallu:
             if utils.isin(self.agent.glyphs, G.ORACLE).any():
@@ -918,6 +922,11 @@ class GlobalLogic:
             ])
             .preempt(self.agent, [
                 self.agent.fight2(),
+            ])
+            # Knight only: throw the kit's apples/carrots to the pony before hunger confuses it into
+            # attacking us (dogmove.c dog_hunger / mfndpos ALLOW_U); no-op for every other role
+            .preempt(self.agent, [
+                self.steed.strategy(),
             ])
             # the Valley of the Dead only (GEHENNOM_DIVE): walk past the graveyards' sleeping undead
             .preempt(self.agent, [

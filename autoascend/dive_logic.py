@@ -68,6 +68,22 @@ MINES_REQUIRED_XL = {}
 # astra: retreat onto Elbereth at 45-65% HP, rest there with searches, never attack from it
 # hand-over from AutoAscend's levelling tour to the dive
 DIVE_XL = 8
+# sam-grind-exit: a Samurai leaves the Dlvl-1 grind for the dive at this XL instead of DIVE_XL (None: off).
+# The grind is spawn-limited: allmain.c:124 makes one random monster per 70 turns, and makemon.c:1550 rndmonst
+# caps it at difficulty (level_difficulty() + u.ulevel) / 2 = 3-4 on Dlvl 1, while exper.c:14 newuexp doubles
+# the exp needed per level (320 -> 640 -> 1280 for XL 6 -> 7 -> 8). So XL 6 -> 8 is ~10k grind turns (sam
+# replays: XL 6 at T7-9.6k, XL 8 at T15-23k), fed by ~5-7 hunger prayers (sam starts with no food, u_init.c:132).
+# Each prayer resets the timeout to rnz(350) (pray.c:1220) and a Weak prayer fails while it is > 200
+# (pray.c:1819), ~2.3% per prayer at the 1200-turn gap: failures send the game into a starving rescue dive or
+# a faint (sam 814007: fainted, eaten by an iguana at XL 5). 7 of 17 cached champion sam games died in the
+# grind (0.02-0.05) while the dives scored 0.10-0.60. The Samurai is the best-armoured starter (splint mail,
+# AC 4), intrinsically Fast (attrib.c:72) with d8+d2+Con HP per level (role.c:449, attrib.c:1000), i.e.
+# ~55-69 HP at XL 6. XL 6 is where jawfish's own XP gate opens (REQUIRED_XL[6] = 6): the stairs dive still
+# explores Dlvl 2-4 and then every level whose next depth needs more XL (6 at XL 6, 7 at XL 7) fully, on fresh
+# levels where the same cap admits more and bigger monsters (exp, corpses, dwarves' picks: difficulty 4 <=
+# (d + 6) / 2 from Dlvl 2). A lower XL also lowers that cap at every depth (a digger with a pick skips the gate
+# and digs at once, as the arc-early-dig gene showed pick dives to be XL-insensitive).
+SAM_DIVE_XL = 6
 DIVE_TURN = 10 ** 9
 ELBERETH_REST_BELOW = 0.4
 ELBERETH_REST_UNTIL = 0.85
@@ -222,6 +238,17 @@ WAND_FIRST = True
 # monsters are capped at difficulty (level_difficulty() + u.ulevel) / 2 (makemon.c mkclass/rndmonst), so a
 # low-XL digger meets weaker ones; a sheltered hole costs a few turns per level. None: DIG_DIVE_XL.
 ARC_DIG_DIVE_XL = 3
+# rog-early-dig (port of DT6A d956abf global_logic: EARLY_DIG_XL + ItemPriority.add_pick -- any pick holder leaves the
+# grind for the dig-dive, and the pick is always kept). Rogue-gated. A Rogue's Dlvl-1 grind meets its digging tools
+# at XL 7 (dwarf difficulty 4, monst.c:421, vs the random-monster cap (1 + XL) / 2 on Dlvl 1, makemon.c:1550; 3 in 8
+# dwarves carry a pick-axe or mattock, makemon.c:372-386; lawful dwarves are always hostile to a chaotic Rogue,
+# makemon.c:2024 peace_minded) but then waited for XL 8 with the tool on the floor: XL 7 -> 8 takes a Rogue 5,000-7,000 turns of
+# prayer-fed grind (no starting food, u_init.c Rogue[]), and a sixth of its games die there at Xp 7 (.051).
+# The threshold is the Archeologist's (ARC_DIG_DIVE_XL, confirmed) instead of DT6A's hand-set 5: a Rogue has the
+# same hit dice (role.c:30 vs :323, 10-11 + d8 per level), digs as fast per turn (dig.c:299 effort 10 + rn2(5) +
+# abon(); Dex 16-18 gives abon +2..+4, weapon.c:911-919, where the Archeologist's intrinsic Fast gives 4/3 actions,
+# allmain.c:141-144, attrib.c:26-27) and has the same Stealth (attrib.c:68). None: DIG_DIVE_XL.
+ROG_DIG_DIVE_XL = 3
 DIG_REST_BELOW = 0.6
 DIG_MAX_TRIES = 20             # applies on one level without falling through: floor can't be holed
 # A cursed pick-axe digs like any other (dig.c: the curse only matters on the Plane of Earth); applied, it
@@ -324,6 +351,29 @@ EARLY_DIVE_XL = 0
 DITCH_PET = False
 DITCH_PET_AFTER = 300          # turns into the game (Dlvl 1 explored, its '>' known)
 DITCH_PET_BUDGET = 300
+# Knights and Samurai ditch their starting pet for the grind (vendor/nethack-3.6.6/src), as soon as the
+# Dlvl 1 '>' is known and reachable (no turn gate):
+# - The pet's first hunger crisis is fixed by the source: dog.c:47 initedog hungrytime = 1000 + moves, and
+#   dogmove.c:361 dog_hunger at hungrytime + 500 sets mconf, cuts max HP to 1/3 and prints 'X is confused
+#   from hunger.' / 'You feel worried about X.'; mon.c:1368 mfndpos gives a confused monster ALLOW_ALL
+#   (incl. ALLOW_U) and dogmove.c:578 appr = 0, so dog_move's newdogpos (dogmove.c:1189) picks our square
+#   and mattacku()s. The ditch runs well before turn 1500.
+# - Knight (role.c:211 PM_PONY): the pony is M1_HERBIVORE only (monst.c:825) and Dlvl 1 has almost no
+#   vegetarian food, so it starves every grind; champion games died to their own pony at T1512-1596 (XL 2)
+#   and to a grown warhorse (kick d10 + bite d4, speed 24, monst.c:851) at XL 4-7 on Dlvl 1 (5 of ~35
+#   distinct knight dungeons in the cache). A pony that does find lichens grows into that warhorse and
+#   takes the grind's kills: a monster killed by a pet gives us no experience (only xkilled calls
+#   more_experienced, mon.c:2481; mhitm kills go through monkilled). One such knight was XL 4 at T7800.
+# - Samurai (role.c:436 PM_LITTLE_DOG): starts with no food at all (u_init.c:132-140) and grinds on
+#   corpses; the carnivorous dog ate 20-30 of them per replayed grind and made 10-15 of the kills, while
+#   the samurai fainted 30-80 times. Its hunger-confused dog also bites (56 -> 24 HP in one replay).
+# The pet left on Dlvl 2 is met again only at the dive (XL 8): after ~15k turns away dog.c:524-545
+# mon_catchup_elapsed_time makes it wild, and a pony or little dog is harmless to an XL 8 fighter.
+DITCH_PET_ROLES = frozenset((Character.KNIGHT, Character.SAMURAI))
+DITCH_PET_TRIES = 3            # attempts when the pet didn't follow us down (keepdogs needs it adjacent)
+# dogmove.c:361-395: confused at hungrytime + 500, starves at + 750; don't herd a pet that is in that
+# window to the stairs (it bites an adjacent hero at random)
+PET_HUNGER_WINDOW = 750 - 500
 DWARF_HUNT_TURNS = 400         # per level
 # a dive leaving the Mines without a digging tool explores each Mines level (not Minetown) this long
 # looking for dwarves before climbing on (about 2 dwarves per Mines filler level, 37.5% armed with one)
@@ -623,6 +673,9 @@ class DiveLogic:
         self._climb_trap_tries = {}        # level key -> times traps were opened for a climb
         self._ditch_state = 0              # pet ditch: 0 idle, 1 down with it, 2 up without it, 3 over
         self._ditch_started = None
+        self._ditch_tries = 0              # ditch attempts started (DITCH_PET_TRIES)
+        self._ditch_pet_came = False       # a pet was seen on Dlvl 2 during this attempt
+        self._pet_hunger_turn = None       # last 'confused from hunger' / 'worried about' message (dog_hunger)
         self._hunting = False              # our last attack was on a peaceful dwarf
         self._hunt_started = {}            # level key -> turn the hunt began there
         self._search_started = {}          # level key -> turn the dwarf search began there
@@ -744,6 +797,12 @@ class DiveLogic:
         # faint length -> hunger: the faint began after the last awake observation and ends with 'You
         # regain consciousness' (often both messages arrive together after the faint)
         msg = agent.message
+        try:
+            # dogmove.c:376/380 dog_hunger: printed only for our own (tame) pet
+            if 'is confused from hunger' in msg or 'You feel worried about' in msg:
+                self._pet_hunger_turn = turn
+        except Exception:
+            pass
         uncertain = False
         if 'You faint from lack of food' in msg and self._faint_start is None:
             self._faint_start = self._last_update_turn
@@ -1077,7 +1136,8 @@ class DiveLogic:
         # and flesh golems -- difficulty 10-11, impossible below XL ~8 there)
         planned = bool(EARLY_DIVE_XL) and gl.milestone == Milestone.BE_ON_FIRST_LEVEL and xl >= EARLY_DIVE_XL \
             and not agent.prayer_failed
-        xl_trigger = xl >= DIVE_XL or (xl >= self._dig_dive_xl() and self.digging_tool() is not None)
+        xl_trigger = xl >= DIVE_XL or self._sam_grind_over(xl) or \
+            (xl >= self._dig_dive_xl() and self.digging_tool() is not None)
         if xl_trigger and gl.milestone == Milestone.BE_ON_FIRST_LEVEL and not self.fed_for_dive():
             xl_trigger = False   # DIVE_FED: finish the hunger cycle on Dlvl 1 first
         if xl_trigger and gl.milestone == Milestone.BE_ON_FIRST_LEVEL and not self.prayer_ready_for_dive():
@@ -2892,7 +2952,7 @@ class DiveLogic:
 
     def keep_digging_tool(self):
         return self.diving or KEEP_TOOL_IN_TOUR or bool(jf_config.PICK_TRIP_XL) or bool(GRIND_HUNT_XL) or \
-            self._arc_early_dig()
+            self._arc_early_dig() or self._rog_early_dig()
 
     def _arc_early_dig(self):
         """ARC_DIG_DIVE_XL applies: the character is an Archeologist."""
@@ -2901,10 +2961,19 @@ class DiveLogic:
         except Exception:
             return False
 
+    def _rog_early_dig(self):
+        """ROG_DIG_DIVE_XL applies: the character is a Rogue."""
+        try:
+            return ROG_DIG_DIVE_XL is not None and self.agent.character.role == Character.ROGUE
+        except Exception:
+            return False
+
     def _dig_dive_xl(self):
         """The XL from which a digging-tool holder leaves the tour for the dig-dive."""
         if self._arc_early_dig():
             return min(ARC_DIG_DIVE_XL, self._min_xl(DIG_DIVE_XL))
+        if self._rog_early_dig():
+            return min(ROG_DIG_DIVE_XL, self._min_xl(DIG_DIVE_XL))
         return self._min_xl(DIG_DIVE_XL)
 
     def _grind_hunting(self):
@@ -2958,11 +3027,19 @@ class DiveLogic:
         self.tool_spots.discard((key, spot))
 
     def first_level_done(self):
-        """The tour's Dlvl 1 grind ends at XL 8 (DT6A), or earlier for a tool run."""
+        """The tour's Dlvl 1 grind ends at XL 8 (DT6A), or earlier for a tool run or a Samurai (SAM_DIVE_XL)."""
         xl = self.agent.blstats.experience_level
         # DIVE_FED / DIVE_PRAYER_GAP hold the grind (the milestone would otherwise move on to the Mines tour)
-        return (xl >= 8 or (TOOL_RUN_XL is not None and xl >= TOOL_RUN_XL)) and self.fed_for_dive() and \
-            self.prayer_ready_for_dive() and self.hp_ready_for_dive()
+        return (xl >= 8 or self._sam_grind_over(xl) or (TOOL_RUN_XL is not None and xl >= TOOL_RUN_XL)) and \
+            self.fed_for_dive() and self.prayer_ready_for_dive() and self.hp_ready_for_dive()
+
+    def _sam_grind_over(self, xl):
+        """SAM_DIVE_XL: a Samurai's Dlvl-1 grind is over at this XL (False for every other role, or on any error)."""
+        try:
+            return SAM_DIVE_XL is not None and xl >= SAM_DIVE_XL and \
+                self.agent.character.role == Character.SAMURAI
+        except Exception:
+            return False
 
     def hp_ready_for_dive(self):
         """DIVE_START_HP: at least that fraction of max HP, or DIVE_START_HP_WAIT turns spent waiting. Logs the wait."""
@@ -3040,35 +3117,67 @@ class DiveLogic:
     def _min_xl(self, default):
         return default if TOOL_RUN_XL is None else min(default, TOOL_RUN_XL)
 
+    def _ditch_pet_role(self):
+        """Knights and Samurai ditch their starting pet (DITCH_PET_ROLES); DITCH_PET turns it on for everyone."""
+        try:
+            return self.agent.character.role in DITCH_PET_ROLES
+        except Exception:
+            return False
+
+    def _ditch_pet_check(self, level, first):
+        """The ditch's entry condition (no agent steps): starts an attempt from state 0, ends a late one."""
+        agent = self.agent
+        bl = agent.blstats
+        if self._ditch_state == 0:
+            if level.key() != first or not agent.has_pet or agent.get_visible_monsters() or \
+                    bl.hitpoints < 0.8 * bl.max_hitpoints:
+                return False
+            if bl.time < (0 if self._ditch_pet_role() else DITCH_PET_AFTER):
+                return False
+            if self._pet_hunger_turn is not None and bl.time - self._pet_hunger_turn <= PET_HUNGER_WINDOW:
+                return False   # a hunger-confused pet bites an adjacent hero: don't herd it to the stairs
+            if self._ditch_tries >= DITCH_PET_TRIES:
+                self._ditch_state = 3
+                return False
+            dis = agent.bfs()
+            if not any(dis[p] != -1 for p in self._stairs_down(level)):
+                return False
+            self._ditch_tries += 1
+            agent.log(f'DITCH pet: taking it down to Dlvl 2 (try {self._ditch_tries})')
+            self._ditch_state = 1
+            self._ditch_started = bl.time
+            self._ditch_pet_came = False
+        if bl.time - self._ditch_started > DITCH_PET_BUDGET:
+            agent.log(f'DITCH pet: out of time (state {self._ditch_state})')
+            self._ditch_state = 3
+            return False
+        return True
+
     @Strategy.wrap
     def ditch_pet_strategy(self):
         agent = self.agent
         from .global_logic import Milestone
-        if not DITCH_PET or self._ditch_state == 3 or self.diving or \
+        if self._ditch_state == 3 or self.diving or not (DITCH_PET or self._ditch_pet_role()) or \
                 agent.global_logic.milestone != Milestone.BE_ON_FIRST_LEVEL:
             yield False
         bl = agent.blstats
         level = agent.current_level()
         first = (Level.DUNGEONS_OF_DOOM, 1)
-        if self._ditch_state == 0:
-            if level.key() != first or not agent.has_pet or bl.time < DITCH_PET_AFTER or \
-                    agent.get_visible_monsters() or bl.hitpoints < 0.8 * bl.max_hitpoints:
-                yield False
-            dis = agent.bfs()
-            if not any(dis[p] != -1 for p in self._stairs_down(level)):
-                yield False
-            agent.log('DITCH pet: taking it down to Dlvl 2')
-            self._ditch_state = 1
-            self._ditch_started = bl.time
-        if bl.time - self._ditch_started > DITCH_PET_BUDGET:
-            agent.log(f'DITCH pet: out of time (state {self._ditch_state})')
+        try:
+            go = self._ditch_pet_check(level, first)
+        except Exception as e:   # fail safe: no ditch, the grind goes on with the pet
+            agent.log(f'DITCH pet: check failed, off: {type(e).__name__} {str(e)[:150]}')
             self._ditch_state = 3
+            go = False
+        if not go:
             yield False
         yield True
         pos = (bl.y, bl.x)
-        pet_adjacent = any(utils.adjacent(pos, (int(y), int(x)))
-                           for y, x in zip(*utils.isin(agent.glyphs, G.PETS).nonzero()))
+        pets = utils.isin(agent.glyphs, G.PETS)
+        pet_adjacent = any(utils.adjacent(pos, (int(y), int(x))) for y, x in zip(*pets.nonzero()))
         key = level.key()
+        if key == (Level.DUNGEONS_OF_DOOM, 2) and pets.any():
+            self._ditch_pet_came = True   # keepdogs brought it along (dog.c:590 monnear + levl_follower)
         if self._ditch_state == 1:
             if key == (Level.DUNGEONS_OF_DOOM, 2):
                 self._ditch_state = 2
@@ -3091,10 +3200,18 @@ class DiveLogic:
             return
         # state 2: on Dlvl 2 with the pet; climb back when it is not adjacent
         if key == first:
-            agent.log(f'DITCH pet: back on Dlvl 1, pet left behind: {not agent.has_pet}')
-            self._ditch_state = 3
+            if self._ditch_pet_came or not self._ditch_pet_role():
+                agent.log(f'DITCH pet: back on Dlvl 1, pet left on Dlvl 2: {self._ditch_pet_came}')
+                self._ditch_state = 3
+            else:
+                # it wasn't next to us when we went down (or was eating): it is still up here
+                agent.log('DITCH pet: it did not follow us down, trying again')
+                self._ditch_state = 0
             return
-        ups = [p for p in zip(*utils.isin(level.objects, G.STAIR_UP).nonzero())]
+        # the '<' we arrived on is under us, so the map's objects don't show it until we step off: the
+        # arrival itself recorded it as the way back to Dlvl 1 (Agent.move stair_destination)
+        ups = [tuple(p) for p, dest in level.stair_destination.items() if dest is not None and dest[0] == first]
+        ups += [p for p in zip(*utils.isin(level.objects, G.STAIR_UP).nonzero()) if p not in ups]
         if not ups:
             self._ditch_state = 3
             return
