@@ -33,7 +33,7 @@ SKIP_SOKOBAN = False
 # pray for HP only at pray.c's critically_low_hp (DT6A's 'HP < 12' prays with no trouble to fix: no
 # heal, and a failure if the timeout isn't 0), and allow the first prayer from turn 100 (the timeout
 # starts at 300; major trouble needs <= 200)
-EXACT_PRAYER = True
+EXACT_PRAYER = False
 # minimum turns since the last prayer for a hunger prayer while Fainting (DT6A: 400). Most first prayer
 # failures were Fainting prayers 900-1100 turns after the last one (rnz(350) timeout: ~6% fail there,
 # ~2% past 1100); a longer gap means fainting longer instead
@@ -118,6 +118,15 @@ LAST_RESORT_DIG = False
 # LAST_RESORT: pray at critical HP beside a hostile once this many turns have passed since the last prayer
 # (0: off; the ordinary low-HP prayer waits 500)
 DESPERATE_PRAYER_GAP = 0
+# PRAYER_MODEL (nhmodel/prayer.py, pray.c semantics): the HP prayer only at pray.c's critically_low_hp (the
+# DT6A 'HP < 12' rule prayed with no major trouble, where pray.c wants ublesscnt == 0: P = .66 at a 500 gap), from
+# turn ~105 (ublesscnt starts at 300, major trouble needs <= 200); a 'doom' prayer below the 500 gap when
+# P(answered) beats P(surviving 3 turns) (mhitu.c); lethal statuses at any gap; no prayer that pray.c must refuse
+# (Luck < 0, negative record, an angry god -- a failure the timeout explains never re-prays)
+PRAYER_MODEL = True
+# the doom prayer: P(heal) must beat P(survive 3 turns) by this margin, and be at least DOOM_MIN_P
+DOOM_MARGIN = 0.1
+DOOM_MIN_P = 0.3
 # LAST_RESORT: zap each unknown wand once (one still unknown after a zap at a monster is no attack wand)
 LR_WAND_ONCE = False
 # --- power: what the character carries to the Castle (power.py) ---

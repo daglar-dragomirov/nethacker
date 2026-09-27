@@ -3,7 +3,7 @@
   "name": "jawfish-dd-router",
   "root": "autoascend",
   "parents": [
-    "github.com/kefirski/nethacker@91cc604d54aec632e67f8f21680319ac7e77a2fd"
+    "github.com/kefirski/nethacker@5b7f1ebb452945da5d76862ce21d8b1a0053c0f5"
   ],
   "influences": [
     "github.com/DT6A/nethacker@464e1662a4cb60567c7946d2d952278c64eefe84",
@@ -20,7 +20,7 @@
     "github.com/eL1fe/nethacker@dc2765b9a90074e2823521afb721b7ee16ef35a7",
     "github.com/eL1fe/nethacker@ff8e49187df304cbd0ad2bbbe8109feb19e48e0b",
     "github.com/kefirski/nethacker@44e1e586cf4c6707b72b8d5238cb34311b615a01",
-    "github.com/kefirski/nethacker@91cc604d54aec632e67f8f21680319ac7e77a2fd",
+    "github.com/kefirski/nethacker@5b7f1ebb452945da5d76862ce21d8b1a0053c0f5",
     "github.com/kenforthewin/nethack_astra@38b1a38b340d4cb154fe5e4411b2819dc407d5e3",
     "github.com/vkurenkov/nethacker@ef6acf87e265f74600b914060f620d06117070a3"
   ],
