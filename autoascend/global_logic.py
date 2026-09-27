@@ -815,6 +815,61 @@ class GlobalLogic:
             else:
                 idle_iterations = 0
 
+    # hypothesis: gnomes and dwarves (cav/hea/ran-gno, val-dwa) walk the Mines after the Xp 8 grind
+    # among *peaceful* dwarves, so unlike every other race they never kill one for the pick-axe or
+    # mattock ~64% of them carry, and without a digging tool they dive by the stairs and die at
+    # Dlvl 2-10 (the Archeologist, who has a pick, averages Dlvl 17). Deliberately picking a fight
+    # with one peaceful dwarf is cheap: melee angers it before it dies, so there is no Luck
+    # penalty, only a few alignment points, and an Xp 8 character with most of its HP wins the
+    # fight. Once the pick is in the pack the existing machinery (milestone -> GO_DOWN, dig_down
+    # under Elbereth) turns the rest of the game into a dig dive. Only applies after the grind, so
+    # the Dlvl 1 game is byte-identical to the parent's.
+    # From github.com/Komershan/nethacker@d3d40a6.
+    @Strategy.wrap
+    def anger_peaceful_dwarf(self):
+        a = self.agent
+        if a.character.race not in (Character.GNOME, Character.DWARF) or \
+                self.milestone == Milestone.BE_ON_FIRST_LEVEL or \
+                a.character.prop.hallu or a.character.prop.polymorph or \
+                a.blstats.hitpoints < 0.8 * a.blstats.max_hitpoints or \
+                a.blstats.hunger_state >= Hunger.WEAK or \
+                a.pick_for_digging() is not None:
+            yield False
+        level = a.current_level()
+        # never where the Watch or a shopkeeper could get involved
+        if (self.minetown_level is not None and level.key() == self.minetown_level) or \
+                utils.isin(a.glyphs, G.SHOPKEEPER).any() or level.shop[a.blstats.y, a.blstats.x]:
+            yield False
+        peaceful = a.monster_tracker.peaceful_monster_mask
+        dis = a.bfs()
+        best = None
+        for y, x in zip(*peaceful.nonzero()):
+            if not MON.is_monster(a.glyphs[y, x]):
+                continue
+            name = MON.permonst(a.glyphs[y, x]).mname
+            if name.startswith('watch'):
+                yield False
+            if name not in ('dwarf', 'dwarf lord', 'dwarf king'):
+                continue
+            nd = dis[max(y - 1, 0):y + 2, max(x - 1, 0):x + 2]
+            nd = nd[nd != -1]
+            if nd.size == 0:
+                continue
+            d = int(nd.min())
+            if d <= 12 and (best is None or d < best[0]):
+                best = (d, y, x)
+        if best is None:
+            yield False
+        yield True
+        _, y, x = best
+        if utils.adjacent((y, x), (a.blstats.y, a.blstats.x)):
+            a.melee_attack(y, x)
+            # the tracker carries peacefulness over from the previous frame; force a fresh
+            # monster listing so fight2 sees the now hostile dwarf
+            a.monster_tracker.on_panic()
+            return
+        a.go_to(y, x, stop_one_before=True, max_steps=1)
+
     def global_strategy(self):
         return (
             self.current_strategy().repeat()
@@ -841,6 +896,9 @@ class GlobalLogic:
             ])
             .preempt(self.agent, [
                 self.follow_guard(),
+            ])
+            .preempt(self.agent, [
+                self.anger_peaceful_dwarf(),
             ])
             .preempt(self.agent, [
                 self.agent.fight2(),
