@@ -18,7 +18,7 @@ import re  # noqa: E402
 # Roles played by the aa_dd line (github.com/daglar-dragomirov/nethacker); every other role, and any
 # game whose role cannot be read, is played by jawfish (github.com/vkurenkov/nethacker@ef6acf8). The
 # split was chosen on held-out games of our own seeds, per role, not on the public or private seeds.
-DD_ROLES = ['Archeologist']
+DD_ROLES = ['Archeologist', 'Wizard']
 _ROLES = ("Archeologist", "Barbarian", "Caveman", "Cavewoman", "Healer", "Knight", "Monk", "Priest",
           "Priestess", "Ranger", "Rogue", "Samurai", "Tourist", "Valkyrie", "Wizard")
 _ROLE_RE = re.compile(r"\b(" + "|".join(_ROLES) + r")\b")
