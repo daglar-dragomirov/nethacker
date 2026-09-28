@@ -1,9 +1,9 @@
 {
   "schema": "nethackers.solution/v1",
-  "name": "jawfish-21e6539-prayermodel-roles-arcdig",
-  "root": "autoascend",
+  "name": "daglar-identity-portfolio",
+  "root": "pf_v35",
   "parents": [
-    "github.com/vkurenkov/nethacker@21e65391b70273f5c9c7e1b4df614a880da64cf1"
+    "github.com/daglar-dragomirov/nethacker@5d0d455a1585271143aa47fbd5b44c2f6dae7d4b"
   ],
   "influences": [
     "github.com/DT6A/nethacker@59ce30c509ef568366fe846afeba03dede939339",
