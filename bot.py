@@ -54,12 +54,12 @@ CHOICE = {
     "mon-hum-neu-mal": "pf_base",
     "pri-elf-cha-fem": "pf_base",
     "pri-elf-cha-mal": "pf_base",
-    "pri-hum-cha-fem": "pf_base",
-    "pri-hum-cha-mal": "pf_base",
-    "pri-hum-law-fem": "pf_base",
-    "pri-hum-law-mal": "pf_base",
-    "pri-hum-neu-fem": "pf_base",
-    "pri-hum-neu-mal": "pf_base",
+    "pri-hum-cha-fem": "pf_pa",
+    "pri-hum-cha-mal": "pf_pa",
+    "pri-hum-law-fem": "pf_pa",
+    "pri-hum-law-mal": "pf_pa",
+    "pri-hum-neu-fem": "pf_pa",
+    "pri-hum-neu-mal": "pf_pa",
     "ran-elf-cha-fem": "pf_base",
     "ran-elf-cha-mal": "pf_base",
     "ran-gno-neu-fem": "pf_base",
@@ -134,7 +134,7 @@ def _identity(observation):
     return f"{_ROLES[role]}-{_RACES[race]}-{_ALIGNS[align]}-{gender}"
 
 # role -> package when the race cannot be read (see build_ident.py)
-FALLBACK = {"hea": "pf_hg"}
+FALLBACK = {"hea": "pf_hg", "pri": "pf_pa"}
 _RE_ALIGN = re.compile(r"\b(Lawful|Neutral|Chaotic)\b")
 
 
