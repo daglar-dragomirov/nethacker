@@ -674,6 +674,11 @@ class GlobalLogic:
         Dlvl-3 grind at XL 7 (cap 5) lost 4.9-7.8% of games per 1000 turns. Dwarves (difficulty 4) spawn from
         XL 5 there, and the pet kills them for their pick-axes as it does on Dlvl 1 from XL 7."""
         table = jf_config.GRIND_LEVELS
+        by_role = {'Wizard': {}, 'Knight': {}, 'Tourist': {}}
+        role = getattr(self.agent.character, 'role', None)
+        for name, t in by_role.items():
+            if role == getattr(Character, name.upper(), object()):
+                table = t
         if not table:
             return None
         xl = self.agent.blstats.experience_level

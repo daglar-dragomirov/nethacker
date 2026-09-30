@@ -3,7 +3,7 @@
   "name": "identity-router-heldout",
   "root": "pf_base",
   "parents": [
-    "github.com/daglar-dragomirov/nethacker@3cb890b9c29934f161cbabf68f60dc55422bdac0"
+    "github.com/daglar-dragomirov/nethacker@482963c7cc96039c2c4a8dbba3c7d68a21d9bbc3"
   ],
   "influences": [
     "github.com/DT6A/nethacker@59ce30c509ef568366fe846afeba03dede939339",
