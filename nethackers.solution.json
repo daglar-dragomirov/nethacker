@@ -3,7 +3,7 @@
   "name": "identity-router-heldout",
   "root": "pf_base",
   "parents": [
-    "github.com/daglar-dragomirov/nethacker@2f207d46e760a85cc120feb1d6c6a4cf8bc1ae51"
+    "github.com/daglar-dragomirov/nethacker@783251ae8a3a869c1e1029e08c36e4d735e5c1b8"
   ],
   "influences": [
     "github.com/DT6A/nethacker@59ce30c509ef568366fe846afeba03dede939339",
@@ -22,6 +22,7 @@
     "github.com/kefirski/nethacker@91cc604d54aec632e67f8f21680319ac7e77a2fd",
     "github.com/kenforthewin/nethack_astra@38b1a38b340d4cb154fe5e4411b2819dc407d5e3",
     "github.com/vkurenkov/nethacker@21e65391b70273f5c9c7e1b4df614a880da64cf1",
+    "github.com/vkurenkov/nethacker@238c254960fae35dbb3c8de7922da7f705875c41",
     "github.com/vkurenkov/nethacker@ef6acf87e265f74600b914060f620d06117070a3",
     "github.com/vkurenkov/nethacker@f15bb8c8e01d905d1946e32bfd2558e17394eab6",
     "github.com/vlomshakov/nethacker@21db872529ff794a3daf14174f20fe92b2a2b2cf",

@@ -11,7 +11,11 @@ from . import jf_config
 from . import power
 from . import castle_power
 from . import castle_cross
+from . import castle_front
 from . import castle_landing
+from . import mino_guard
+from . import known_items
+from . import opp_items
 from . import tele_route
 from . import power_route
 from .character import Character
@@ -25,12 +29,25 @@ from .level import Level
 from .strategy import Strategy
 
 
+# SQUEEZE_KEEP: known items kept under UNSQUEEZE's cap along with the wands, rings and amulets
+_SQUEEZE_KEEP_KNOWN = frozenset((
+    O.from_name('levitation', nh.POTION_CLASS), O.from_name('full healing', nh.POTION_CLASS),
+    O.from_name('extra healing', nh.POTION_CLASS), O.from_name('teleportation', nh.SCROLL_CLASS)))
+
+
 class ItemPriority(ItemPriorityBase):
     MAX_NUMBER_OF_ITEMS = 26 * 2 - 1  # + coin slot, one slot should be left for item arranging
     def __init__(self, agent):
         self.agent = agent
         self._take_sacrificial_corpses = False
         self._drop_gold_till_turn = -float('inf')
+
+    def _carried(self, item):
+        """BOOTS_KEEP: the pair already in the pack wins over a new one of the same look (no swapping on the floor)."""
+        try:
+            return any(item is i for i in self.agent.inventory.items.all_items)
+        except Exception:
+            return False
 
     def _split(self, items, forced_items, weight_capacity):
         remaining_weight = weight_capacity
@@ -101,6 +118,16 @@ class ItemPriority(ItemPriorityBase):
             if tool is not None:
                 add_item(tool)
 
+        # SQUEEZE_KEEP (kit-builder): under UNSQUEEZE's 550 cap the rest of this order keeps daggers and food and drops
+        # the light kit for good (cmp-main jf41 s13: a wand of cold and a wand of digging left in a Mines corner)
+        if jf_config.SQUEEZE_KEEP and self.agent.blstats.time < getattr(self.agent, '_squeeze_cap_until', -1):
+            for item in sorted(items, key=lambda i: i.unit_weight(with_content=False)):
+                if item.is_container() or item.is_possible_container():
+                    continue
+                if item.category in (nh.WAND_CLASS, nh.RING_CLASS, nh.AMULET_CLASS) or \
+                        (item.is_unambiguous() and item.object in _SQUEEZE_KEEP_KNOWN):
+                    add_item(item)
+
         # power: boots that may be levitation or water walking boots, for the Castle's moat (never worn before)
         if jf_config.KEEP_MAGIC_BOOTS:
             for item in sorted(items, key=lambda i: i.unit_weight(with_content=False)):
@@ -142,9 +169,29 @@ class ItemPriority(ItemPriorityBase):
                            key=lambda i: -utils.calc_dps(*self.agent.character.get_ranged_bonus(None, i))):
             add_item(item)
 
+        if jf_config.LIZARD_KEEP:
+            # the stoning cure (emergency_strategy eats it when Stoned): one lizard corpse, 10 weight, never rots
+            for item in filter(lambda i: i.is_corpse() and i.monster_id == self.agent.LIZARD_ID, items):
+                add_item(item, count=1)
+                break
+
         for item in sorted(filter(lambda i: i.is_food() and not i.is_corpse(), items),
                            key=lambda x: -x.nutrition_per_weight() - 1000 * (x.objs[0].name == 'sprig of wolfsbane')):
             add_item(item)
+
+        # HORN_KEEP (opp-items, separate from HORN_SCARE): one horn (tooled, unknown, or a known frost horn: a cold
+        # source), one drum, one camera -- mino_guard's scare instruments, kept ahead of the unknown potions/scrolls/
+        # wands the pass below keeps by weight (a horn 18, a drum 25, a camera 12). Instruments are rarely shed (3 drop
+        # messages in 180 cmp-main games), and a keep reorders a shed: on90a jf47 s0 kept one of two horns in the
+        # Mines, dropped a second looking glass instead and the game reshuffled (0.602 -> 0.117)
+        if jf_config.HORN_KEEP and dive is not None and dive.diving:
+            kinds = set()
+            for item in sorted(items, key=lambda i: (i not in forced_items and not self._carried(i),
+                                                     i.unit_weight(with_content=False))):
+                kind = opp_items.keep_kind(self.agent, item)
+                if kind is not None and kind not in kinds:
+                    kinds.add(kind)
+                    add_item(item, count=1)
 
         if jf_config.LICHEN_RESERVE:
             # a never-rotting food reserve (lichen, lizard corpses) for the Weak spells before a safe prayer
@@ -155,6 +202,19 @@ class ItemPriority(ItemPriorityBase):
                     break
                 add_item(item, count=left)
                 left -= min(item.count, left)
+
+        # BOOTS_KEEP (kit-builder): one pair per look that may still be levitation or water walking boots, after the
+        # food and the thrown weapons (KEEP_MAGIC_BOOTS put every pair ahead of them); castle_cross wears them there
+        if jf_config.BOOTS_KEEP:
+            looks = set()
+            for item in sorted(items, key=lambda i: (i not in forced_items and not self._carried(i),
+                                                     i.unit_weight(with_content=False))):
+                if not power.is_passage_boots(item) or item.equipped or not item.glyphs:
+                    continue
+                if item.glyphs[0] in looks:
+                    continue
+                looks.add(item.glyphs[0])
+                add_item(item, count=1)
 
         if self._take_sacrificial_corpses:
             for item in filter(self.agent.global_logic.can_sacrify, items):
@@ -227,6 +287,8 @@ class GlobalLogic:
 
         self.dive = DiveLogic(agent)
         self.landing = castle_landing.LandingGuard(self.dive)   # jf_config.LANDING_GUARD (valley-exit)
+        self.mino = mino_guard.MinoGuard(self.dive)   # jf_config.MINO_GUARD (minotaur lane)
+        self.known = known_items.KnownItemsGuard(self.dive, self.mino)   # jf_config.KNOWN_ITEMS (dive-audit)
         # Knight only (kni_steed.py): feed the saddled pony so hunger never turns it on us
         self.steed = SteedKeeper(agent)
 
@@ -396,8 +458,12 @@ class GlobalLogic:
         # VALLEY_XORN: a wall-walking form in Gehennom dives on (the Valley walk, then digging down: its HP is a buffer
         # over ours) -- waited out, vxx3's xorns stood 450-700 turns on Gehennom 2's '<' until the form timed out
         xorn_dive = lambda: jf_config.VALLEY_XORN and self.dive.in_gehennom() and castle_cross.wallwalker(self.agent)
+        # LIFT_POLY_PICKY: an eyeless polymorph form on the castle is blind for its whole life -- castle_power zaps the
+        # wand of polymorph again instead of waiting it out (amd cfph-s6's black light stood 43 turns in the west maze)
+        form_blind = lambda: jf_config.LIFT_POLY_PICKY and castle_poly() and castle_cross.eyeless_form(self.agent) and \
+            castle_power._poly_wand(self.agent) is not None
         while (
-                (self.agent.character.prop.blind and not castle_go()) or
+                (self.agent.character.prop.blind and not castle_go() and not form_blind()) or
                 self.agent.character.prop.confusion or
                 self.agent.character.prop.stun or
                 (self.agent.character.prop.hallu and not castle_go()) or
@@ -469,6 +535,16 @@ class GlobalLogic:
 
         candidate = excalibur_candidate()
         if candidate is None:
+            return
+
+        # PREP_EXCAL_DIVE: the digging tool (or bare hands) goes in hand first -- a dip's silent curse must not weld
+        # the sword (NO_DIP_WITH_TOOL's reason: a welded sword locks the pick out); a sword that can't be swapped out
+        # is not dipped
+        tool = self.dive.digging_tool()
+        main = self.agent.inventory.items.main_hand
+        if jf_config.PREP_EXCAL_DIVE and main is not None and main is candidate:
+            if main.status == Item.CURSED or not self.agent.inventory.wield(tool):
+                self.dive._prep_dip_block_until = self.agent.blstats.time + 500
             return
 
         # TODO: refactor
@@ -604,19 +680,24 @@ class GlobalLogic:
         # welded weapon can't be swapped for the pick-axe: eg-glh-public seed 6 carried its pick from T6556, dipped
         # 8 times at XL 7, and dove at XL 8 with 'a cursed thoroughly rusty +1 long sword (weapon in hand)' --
         # digging_tool() None, a tool-less dive (0.206; base 0.466). A digger doesn't need Excalibur.
-        if jf_config.NO_DIP_WITH_TOOL and self.dive.digging_tool() is not None:
+        # (PREP_EXCAL_DIVE: the tool goes in hand before the dip instead, see dip_for_excalibur)
+        if jf_config.NO_DIP_WITH_TOOL and self.dive.digging_tool() is not None and not jf_config.PREP_EXCAL_DIVE:
             return False
         # DEMON_NO_REDIP: not while a released water demon is about -- when it fled out of the vigil's reach the
         # bot walked back to the fountain and dipped twice more next to it, then fought it (DEMON_FIX replay of
         # jf16 s8: killed by the demon 480 turns after the release)
         if jf_config.DEMON_NO_REDIP and bl.time <= self.dive._demon_vigil_until:
             return False
+        if jf_config.PREP_EXCAL_DIVE and bl.time <= self.dive._prep_dip_block_until:
+            return False
+        # PREP_EXCAL_XL: dip from that XL (fountain.c's minimum is 5) instead of 7, see jf_config
+        min_xl = jf_config.PREP_EXCAL_XL or 7
         if not jf_config.SAFE_DIPS:
             # a released water demon (1 dip in ~40) is deadlier to a starving or hurt character; dipping
             # can wait for a healthy moment (SAFE_DIPS' prayer-ready rule halved the Excaliburs)
-            return bl.experience_level >= 7 and bl.hunger_state < Hunger.WEAK and \
+            return bl.experience_level >= min_xl and bl.hunger_state < Hunger.WEAK and \
                 bl.hitpoints >= 0.7 * bl.max_hitpoints
-        return bl.experience_level >= 7 and bl.hitpoints >= 0.9 * bl.max_hitpoints and \
+        return bl.experience_level >= min_xl and bl.hitpoints >= 0.9 * bl.max_hitpoints and \
             self.agent.is_safe_to_pray(800)
 
     def exploration_strategy(self, search_prio_limit):
@@ -902,6 +983,8 @@ class GlobalLogic:
                 self.agent.cure_disease().every(5),
             ])
             .preempt(self.agent, [
+                # LIZARD_KEEP: the stoning cure, before the eaters look at the corpse
+                self.agent.keep_lizard().condition(lambda: jf_config.LIZARD_KEEP),
                 self.agent.eat_corpses_from_ground(only_below_me=True).condition(lambda: self.agent.blstats.hunger_state >= Hunger.NOT_HUNGRY),
                 # CLAIM_CORPSES: a fresh kill a few steps away is ours before the pet gets it (the pet ate as many
                 # jackal corpses as we did in the base grinds; 63% of its meals of our kills came 2+ turns after
@@ -925,6 +1008,17 @@ class GlobalLogic:
                 self.agent.inventory.buy_food().every(3),
                 # power (SELL_PRICE_ID): offer unknown potions/rings/boots to a shopkeeper for their price group
                 self.agent.inventory.sell_price_identify().every(3),
+                # lift-ready (WAND_ENGRAVE_TEXT): once diving, re-test with text the wands the grind's test left unnamed
+                self.agent.inventory.wand_text_retest(),
+                # ARMOR_UP: the dig-dive never explores, so gather_items' wear_best_stuff never runs there (castle
+                # arrivals carried unworn mithril coats, iron shoes, iron helms); and known enchant armor gets read
+                self.agent.inventory.wear_best_stuff().every(25)
+                .condition(lambda: jf_config.ARMOR_UP and self.dive.diving and not self.dive.levitating() and
+                           not self.dive._near_hostiles(radius=6)),
+                self.agent.inventory.read_enchant_armor().every(10)
+                .condition(lambda: jf_config.ARMOR_UP and not self.dive._near_hostiles(radius=6)),
+                # opp-items (GENOCIDE_POLICY): a known scroll of genocide proven not cursed is read at once
+                opp_items.read_strategy(self.agent),
             ])
             .preempt(self.agent, [
                 # boxed in by diagonal squeezes while carrying > 600 (jf_config.UNSQUEEZE)
@@ -969,6 +1063,10 @@ class GlobalLogic:
             .preempt(self.agent, [
                 self.dive.dig_first(),
             ])
+            # opp-items (TENGU_EAT): a hostile tengu next to us is fought, not dug away from; its fresh corpse eaten
+            .preempt(self.agent, [
+                opp_items.tengu_strategy(self.agent),
+            ])
             # astra's survival layer, only once diving (the tour keeps the elite's proven behaviour)
             .preempt(self.agent, [
                 self.dive.elbereth_rest().condition(lambda: self.dive.diving or jf_config.SURVIVAL_IN_TOUR),
@@ -994,6 +1092,16 @@ class GlobalLogic:
             .preempt(self.agent, [
                 self.dive.valley_fort(),
             ])
+            # valley-walk (VALLEY_WALK, valley_walk.py): every Valley move while the walk has a plan -- above the fort,
+            # the retreat, gehennom_escape/scare, valley_sneak and fight2
+            .preempt(self.agent, [
+                self.dive.walker.strategy(),
+            ])
+            # valley-walk (VALLEY_LOTTERY): in the Valley without teleport control, cursed/confused teleport scrolls are a
+            # free level-teleport roll (~8% deeper each); unknown scrolls are read to find them -- above the walk
+            .preempt(self.agent, [
+                self.dive.walker.lottery_strategy(),
+            ])
             # power (CASTLE_POLY): depth 25+ on the main line, losing a fight -> a wand of polymorph at ourselves
             .preempt(self.agent, [
                 castle_power.deep_poly_escape_strategy(self.dive),
@@ -1002,6 +1110,12 @@ class GlobalLogic:
             # a floating hero digs straight onto the moat -- above fight2/elbereth_rest/the scare hold, below the crossing
             .preempt(self.agent, [
                 castle_cross.rush_strategy(self.dive),
+            ])
+            # castle-front (FRONT_DOOR, castle_front.py): the lift plan gave up and a known wand of striking/opening is in
+            # hand -> fill the drawbridge span, open the front, hold the doorway, in -- above fight2, elbereth_rest and
+            # the retreat, which would pull us off the hold square
+            .preempt(self.agent, [
+                castle_front.strategy(self.dive),
             ])
             # valley-exit (LANDING_GUARD, castle_landing.py): a minotaur (or another big Elbereth-ignorer) at the castle
             # depth -- heal early, strike it frozen, zap the best known wand at it (beams, cold; other rays only with
@@ -1014,9 +1128,19 @@ class GlobalLogic:
             .preempt(self.agent, [
                 self.dive.castle.crossing_strategy(),
             ])
+            # HUNGER_DEEP: deep in the dive eat what we carry when Hungry -- above fight2 and the castle crossing,
+            # which kept a castle arrival from its tripe ration until it fainted on the moat's edge (agent.eat_deep)
+            .preempt(self.agent, [
+                self.agent.eat_deep().condition(lambda: jf_config.HUNGER_DEEP),
+            ])
             # castle-first-pass (CFP_XORN, castle_cross.py): a wall-walking polymorph form walks straight through the
             # castle's walls to a trap door -- above the crossing (a breathless xorn also counts as 'floating' there)
             .preempt(self.agent, [
+                # lift-ready (LIFT_COLD): the short cold route (dig to the moat row's west end, freeze it eastward, walk
+                # the strip, freeze its east end, dig into the east maze) -- above the crossing's own long cold route
+                castle_cross.cold_strategy(self.dive),
+                # lift-ready (LIFT_KNOWN_RUSH): a known lasting lift on at once where castle arrivals land
+                castle_cross.known_rush_strategy(self.dive),
                 castle_cross.xorn_strategy(self.dive),
                 # valley-exit (VALLEY_XORN): still a wall-walker in the Valley -> through its rock to the '>'
                 self.dive.valley_xorn(),
@@ -1036,7 +1160,32 @@ class GlobalLogic:
             .preempt(self.agent, [
                 power_route.levelport_strategy(self.agent),
             ])
+            # deep-arrivals (DEEP_ITEMS, dive_logic.deep_items_strategy): on Medusa's level a unicorn horn when blind, a
+            # scare instrument or unknown horn when hostiles press us, a known scroll of scare monster under the dig
+            # square; a scroll of charging on an empty wand of digging -- below the emergency (a due prayer first),
+            # above dig_first, the Elbereth rest and fight2
+            .preempt(self.agent, [
+                self.dive.deep_items_strategy().condition(lambda: jf_config.DEEP_ITEMS),
+            ])
             .preempt(self.agent, [
                 self.agent.emergency_strategy(),
+            ])
+            # dive-audit (KNOWN_ITEMS, known_items.py): in mortal danger while diving (critically low HP, or the last
+            # turns' loss >= the HP left), a known teleport scroll / teleport or digging wand / healing potion / sleep,
+            # striking, cold or fire wand -- above the emergency, whose last resort gambles only on unknown items; it
+            # lets a due emergency prayer go first (below the minotaur guard, which has its own item plan)
+            .preempt(self.agent, [
+                self.known.strategy(),
+            ])
+            # minotaur lane (MINO_GUARD, mino_guard.py): a minotaur in view -- a known way out first (digging down, the
+            # up stairs, teleport/sleep/polymorph at it, teleport ourselves, genocide, scare monster), then gambles;
+            # above the emergency, which it lets pray first when a safe prayer is due (low HP)
+            .preempt(self.agent, [
+                self.mino.strategy(),
+            ])
+            # lift-ready (LIFT_PLUNGE, castle_cross.py): on a castle trap door, not levitating -> '>' into the Valley,
+            # above everything (the Valley is banked progress whatever our HP)
+            .preempt(self.agent, [
+                castle_cross.plunge_strategy(self.dive),
             ])
         )

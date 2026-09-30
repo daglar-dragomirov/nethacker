@@ -5,6 +5,7 @@ import nle.nethack as nh
 from nle.nethack import actions as A
 
 from pf_base import objects as O, utils
+from pf_base import jf_config
 from pf_base.character import Character
 from pf_base.glyph import MON
 from pf_base.item import Item
@@ -44,6 +45,10 @@ class ItemManager:
 
         self._glyph_to_possible_wand_types = {}
         self._already_engraved_glyphs = set()
+        # WAND_ENGRAVE_TEXT: wands whose engrave test left the text prompt empty ('glows, then fades': nothing
+        # learned) and those tested with text already (the dive re-tests the first kind once)
+        self._engraved_textless = set()
+        self._engraved_text = set()
 
     def on_panic(self):
         self.update_object_glyph_mapping()
@@ -261,7 +266,10 @@ class ItemManager:
             r'^(a|an|the|\d+)'
             r'( empty)?'
             r'( (cursed|uncursed|blessed))?'
-            r'( (very |thoroughly )?(rustproof|poisoned|corroded|rusty|burnt|rotted|partly eaten|partly used|diluted|unlocked|locked|moist|wet|greased))*'
+            # 'broken': objnam.c names a box whose lock was forced or kicked open 'broken chest' (CASTLE_TREASURY's #force:
+            # oct5on s18 asserted on 'a broken chest' right after 'You succeed in forcing the lock.'); nothing else in
+            # our games breaks a lock
+            r'( (very |thoroughly )?(rustproof|poisoned|corroded|rusty|burnt|rotted|partly eaten|partly used|diluted|unlocked|locked|broken|moist|wet|greased))*'
             r'( ([+-]\d+))? '
             r"([a-zA-z0-9-!'# ]+)"
             r'( \((?:\d+ aum, )?([0-9]+:[0-9]+|no charge)\))?'   # '(20 aum, no charge)': a free glob in a shop
@@ -527,6 +535,11 @@ class ItemManager:
             name = name[len('small '):]
         elif name == 'knives':
             name = 'knife'
+        elif jf_config.ROBUST_FIXES and name.endswith(' dragon scales') and \
+                (name.startswith('set of ') or name.startswith('sets of ')):
+            # objnam.c xname: 'set of <color> dragon scales' (makeplural: 'sets of ...'); objects.c names them
+            # '<color> dragon scales', so every look at them asserted (PANIC loops in 12 deep dev games)
+            name = name.split(' of ', 1)[1]
 
         # object identified (look on names)
         obj_ids = set()
@@ -558,6 +571,11 @@ class ItemManager:
             ('s', nh.FOOD_CLASS),
             ('s', nh.COIN_CLASS),
         ]
+        if jf_config.ROBUST_FIXES2:
+            # a punishment ball and chain ('a heavy iron ball (chained to you)', 'an iron chain'): no appearance, and
+            # no name match in these classes either, so the category check asserted on every look at them
+            prefixes = prefixes + [('', nh.BALL_CLASS), ('', nh.CHAIN_CLASS)]
+            suffixes = suffixes + [('s', nh.BALL_CLASS), ('s', nh.CHAIN_CLASS)]
         for i in range(nh.NUM_OBJECTS):
             for pref, c in prefixes:
                 if ord(nh.objclass(i).oc_class) == c:
