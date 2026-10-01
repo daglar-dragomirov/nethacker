@@ -10,8 +10,8 @@ from collections.abc import Mapping
 from typing import Any
 
 import nle.nethack as nh
-from pf_clever79_wizards_79a53d8 import agent as autoascend_agent
-from pf_clever79_wizards_79a53d8 import jf_log
+from pf_clever79_tourists_79a53d8 import agent as autoascend_agent
+from pf_clever79_tourists_79a53d8 import jf_log
 
 _ACTIONS = tuple(nh.ACTIONS)
 _ACTION_TO_INDEX = {int(action): index for index, action in enumerate(_ACTIONS)}
@@ -171,7 +171,7 @@ class AutoAscendDriver:
                     self._agent.prayer_model = previous.prayer_model
         except Exception:  # noqa: BLE001
             pass
-        self._thread = threading.Thread(target=self._run_agent, args=(self._agent,), name="pf_clever79_wizards_79a53d8",
+        self._thread = threading.Thread(target=self._run_agent, args=(self._agent,), name="pf_clever79_tourists_79a53d8",
                                         daemon=True)
         self._thread.start()
 

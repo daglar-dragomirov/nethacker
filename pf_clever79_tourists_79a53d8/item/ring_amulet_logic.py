@@ -1,4 +1,4 @@
-"""Ring/amulet handling for an pf_clever79_wizards_79a53d8-family Inventory, written from NetHack 3.6.6's do_wear.c,
+"""Ring/amulet handling for an pf_clever79_tourists_79a53d8-family Inventory, written from NetHack 3.6.6's do_wear.c,
 mkobj.c, eat.c and pray.c (not from any other bot). Installed onto Inventory by install(); the only
 other change to a host tree is one line in Inventory.gather_items() (see the port script).
 

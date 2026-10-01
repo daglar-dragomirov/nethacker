@@ -1,6 +1,6 @@
 import nle.nethack as nh
 
-from pf_clever79_wizards_79a53d8 import objects as O
+from pf_clever79_tourists_79a53d8 import objects as O
 
 
 class InventoryItems:

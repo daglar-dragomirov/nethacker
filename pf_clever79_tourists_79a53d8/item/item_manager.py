@@ -4,10 +4,10 @@ import re
 import nle.nethack as nh
 from nle.nethack import actions as A
 
-from pf_clever79_wizards_79a53d8 import objects as O, utils
-from pf_clever79_wizards_79a53d8.character import Character
-from pf_clever79_wizards_79a53d8.glyph import MON
-from pf_clever79_wizards_79a53d8.item import Item
+from pf_clever79_tourists_79a53d8 import objects as O, utils
+from pf_clever79_tourists_79a53d8.character import Character
+from pf_clever79_tourists_79a53d8.glyph import MON
+from pf_clever79_tourists_79a53d8.item import Item
 
 
 class ContainerContent:

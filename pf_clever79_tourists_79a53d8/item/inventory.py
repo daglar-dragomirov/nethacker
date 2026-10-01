@@ -7,16 +7,16 @@ import nle.nethack as nh
 import numpy as np
 from nle.nethack import actions as A
 
-from pf_clever79_wizards_79a53d8 import objects as O, utils
-from pf_clever79_wizards_79a53d8 import power
-from pf_clever79_wizards_79a53d8.character import Character
-from pf_clever79_wizards_79a53d8.exceptions import AgentPanic
-from pf_clever79_wizards_79a53d8.glyph import G, MON, Hunger
-from pf_clever79_wizards_79a53d8 import jf_config
-from pf_clever79_wizards_79a53d8.item import ItemManager, Item, ContainerContent, check_if_triggered_container_trap, \
+from pf_clever79_tourists_79a53d8 import objects as O, utils
+from pf_clever79_tourists_79a53d8 import power
+from pf_clever79_tourists_79a53d8.character import Character
+from pf_clever79_tourists_79a53d8.exceptions import AgentPanic
+from pf_clever79_tourists_79a53d8.glyph import G, MON, Hunger
+from pf_clever79_tourists_79a53d8 import jf_config
+from pf_clever79_tourists_79a53d8.item import ItemManager, Item, ContainerContent, check_if_triggered_container_trap, \
     find_equivalent_item, flatten_items
-from pf_clever79_wizards_79a53d8.item.inventory_items import InventoryItems
-from pf_clever79_wizards_79a53d8.strategy import Strategy
+from pf_clever79_tourists_79a53d8.item.inventory_items import InventoryItems
+from pf_clever79_tourists_79a53d8.strategy import Strategy
 
 
 class Inventory:
