@@ -1,10 +1,10 @@
 {
   "schema": "nethackers.solution/v1",
-  "name": "codex-dt1d-tourists-selected-v1",
+  "name": "codex-clever182-valkyries-selected-v1",
   "root": "pf_s25p8",
   "parents": [
     "github.com/daglar-dragomirov/nethacker@da4fe488c171b5fac8b53b6137b45d642aca8f7c",
-    "github.com/DT6A/nethacker@1d8271d883c8992d25b32bace6fd0a01a359cfb2"
+    "github.com/CleverShovel/nethacker@182af8e4277b25290207794c0af9d72688032220"
   ],
   "influences": [
     "github.com/DT6A/nethacker@464e1662a4cb60567c7946d2d952278c64eefe84",

@@ -1,8 +1,8 @@
 import nle.nethack as nh
 
-from pf_dt1d_tourists_1d8271d import objects as O
-from pf_dt1d_tourists_1d8271d.glyph import MON, WEA
-from pf_dt1d_tourists_1d8271d import jf_config
+from pf_clever182_valkyries import objects as O
+from pf_clever182_valkyries.glyph import MON, WEA
+from pf_clever182_valkyries import jf_config
 
 
 class Item:
