@@ -19,25 +19,25 @@ import re  # noqa: E402
 # identity -> variant package, chosen on held-out games (see build_ident.py)
 CHOICE = {
     "arc-dwa-law-fem": "pf_s25p8",
-    "arc-dwa-law-mal": "pf_s25p8",
+    "arc-dwa-law-mal": "pf_s25p",
     "arc-gno-neu-fem": "pf_v36",
     "arc-gno-neu-mal": "pf_v36",
     "arc-hum-law-fem": "pf_v37",
     "arc-hum-law-mal": "pf_v43x",
-    "arc-hum-neu-fem": "pf_s25p8",
-    "arc-hum-neu-mal": "pf_s25p8",
+    "arc-hum-neu-fem": "pf_s25p",
+    "arc-hum-neu-mal": "pf_s25p",
     "bar-hum-cha-fem": "pf_s25p8",
     "bar-hum-cha-mal": "pf_s25p8",
-    "bar-hum-neu-fem": "pf_s25p8",
-    "bar-hum-neu-mal": "pf_s25p8",
+    "bar-hum-neu-fem": "pf_vk_s25",
+    "bar-hum-neu-mal": "pf_vk_s25",
     "bar-orc-cha-fem": "pf_s25p8",
     "bar-orc-cha-mal": "pf_s25p8",
     "cav-dwa-law-fem": "pf_s25p8",
     "cav-dwa-law-mal": "pf_s25p8",
-    "cav-gno-neu-fem": "pf_v43x",
+    "cav-gno-neu-fem": "pf_vk_s25",
     "cav-gno-neu-mal": "pf_v43x",
-    "cav-hum-law-fem": "pf_v43x",
-    "cav-hum-law-mal": "pf_v43x",
+    "cav-hum-law-fem": "pf_s25p",
+    "cav-hum-law-mal": "pf_vk_s25",
     "cav-hum-neu-fem": "pf_vk_s23",
     "cav-hum-neu-mal": "pf_vk_s23",
     "hea-gno-neu-fem": "pf_vlom_9ef4063",
@@ -63,36 +63,36 @@ CHOICE = {
     "ran-elf-cha-fem": "pf_s25p8",
     "ran-elf-cha-mal": "pf_s25p8",
     "ran-gno-neu-fem": "pf_v36",
-    "ran-gno-neu-mal": "pf_v36",
+    "ran-gno-neu-mal": "pf_s25p",
     "ran-hum-cha-fem": "pf_v36",
     "ran-hum-cha-mal": "pf_v36",
     "ran-hum-neu-fem": "pf_s25p8",
     "ran-hum-neu-mal": "pf_s25p8",
     "ran-orc-cha-fem": "pf_v37",
     "ran-orc-cha-mal": "pf_s25p8",
-    "rog-hum-cha-fem": "pf_s25p8",
-    "rog-hum-cha-mal": "pf_s25p8",
-    "rog-orc-cha-fem": "pf_s25p8",
+    "rog-hum-cha-fem": "pf_vk_s25",
+    "rog-hum-cha-mal": "pf_vk_s25",
+    "rog-orc-cha-fem": "pf_vk_s25",
     "rog-orc-cha-mal": "pf_v36",
     "sam-hum-law-fem": "pf_v37",
-    "sam-hum-law-mal": "pf_kef_d42161f",
+    "sam-hum-law-mal": "pf_vk_s25",
     "tou-hum-neu-fem": "pf_v25",
     "tou-hum-neu-mal": "pf_v25",
     "val-dwa-law-fem": "pf_vk_s23",
     "val-hum-law-fem": "pf_v38",
     "val-hum-neu-fem": "pf_v37",
     "wiz-elf-cha-fem": "pf_v36",
-    "wiz-elf-cha-mal": "pf_kef_d42161f",
+    "wiz-elf-cha-mal": "pf_s25p",
     "wiz-gno-neu-fem": "pf_s25p8",
     "wiz-gno-neu-mal": "pf_s25p8",
-    "wiz-hum-cha-fem": "pf_vk_s23",
-    "wiz-hum-cha-mal": "pf_s25p8",
-    "wiz-hum-neu-fem": "pf_vk_s23",
-    "wiz-hum-neu-mal": "pf_vk_s23",
+    "wiz-hum-cha-fem": "pf_vk_s25",
+    "wiz-hum-cha-mal": "pf_vk_s25",
+    "wiz-hum-neu-fem": "pf_vk_s25",
+    "wiz-hum-neu-mal": "pf_vk_s25",
     "wiz-orc-cha-fem": "pf_s25p8",
     "wiz-orc-cha-mal": "pf_s25p8"
 }
-DEFAULT = "pf_s25p8"
+DEFAULT = "pf_s25p"
 _ROLES = {"Archeologist": "arc", "Barbarian": "bar", "Caveman": "cav", "Cavewoman": "cav", "Healer": "hea",
           "Knight": "kni", "Monk": "mon", "Priest": "pri", "Priestess": "pri", "Ranger": "ran", "Rogue": "rog",
           "Samurai": "sam", "Tourist": "tou", "Valkyrie": "val", "Wizard": "wiz"}
@@ -134,7 +134,7 @@ def _identity(observation):
     return f"{_ROLES[role]}-{_RACES[race]}-{_ALIGNS[align]}-{gender}"
 
 # role -> package when the race cannot be read (see build_ident.py)
-FALLBACK = {"arc": "pf_s25p8", "bar": "pf_s25p8", "cav": "pf_v43x", "hea": "pf_vlom_9ef4063", "kni": "pf_s25p8", "mon": "pf_v38", "pri": "pf_kef_d42161f", "ran": "pf_s25p8", "rog": "pf_s25p8", "sam": "pf_v37", "tou": "pf_v25", "val": "pf_vk_s23", "wiz": "pf_s25p8"}
+FALLBACK = {"arc": "pf_s25p", "bar": "pf_s25p8", "cav": "pf_s25p8", "hea": "pf_vlom_9ef4063", "kni": "pf_s25p8", "mon": "pf_v38", "pri": "pf_kef_d42161f", "ran": "pf_s25p8", "rog": "pf_vk_s25", "sam": "pf_v37", "tou": "pf_v25", "val": "pf_vk_s23", "wiz": "pf_s25p8"}
 _RE_ALIGN = re.compile(r"\b(Lawful|Neutral|Chaotic)\b")
 
 
