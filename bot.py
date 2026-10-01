@@ -70,8 +70,8 @@ CHOICE = {
     "ran-hum-neu-mal": "pf_s25p8",
     "ran-orc-cha-fem": "pf_v37",
     "ran-orc-cha-mal": "pf_s25p8",
-    "rog-hum-cha-fem": "pf_transfer_pf_s25p8",
-    "rog-hum-cha-mal": "pf_transfer_pf_s25p8",
+    "rog-hum-cha-fem": "pf_vk_s25",
+    "rog-hum-cha-mal": "pf_vk_s25",
     "rog-orc-cha-fem": "pf_vk_s25",
     "rog-orc-cha-mal": "pf_v36",
     "sam-hum-law-fem": "pf_v37",
@@ -86,9 +86,9 @@ CHOICE = {
     "wiz-gno-neu-fem": "pf_s25p8",
     "wiz-gno-neu-mal": "pf_s25p8",
     "wiz-hum-cha-fem": "pf_vk_s25",
-    "wiz-hum-cha-mal": "pf_transfer_pf_s25p8",
-    "wiz-hum-neu-fem": "pf_vk_s25",
-    "wiz-hum-neu-mal": "pf_vk_s25",
+    "wiz-hum-cha-mal": "pf_vk_s25",
+    "wiz-hum-neu-fem": "pf_wizard_prayer",
+    "wiz-hum-neu-mal": "pf_wizard_prayer",
     "wiz-orc-cha-fem": "pf_s25p8",
     "wiz-orc-cha-mal": "pf_s25p8"
 }
