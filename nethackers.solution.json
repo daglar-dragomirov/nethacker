@@ -1,10 +1,10 @@
 {
   "schema": "nethackers.solution/v1",
-  "name": "codex-pa-gap-selected-v1",
+  "name": "codex-clever79-wizards-selected-v1",
   "root": "pf_s25p8",
   "parents": [
     "github.com/daglar-dragomirov/nethacker@da4fe488c171b5fac8b53b6137b45d642aca8f7c",
-    "github.com/PetrAnokhin/nethacker@5c1186c8051ca8a885b79216d8dde7aa13e28594"
+    "github.com/CleverShovel/nethacker@79a53d8aeca5cf5fea32b4735f96ef22dc2a1052"
   ],
   "influences": [
     "github.com/DT6A/nethacker@464e1662a4cb60567c7946d2d952278c64eefe84",

@@ -7,16 +7,16 @@ import nle.nethack as nh
 import numpy as np
 from nle.nethack import actions as A
 
-from pf_pa_gap_5c1186c import objects as O, utils
-from pf_pa_gap_5c1186c import power
-from pf_pa_gap_5c1186c.character import Character
-from pf_pa_gap_5c1186c.exceptions import AgentPanic
-from pf_pa_gap_5c1186c.glyph import G, MON, Hunger
-from pf_pa_gap_5c1186c import jf_config
-from pf_pa_gap_5c1186c.item import ItemManager, Item, ContainerContent, check_if_triggered_container_trap, \
+from pf_clever79_wizards_79a53d8 import objects as O, utils
+from pf_clever79_wizards_79a53d8 import power
+from pf_clever79_wizards_79a53d8.character import Character
+from pf_clever79_wizards_79a53d8.exceptions import AgentPanic
+from pf_clever79_wizards_79a53d8.glyph import G, MON, Hunger
+from pf_clever79_wizards_79a53d8 import jf_config
+from pf_clever79_wizards_79a53d8.item import ItemManager, Item, ContainerContent, check_if_triggered_container_trap, \
     find_equivalent_item, flatten_items
-from pf_pa_gap_5c1186c.item.inventory_items import InventoryItems
-from pf_pa_gap_5c1186c.strategy import Strategy
+from pf_clever79_wizards_79a53d8.item.inventory_items import InventoryItems
+from pf_clever79_wizards_79a53d8.strategy import Strategy
 
 
 class Inventory:
@@ -941,6 +941,12 @@ class Inventory:
             self.pickup_and_drop_items()
                 .before(self.check_containers())
                 .before(self.wear_best_stuff())
+                .before(self.read_scrolls_to_identify())
+                .before(self.wear_identified_beneficial())
+                .before(self.wear_starting_rings())
+                .before(self.identify_amulet_by_wear())
+                .before(self.wear_combat_only_rings_amulets())
+                .before(self.shed_rings_amulets_when_hungry())
                 .before(self.wand_engrave_identify())
                 .before(self.use_spare_wishes())
                 .before(self.wear_life_saving())
@@ -1141,7 +1147,7 @@ class Inventory:
             yield False  # TODO: only for handless monsters (which cannot write)
 
         self.skip_engrave_counter -= 1
-        if self.agent.character.prop.blind or self.skip_engrave_counter > 0 or self.agent.hands_welded():
+        if self.agent.character.prop.blind or self.skip_engrave_counter > 0 or self.agent.no_free_hand():
             yield False
             return
         yielded = False
@@ -1233,6 +1239,8 @@ class Inventory:
 
     def _engrave_single_wand(self, item):
         """ Returns possible objects or None if current tile not suitable for identification."""
+        # WISH_TELEPORT_ROUTE: a wish prompt during the engrave-test comes from a wand of wishing (>= 2 wishes)
+        self.agent._last_wand_use_step = self.agent.step_count
 
         def msg():
             return self.agent.message
@@ -1757,3 +1765,7 @@ class Inventory:
             yield False
 
         yield from self.arrange_items().strategy()
+
+
+from . import ring_amulet_logic as _ring_amulet_logic  # noqa: E402
+_ring_amulet_logic.install(Inventory)

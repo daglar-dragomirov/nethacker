@@ -10,8 +10,8 @@ from collections.abc import Mapping
 from typing import Any
 
 import nle.nethack as nh
-from pf_pa_gap_5c1186c import agent as autoascend_agent
-from pf_pa_gap_5c1186c import jf_log
+from pf_clever79_wizards_79a53d8 import agent as autoascend_agent
+from pf_clever79_wizards_79a53d8 import jf_log
 
 _ACTIONS = tuple(nh.ACTIONS)
 _ACTION_TO_INDEX = {int(action): index for index, action in enumerate(_ACTIONS)}
@@ -156,7 +156,6 @@ class AutoAscendDriver:
         self._agent.resumed_game = not fresh_game
         if not fresh_game and previous is not None:
             self._agent.previous_character = previous.character
-            self._agent.recovery.adopt(previous.recovery)
         # the prayer state survives a restart: a fresh agent took the game for prayer-free and could pray
         # again at once (pray.c: too soon -> Luck -3 and an angry god)
         try:
@@ -167,18 +166,12 @@ class AutoAscendDriver:
                 self._agent.last_prayer_turn = previous.last_prayer_turn
                 self._agent.prayer_failed = previous.prayer_failed
                 self._agent.prayer_hold_until = previous.prayer_hold_until
-                # These turn-based guards belong to the game, not the worker.
-                # Copy guards and diagnostics, never an interrupted cast generator.
-                self._agent.spell_healing.adopt(previous.spell_healing)
-                self._agent._last_resort_stairs_turn = previous._last_resort_stairs_turn
-                self._agent.global_logic.dive._retreat_blocked_until = (
-                    previous.global_logic.dive._retreat_blocked_until)
                 if getattr(previous, 'prayer_model', None) is not None:
                     previous.prayer_model.adopt(self._agent)
                     self._agent.prayer_model = previous.prayer_model
         except Exception:  # noqa: BLE001
             pass
-        self._thread = threading.Thread(target=self._run_agent, args=(self._agent,), name="pf_pa_gap_5c1186c",
+        self._thread = threading.Thread(target=self._run_agent, args=(self._agent,), name="pf_clever79_wizards_79a53d8",
                                         daemon=True)
         self._thread.start()
 

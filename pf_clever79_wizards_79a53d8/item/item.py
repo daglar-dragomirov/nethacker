@@ -1,8 +1,8 @@
 import nle.nethack as nh
 
-from pf_pa_gap_5c1186c import objects as O
-from pf_pa_gap_5c1186c.glyph import MON, WEA
-from pf_pa_gap_5c1186c import jf_config
+from pf_clever79_wizards_79a53d8 import objects as O
+from pf_clever79_wizards_79a53d8.glyph import MON, WEA
+from pf_clever79_wizards_79a53d8 import jf_config
 
 
 class Item:
