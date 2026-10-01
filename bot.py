@@ -74,7 +74,7 @@ CHOICE = {
     "rog-hum-cha-mal": "pf_vk_s25",
     "rog-orc-cha-fem": "pf_vk_s25",
     "rog-orc-cha-mal": "pf_v36",
-    "sam-hum-law-fem": "pf_v37",
+    "sam-hum-law-fem": "pf_clever_sam",
     "sam-hum-law-mal": "pf_vk_s25",
     "tou-hum-neu-fem": "pf_v25",
     "tou-hum-neu-mal": "pf_v25",
