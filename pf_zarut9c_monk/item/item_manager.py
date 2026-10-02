@@ -4,11 +4,11 @@ import re
 import nle.nethack as nh
 from nle.nethack import actions as A
 
-from pf_zarut9c_cavs import objects as O, utils
-from pf_zarut9c_cavs import jf_config
-from pf_zarut9c_cavs.character import Character
-from pf_zarut9c_cavs.glyph import MON
-from pf_zarut9c_cavs.item import Item
+from pf_zarut9c_monk import objects as O, utils
+from pf_zarut9c_monk import jf_config
+from pf_zarut9c_monk.character import Character
+from pf_zarut9c_monk.glyph import MON
+from pf_zarut9c_monk.item import Item
 
 
 class ContainerContent:
