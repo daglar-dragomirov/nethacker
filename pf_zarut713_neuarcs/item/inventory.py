@@ -7,16 +7,16 @@ import nle.nethack as nh
 import numpy as np
 from nle.nethack import actions as A
 
-from pf_zarut713_orcbar import objects as O, utils
-from pf_zarut713_orcbar import power
-from pf_zarut713_orcbar.character import Character
-from pf_zarut713_orcbar.exceptions import AgentPanic
-from pf_zarut713_orcbar.glyph import G, MON, Hunger
-from pf_zarut713_orcbar import jf_config
-from pf_zarut713_orcbar.item import ItemManager, Item, ContainerContent, check_if_triggered_container_trap, \
+from pf_zarut713_neuarcs import objects as O, utils
+from pf_zarut713_neuarcs import power
+from pf_zarut713_neuarcs.character import Character
+from pf_zarut713_neuarcs.exceptions import AgentPanic
+from pf_zarut713_neuarcs.glyph import G, MON, Hunger
+from pf_zarut713_neuarcs import jf_config
+from pf_zarut713_neuarcs.item import ItemManager, Item, ContainerContent, check_if_triggered_container_trap, \
     find_equivalent_item, flatten_items
-from pf_zarut713_orcbar.item.inventory_items import InventoryItems
-from pf_zarut713_orcbar.strategy import Strategy
+from pf_zarut713_neuarcs.item.inventory_items import InventoryItems
+from pf_zarut713_neuarcs.strategy import Strategy
 
 
 MELEE_BASHING = frozenset({'dart', 'shuriken', 'boomerang', 'arrow', 'elven arrow', 'orcish arrow',
