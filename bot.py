@@ -22,7 +22,7 @@ CHOICE = {
     "arc-dwa-law-mal": "pf_s25p",
     "arc-gno-neu-fem": "pf_v36",
     "arc-gno-neu-mal": "pf_v36",
-    "arc-hum-law-fem": "pf_v37",
+    "arc-hum-law-fem": "pf_zarut9c_rest",
     "arc-hum-law-mal": "pf_v43x",
     "arc-hum-neu-fem": "pf_s25p",
     "arc-hum-neu-mal": "pf_s25p",
