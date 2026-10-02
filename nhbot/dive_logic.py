@@ -344,7 +344,7 @@ MEDUSA_SKIP = False
 # land squares around it), and a miss lands us back where we were. Costs a soaking (potions dilute, scrolls blank,
 # iron rusts). Medusa-4: 33% of arrivals land on the islet next to the north-east hut (6 dry squares) and cross with
 # 3/4 odds per try; Medusa-3's island has no such channel (see scripts/medusa_hop.py in the workspace).
-MEDUSA_HOP = False
+MEDUSA_HOP = True
 MEDUSA_HOP_MAX = 6             # soakings per Medusa level
 MEDUSA_SKIP_FLOODS = 1
 MEDUSA_SKIP_REROLLS = 8
