@@ -42,3 +42,10 @@
   1 time in 4-6, but the extra landings cost more, -0.015 +- 0.005 per Medusa game), Wizards on the Dlvl-1 grind
   (-0.058 +- 0.026 over 101 pairs).
 
+
+
+## Experimental zV4B (2026-10-02)
+Nine nhbot runtime files from zarutskiysy/nethack@14a3bbd871061d63bda57da6c82af91f46959d21 transplanted onto exact zB; see DONOR_CHANGES_zarut14a3.md. Preserve zB router, specialists, role policy, ring module and Medusa hop. Add donor Wizard casting safeguards, pet/hostility corrections, safe deep prayer, Medusa/Castle separation and minotaur escape repairs. Donor disabled experiments remain disabled. Public source evidence only; fresh validation separate, no gain claimed.
+
+## Experimental zV7B
+Port the exact specialist routing/engines retained by Public leader zarutskiysy@94c4c1c, while preserving zV4B main engine, zB role policy and main Tourist engine. These specialists originate in our historical d8da1f72 portfolio; donor attribution retained. No private-guided choices. Full73 Public and predeclared fresh comparison against exact new Public leader, zB and zRole2; no confirmed gain claimed.

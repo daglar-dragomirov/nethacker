@@ -16,11 +16,7 @@ import roles  # noqa: E402
 # games): Healers on vlomshakov's engines, Samurai on daglar's v35. Every other identity plays the main engine, nhbot.
 # Human Priests left PetrAnokhin's pf_pa for nhbot (eL1fe's spell bundle casts their healing): +0.053 +- 0.022 per game
 # over 113 paired held-out games (ph0/ph1), in line with the hub's private seeds (dag25 0.260 vs pf_pa 0.228).
-SPECIALISTS = {
-    "hea-gno": "adapter_pf_hg",
-    "hea-hum": "adapter_pf_hh",
-    "sam": "adapter_pf_v35",
-}
+SPECIALISTS = {'hea-gno': 'adapter_pf_vlom_9ef4063', 'hea-hum': 'adapter_pf_hh', 'sam': 'adapter_pf_v35', 'sam-hum-law-fem': 'adapter_pf_v37', 'sam-hum-law-mal': 'adapter_pf_vk_s25', 'val-dwa': 'adapter_pf_vk_s23', 'hea-hum-neu-mal': 'adapter_pf_vlom_8b492ce', 'pri-hum-cha': 'adapter_pf_pa_5c1186c', 'rog-hum-cha': 'adapter_pf_pa_5c1186c', 'arc-gno': 'adapter_pf_v36', 'ran-elf-cha': 'adapter_pf_s25p8', 'ran-orc-cha-fem': 'adapter_pf_v37', 'ran-orc-cha-mal': 'adapter_pf_s25p8', 'ran-hum-neu': 'adapter_pf_s25p8', 'bar-hum-neu-mal': 'adapter_pf_vk_s25', 'kni-hum-law-mal': 'adapter_pf_s25p8'}
 
 
 def _specialist(ident):
