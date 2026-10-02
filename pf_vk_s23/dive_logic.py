@@ -2107,7 +2107,7 @@ class DiveLogic:
     def use_mines(self):
         # with a pick-axe, digging the main dungeon beats banking Mines' End
         return MINES_ROUTE and not self.mines_done and \
-            self.agent.character.race in (Character.DWARF, Character.GNOME) and \
+            (self.agent.character.race in (Character.DWARF, Character.GNOME) or (self.diving and not self.rescue)) and \
             (not self.diving or self.digging_tool() is None)
 
     def _stairs_down(self, level):
