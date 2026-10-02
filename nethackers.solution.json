@@ -1,6 +1,6 @@
 {
   "schema": "nethackers.solution/v1",
-  "name": "codex-zarut9c-rest-selected-v2",
+  "name": "codex-zarut9c-cavs-selected-v2",
   "root": "pf_s25p8",
   "parents": [
     "github.com/daglar-dragomirov/nethacker@da4fe488c171b5fac8b53b6137b45d642aca8f7c",

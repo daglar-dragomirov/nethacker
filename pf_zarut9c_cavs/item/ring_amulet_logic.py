@@ -9,7 +9,7 @@ mkobj.c (strangulation/restful sleep/change amulets are cursed 9 in 10), the #re
 refusing a cursed worn item, eat.c gethungry() (1 nutrition per 20 turns per worn ring/amulet),
 pray.c (strangulation is major trouble a prayer fixes).
 
-Port changes (pf_zarut9c_rest): on/off switches and role gates are jf_config RING_* flags (default: Wizards only); RINGSTAT
+Port changes (pf_zarut9c_cavs): on/off switches and role gates are jf_config RING_* flags (default: Wizards only); RINGSTAT
 stderr lines only with ring_amulet_config.RING_DEBUG; a ring/amulet is put on only when the game printed its BUC as
 uncursed/blessed and a chargeable ring only at a known positive enchantment (the item parser reads an unknown BUC as
 uncursed); a failed put on (no game time) is not retried in a loop; the combat-only put on needs a free finger/neck;
