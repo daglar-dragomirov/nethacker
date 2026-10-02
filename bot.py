@@ -1,179 +1,93 @@
 from __future__ import annotations
 
+import importlib
 import os
 import tempfile
-from collections.abc import Mapping
 from pathlib import Path
-from typing import Any
-
-from nethackers.contracts.bot import ArenaBot
 
 _cache_root = Path(tempfile.gettempdir()) / "nethack_arena_submission_cache"
 _cache_root.mkdir(parents=True, exist_ok=True)
 os.environ.setdefault("XDG_CACHE_HOME", str(_cache_root / "xdg"))
 os.environ.setdefault("NUMBA_CACHE_DIR", str(_cache_root / "numba"))
 
-import importlib  # noqa: E402
-import re  # noqa: E402
+import roles  # noqa: E402
 
-# identity -> variant package, chosen on held-out games (see build_ident.py)
-CHOICE = {
-    "arc-dwa-law-fem": "pf_s25p8",
-    "arc-dwa-law-mal": "pf_s25p",
-    "arc-gno-neu-fem": "pf_v36",
-    "arc-gno-neu-mal": "pf_v36",
-    "arc-hum-law-fem": "pf_v37",
-    "arc-hum-law-mal": "pf_zarut713_lawarc",
-    "arc-hum-neu-fem": "pf_s25p",
-    "arc-hum-neu-mal": "pf_s25p",
-    "bar-hum-cha-fem": "pf_s25p8",
-    "bar-hum-cha-mal": "pf_s25p8",
-    "bar-hum-neu-fem": "pf_vk_s25",
-    "bar-hum-neu-mal": "pf_vk_s25",
-    "bar-orc-cha-fem": "pf_s25p8",
-    "bar-orc-cha-mal": "pf_s25p8",
-    "cav-dwa-law-fem": "pf_s25p8",
-    "cav-dwa-law-mal": "pf_s25p8",
-    "cav-gno-neu-fem": "pf_vk_s25",
-    "cav-gno-neu-mal": "pf_v43x",
-    "cav-hum-law-fem": "pf_s25p",
-    "cav-hum-law-mal": "pf_vk_s25",
-    "cav-hum-neu-fem": "pf_vk_s23",
-    "cav-hum-neu-mal": "pf_vk_s23",
-    "hea-gno-neu-fem": "pf_vlom_9ef4063",
-    "hea-gno-neu-mal": "pf_vlom_9ef4063",
-    "hea-hum-neu-fem": "pf_vlom_8b492ce",
-    "hea-hum-neu-mal": "pf_vlom_8b492ce",
-    "kni-hum-law-fem": "pf_s25p8",
-    "kni-hum-law-mal": "pf_s25p8",
-    "mon-hum-cha-fem": "pf_v38",
-    "mon-hum-cha-mal": "pf_v38",
-    "mon-hum-law-fem": "pf_kef_d42161f",
-    "mon-hum-law-mal": "pf_kef_d42161f",
-    "mon-hum-neu-fem": "pf_s25p8",
-    "mon-hum-neu-mal": "pf_s25p8",
-    "pri-elf-cha-fem": "pf_kef_d42161f",
-    "pri-elf-cha-mal": "pf_kef_d42161f",
-    "pri-hum-cha-fem": "pf_pa_5c1186c",
-    "pri-hum-cha-mal": "pf_pa_5c1186c",
-    "pri-hum-law-fem": "pf_pa_5c1186c",
-    "pri-hum-law-mal": "pf_v38",
-    "pri-hum-neu-fem": "pf_v37",
-    "pri-hum-neu-mal": "pf_kef_d42161f",
-    "ran-elf-cha-fem": "pf_s25p8",
-    "ran-elf-cha-mal": "pf_s25p8",
-    "ran-gno-neu-fem": "pf_v36",
-    "ran-gno-neu-mal": "pf_s25p",
-    "ran-hum-cha-fem": "pf_v36",
-    "ran-hum-cha-mal": "pf_v36",
-    "ran-hum-neu-fem": "pf_s25p8",
-    "ran-hum-neu-mal": "pf_s25p8",
-    "ran-orc-cha-fem": "pf_v37",
-    "ran-orc-cha-mal": "pf_s25p8",
-    "rog-hum-cha-fem": "pf_vk_s25",
-    "rog-hum-cha-mal": "pf_vk_s25",
-    "rog-orc-cha-fem": "pf_vk_s25",
-    "rog-orc-cha-mal": "pf_v36",
-    "sam-hum-law-fem": "pf_v37",
-    "sam-hum-law-mal": "pf_vk_s25",
-    "tou-hum-neu-fem": "pf_v25",
-    "tou-hum-neu-mal": "pf_v25",
-    "val-dwa-law-fem": "pf_vk_s23",
-    "val-hum-law-fem": "pf_v38",
-    "val-hum-neu-fem": "pf_v37",
-    "wiz-elf-cha-fem": "pf_v36",
-    "wiz-elf-cha-mal": "pf_s25p",
-    "wiz-gno-neu-fem": "pf_s25p8",
-    "wiz-gno-neu-mal": "pf_s25p8",
-    "wiz-hum-cha-fem": "pf_vk_s25",
-    "wiz-hum-cha-mal": "pf_vk_s25",
-    "wiz-hum-neu-fem": "pf_wizard_prayer",
-    "wiz-hum-neu-mal": "pf_wizard_prayer",
-    "wiz-orc-cha-fem": "pf_s25p8",
-    "wiz-orc-cha-mal": "pf_s25p8"
+# identity prefix -> specialist engine adapter (from daglar-dragomirov/nethacker@e29eb82, chosen there on held-out
+# games): Healers on vlomshakov's engines, Samurai on daglar's v35. Every other identity plays the main engine, nhbot.
+# Human Priests left PetrAnokhin's pf_pa for nhbot (eL1fe's spell bundle casts their healing): +0.053 +- 0.022 per game
+# over 113 paired held-out games (ph0/ph1), in line with the hub's private seeds (dag25 0.260 vs pf_pa 0.228).
+SPECIALISTS = {
+    "hea-gno": "adapter_pf_hg",
+    "hea-hum": "adapter_pf_hh",
+    "sam": "adapter_pf_v35",
 }
-DEFAULT = "pf_s25p"
-_ROLES = {"Archeologist": "arc", "Barbarian": "bar", "Caveman": "cav", "Cavewoman": "cav", "Healer": "hea",
-          "Knight": "kni", "Monk": "mon", "Priest": "pri", "Priestess": "pri", "Ranger": "ran", "Rogue": "rog",
-          "Samurai": "sam", "Tourist": "tou", "Valkyrie": "val", "Wizard": "wiz"}
-_RACES = {"human": "hum", "elven": "elf", "dwarven": "dwa", "gnomish": "gno", "orcish": "orc"}
-_ALIGNS = {"lawful": "law", "neutral": "neu", "chaotic": "cha"}
-_RE = re.compile(r"You are an? (lawful|neutral|chaotic) (?:(male|female) )?(human|elven|dwarven|gnomish|orcish) "
-                 r"(" + "|".join(_ROLES) + r")\b")
-_FEMALE_ROLES = {"Cavewoman", "Priestess", "Valkyrie"}
-_RE_CUT = re.compile(r"You are an? (lawful|neutral|chaotic) (?:(male|female) )?(human|elven|dwarven|gnomish|orcish)")
-_RE_TITLE = re.compile(r"Agent the (\w+)")
-# Xp 1 rank titles (role.c)
-_TITLES = {"Digger": "Archeologist", "Plunderer": "Barbarian", "Plunderess": "Barbarian",
-           "Troglodyte": "Caveman", "Rhizotomist": "Healer", "Gallant": "Knight", "Candidate": "Monk",
-           "Aspirant": "Priest", "Tenderfoot": "Ranger", "Footpad": "Rogue", "Hatamoto": "Samurai",
-           "Rambler": "Tourist", "Stripling": "Valkyrie", "Evoker": "Wizard"}
 
 
-def _identity(observation):
-    texts = []
-    for key in ("message", "tty_chars"):
-        try:
-            texts.append(bytes(observation[key]).decode("latin-1", "replace"))
-        except Exception:  # noqa: BLE001
-            pass
-    text = " ".join(texts)
-    m = _RE.search(text)
-    if m is not None:
-        align, gender, race, role = m.groups()
-    else:
-        # an 80-column welcome line cuts the role off ("... neutral female gnomish"): take alignment, gender
-        # and race from it and the role from the status line's Xp 1 rank title ("Agent the Digger")
-        m = _RE_CUT.search(text)
-        t = _RE_TITLE.search(text)
-        if m is None or t is None or t.group(1) not in _TITLES:
-            return None
-        align, gender, race = m.groups()
-        role = _TITLES[t.group(1)]
-    gender = "fem" if gender == "female" or role in _FEMALE_ROLES else "mal"
-    return f"{_ROLES[role]}-{_RACES[race]}-{_ALIGNS[align]}-{gender}"
-
-# role -> package when the race cannot be read (see build_ident.py)
-FALLBACK = {"arc": "pf_s25p", "bar": "pf_s25p8", "cav": "pf_s25p8", "hea": "pf_vlom_9ef4063", "kni": "pf_s25p8", "mon": "pf_v38", "pri": "pf_kef_d42161f", "ran": "pf_s25p8", "rog": "pf_vk_s25", "sam": "pf_v37", "tou": "pf_v25", "val": "pf_vk_s23", "wiz": "pf_s25p8"}
-_RE_ALIGN = re.compile(r"\b(Lawful|Neutral|Chaotic)\b")
-
-
-def _by_status(observation):
-    try:
-        text = bytes(observation["tty_chars"]).decode("latin-1", "replace")
-    except Exception:  # noqa: BLE001
+def _specialist(ident):
+    if not ident or os.environ.get("NHBOT_NO_SPECIALISTS"):
         return None
-    t = _RE_TITLE.search(text)
-    a = _RE_ALIGN.search(text)
-    if t is None or t.group(1) not in _TITLES:
-        return None
-    role = _ROLES[_TITLES[t.group(1)]]
-    align = _ALIGNS[a.group(1).lower()] if a else None
-    pkgs = {p for k, p in CHOICE.items() if k.startswith(role + "-") and (align is None or k.split("-")[2] == align)}
-    if len(pkgs) == 1:
-        return pkgs.pop()
-    return FALLBACK.get(role)
+    table = dict(SPECIALISTS)
+    # dev runs: NHBOT_ROUTE='{"tou": "adapter_pf_v25"}' (an empty name routes to nhbot)
+    if os.environ.get("NHBOT_ROUTE"):
+        import json
+        table.update(json.loads(os.environ["NHBOT_ROUTE"]))
+    for prefix in sorted(table, key=len, reverse=True):
+        if ident == prefix or ident.startswith(prefix + "-"):
+            return table[prefix] or None
+    return None
 
 
 class Bot:
+    """Routes each identity to an engine: nhbot (an AutoAscend descendant) or a specialist."""
+
     def __init__(self) -> None:
         self._drivers = {}
         self._driver = None
 
+    def _get(self, module_name):
+        if module_name not in self._drivers:
+            self._drivers[module_name] = importlib.import_module(module_name).AutoAscendDriver()
+        return self._drivers[module_name]
+
     def reset(self, initial_observation):
-        ident = _identity(initial_observation)
-        pkg = CHOICE.get(ident)
-        if pkg is None and ident is not None:
-            pkg = CHOICE.get(ident[:-3] + ("mal" if ident.endswith("fem") else "fem"))
-        if pkg is None:
-            pkg = _by_status(initial_observation)
-        pkg = pkg or DEFAULT
-        if pkg not in self._drivers:
-            self._drivers[pkg] = importlib.import_module("adapter_" + pkg).AutoAscendDriver()
-        self._driver = self._drivers[pkg]
+        ident = None
+        try:
+            ident = roles.identity(initial_observation)
+        except Exception:  # noqa: BLE001
+            pass
+        # a role-only identity means the welcome line was not seen: ask ^X before choosing the engine
+        self._probe = 0 if ident is None or ident.count("-") != 3 else None
+        self._probe_ident = ident
+        if self._probe is None:
+            self._start(initial_observation, ident)
+
+    def _start(self, initial_observation, ident):
+        module_name = _specialist(ident) or "adapter"
+        if module_name == "adapter":
+            try:
+                roles.apply(ident)
+            except Exception:  # noqa: BLE001 -- a bad override must never cost the episode
+                pass
+        self._driver = self._get(module_name)
         self._driver.reset(initial_observation)
 
     def act(self, observation):
+        if self._probe is not None:
+            import nle.nethack as nh
+            from nle.nethack import actions as A
+            actions = tuple(nh.ACTIONS)
+            if self._probe == 0:
+                self._probe = 1
+                return actions.index(A.Command.ATTRIBUTES)
+            if self._probe == 1:
+                try:
+                    self._probe_ident = roles.attributes_identity(observation) or self._probe_ident
+                except Exception:  # noqa: BLE001
+                    pass
+                self._probe = 2
+                return actions.index(A.Command.ESC)
+            self._probe = None
+            self._start(observation, self._probe_ident)
         return self._driver.act(observation)
 
     def close(self):
