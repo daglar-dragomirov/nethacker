@@ -1,10 +1,10 @@
 {
   "schema": "nethackers.solution/v1",
-  "name": "codex-arc-xl5-selected-v1",
+  "name": "codex-mines-tool-selected-v1",
   "root": "pf_s25p8",
   "parents": [
     "github.com/daglar-dragomirov/nethacker@da4fe488c171b5fac8b53b6137b45d642aca8f7c",
-    "github.com/zarutskiysy/nethack@15450795c76474470a63e5f9f2c0083bc5b6659c"
+    "github.com/zarutskiysy/nethack@892714c6b8498d2555afaa9fd6fd366a5f47691b"
   ],
   "influences": [
     "github.com/DT6A/nethacker@464e1662a4cb60567c7946d2d952278c64eefe84",
