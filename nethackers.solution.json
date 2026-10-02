@@ -1,10 +1,10 @@
 {
   "schema": "nethackers.solution/v1",
-  "name": "codex-clever182-valkyries-selected-v1",
+  "name": "codex-arc-xl5-selected-v1",
   "root": "pf_s25p8",
   "parents": [
     "github.com/daglar-dragomirov/nethacker@da4fe488c171b5fac8b53b6137b45d642aca8f7c",
-    "github.com/CleverShovel/nethacker@182af8e4277b25290207794c0af9d72688032220"
+    "github.com/zarutskiysy/nethack@15450795c76474470a63e5f9f2c0083bc5b6659c"
   ],
   "influences": [
     "github.com/DT6A/nethacker@464e1662a4cb60567c7946d2d952278c64eefe84",

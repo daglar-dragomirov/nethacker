@@ -80,7 +80,7 @@ CHOICE = {
     "tou-hum-neu-mal": "pf_v25",
     "val-dwa-law-fem": "pf_vk_s23",
     "val-hum-law-fem": "pf_v38",
-    "val-hum-neu-fem": "pf_clever182_valkyries",
+    "val-hum-neu-fem": "pf_v37",
     "wiz-elf-cha-fem": "pf_v36",
     "wiz-elf-cha-mal": "pf_s25p",
     "wiz-gno-neu-fem": "pf_s25p8",

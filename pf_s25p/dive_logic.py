@@ -399,7 +399,7 @@ WAND_CASTLE_WAIT = 4
 # and leaves the Dlvl-1 grind for the dig-dive at this XL, keeping the pick through the tour. Random
 # monsters are capped at difficulty (level_difficulty() + u.ulevel) / 2 (makemon.c mkclass/rndmonst), so a
 # low-XL digger meets weaker ones; a sheltered hole costs a few turns per level. None: DIG_DIVE_XL.
-ARC_DIG_DIVE_XL = 3
+ARC_DIG_DIVE_XL = 5
 # rog-early-dig (port of DT6A d956abf global_logic: EARLY_DIG_XL + ItemPriority.add_pick -- any pick holder leaves the
 # grind for the dig-dive, and the pick is always kept). Rogue-gated. A Rogue's Dlvl-1 grind meets its digging tools
 # at XL 7 (dwarf difficulty 4, monst.c:421, vs the random-monster cap (1 + XL) / 2 on Dlvl 1, makemon.c:1550; 3 in 8
