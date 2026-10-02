@@ -42,7 +42,3 @@
   1 time in 4-6, but the extra landings cost more, -0.015 +- 0.005 per Medusa game), Wizards on the Dlvl-1 grind
   (-0.058 +- 0.026 over 101 pairs).
 
-
-
-## Experimental zV4B (2026-10-02)
-Nine nhbot runtime files from zarutskiysy/nethack@14a3bbd871061d63bda57da6c82af91f46959d21 transplanted onto exact zB; see DONOR_CHANGES_zarut14a3.md. Preserve zB router, specialists, role policy, ring module and Medusa hop. Add donor Wizard casting safeguards, pet/hostility corrections, safe deep prayer, Medusa/Castle separation and minotaur escape repairs. Donor disabled experiments remain disabled. Public source evidence only; fresh validation separate, no gain claimed.

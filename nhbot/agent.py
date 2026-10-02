@@ -15,7 +15,6 @@ from . import jf_config, jf_log, jf_scenario
 from . import power
 from . import power_route
 from . import prep_log
-from . import objects as O
 from . import utils
 from .character import Character
 from .exceptions import AgentPanic, AgentFinished, AgentChangeStrategy
@@ -57,7 +56,6 @@ class Agent:
 
         self._last_pet_seen = 0
         self._last_pet_where = None    # (level key, turn, [(y, x), ...]) where the pet was last on screen
-        self._pet_starving_until = -1  # PET_HUNGER_FIX: turn until which corpses on the floor are left to the pet
         self._corpse_debug_pos = None
         self._faint_msg_turn = None    # FAINT_MEASURE_FIX: turn of the screen that first showed a faint
         self._paralysis_end_turn = -10 ** 9   # STARVE_UNMEASURED_GAP: turn of the last 'You can move again'
@@ -471,8 +469,6 @@ class Agent:
         # TC_ROUTE (power_route.py): TC prompts, the tengu intrinsic and read effects are learned before the prompt
         # handling below answers them
         power_route.note_message(self)
-        if jf_config.PET_HUNGER_FIX:
-            self._note_pet_hunger()
         if jf_config.GENOCIDE_POLICY or jf_config.HORN_SCARE:
             # opp-items: genocide outcomes ('Wiped out' proves a stack not cursed), what an unknown horn turned out to be
             from . import opp_items
@@ -1716,35 +1712,6 @@ class Agent:
                 self._prayer_model_error()
         return self.is_safe_to_pray(500) and low_hp_old
 
-    def _deep_pray_first(self):
-        """DEEP_PRAY_FIRST (jf_config): diving at depth >= DEEP_PRAY_FIRST_DEPTH outside Gehennom, HP at pray.c's
-        critically_low_hp (TROUBLE_HIT) and the prayer as safe as the old 500-turn rule (PrayerModel 'hp', never the doom
-        gamble): pray before casting healing or quaffing a healing potion."""
-        dive = self.global_logic.dive
-        if not dive.diving or self.prayer_failed or self.blstats.depth < jf_config.DEEP_PRAY_FIRST_DEPTH or \
-                self.current_level().dungeon_number == 1:
-            return False
-        if self.character.prop.polymorph or not self._critically_low_hp():
-            return False   # (a were form's low HP is only a buffer: LYCAN_FIXES)
-        if not self._prayer_model_active():
-            return self.is_safe_to_pray(500)
-        try:
-            if not self._prayer_holds_ok():
-                return False
-            return self.prayer_model.hp_decision(self.SAFE_PRAYER_P, jf_config.DOOM_MARGIN, jf_config.DOOM_MIN_P) == 'hp'
-        except Exception:
-            self._prayer_model_error()
-            return False
-
-    def _deep_pray_after_heal(self):
-        """DEEP_PRAY_FIRST: the heal's turn left us critically low with a safe prayer due -- pray now. Returning first let
-        one action of a lower strategy run before this hook fired again (agent.preempt re-runs the lower stack without
-        re-checking the hooks): mcb0 mon-hum-cha-mal__202 cast healing at 14/58 HP among Medusa-3's ravens, fell to 2,
-        and dig_first wrote a blind Elbereth instead of the prayer (gap 1124); dead the same turn."""
-        if jf_config.DEEP_PRAY_FIRST and self._deep_pray_first():
-            self._pray_reason = 'hp (DEEP_PRAY_FIRST, after a heal)'
-            self.pray()
-
     def _doom_prayer_beats_exits(self, model):
         """Exits that beat a long-shot prayer: the down stairs underfoot (the last resort takes them: they
         bank a level and shed every non-follower, dog.c:keepdogs), and a fresh dust Elbereth when everything
@@ -1942,11 +1909,6 @@ class Agent:
             self.direction(direction)
         return True
 
-    # FB_SANITY: the game's refusals of a cast (spell.c rejectcasting / spelleffects) and a forgotten spell's backfire
-    _CAST_REFUSED = re.compile(r"You are too impaired to cast|Your arms are not free to cast|You lack the strength to "
-                               r"cast|You are too hungry to cast|You are unable to chant|You don't know any spells|"
-                               r"Your knowledge of this spell is twisted")
-
     def cast(self, spell_name, direction):
         with self.atom_operation():
             dy, dx = direction
@@ -1968,14 +1930,10 @@ class Agent:
                 #     return
                 if 'You are too impaired' in self.message:
                     return
-                if jf_config.FB_SANITY and self._CAST_REFUSED.search(self.message):
-                    return   # no menu came up: the spell letter would be a command ('a': apply)
                 yield self.character.known_spells[spell_name]
                 for _ in range(3):
                     if 'In what direction?' in self.message:
                         break
-                    if jf_config.FB_SANITY and self._CAST_REFUSED.search(self.message):
-                        return
                     yield ' '
                 if 'In what direction?' in self.message:
                     success[0] = True
@@ -1987,10 +1945,6 @@ class Agent:
             else:
                 self.last_cast_fail_turn[spell_name] = self._last_turn
                 self.stats_logger.log_event(f'cast_fail_{spell_name}')
-                if jf_config.FB_SANITY and self._CAST_REFUSED.search(self.message):
-                    # fight2 would pick the same cast again at once (no game time passed): no casting for a while
-                    self._cast_refused_until = self.blstats.time + jf_config.FB_REFUSE_TURNS
-                    self.log(f'CAST refused ({spell_name}): {self.message.strip()[:120]!r}')
 
     def kick(self, y, x=None):
         if self.blstats.time < self._no_kick_until:
@@ -2146,18 +2100,7 @@ class Agent:
                 self._futile_logged = self.blstats.time
                 self.log('ELBERETH_FUTILE: no Elbereth while hallucinating')
             return False
-        if jf_config.ALTAR_NO_ENGRAVE and self._on_altar():
-            return False   # engrave.c: altar_wrath, Luck -1, and the next prayer fails
         return (self.blstats.y, self.blstats.x) != self._forbidden_engrave_position
-
-    def _on_altar(self):
-        """ALTAR_NO_ENGRAVE: we stand on a known altar (our glyph hides it; the level map remembers it)."""
-        try:
-            level = self.current_level()
-            y, x = int(self.blstats.y), int(self.blstats.x)
-            return (y, x) in level.altars or level.objects[y, x] in G.ALTAR
-        except Exception:
-            return False
 
     def engrave(self, text):
         assert '\r' not in text
@@ -2189,111 +2132,6 @@ class Agent:
         if ret and text.lower() == 'elbereth':
             self.stats_logger.log_event('elbereth_write')
         return ret
-
-    # DURABLE_ELBERETH (jf_config): engrave.c ENGRAVE text has no 1-in-25 letter typos and loses a letter to a wipe only
-    # ~1 time in 13-26 (wipe_engr_at), where a dust Elbereth garbles 28% of writes and smudges every ~85 turns
-    _DURABLE_PROMPT = re.compile(r'What do you want to (engrave|add to the engraving)')
-
-    def durable_engrave_tool(self):
-        """DURABLE_ELBERETH: the item to engrave a lasting Elbereth with, or None: an athame (not known cursed: one
-        piece, no dulling), else an unwielded blade (dagger to saber skill, not a mattock) known to be +0 or better,
-        or of unknown enchantment but known not cursed (mkobj.c: a random weapon's negative enchantment comes with a
-        curse). Daggers and knives first, then the lowest enchantment."""
-        best = None
-        bad = getattr(self, '_durable_bad_letters', set())
-        for item in self.inventory.items:
-            if item.equipped or not item.is_unambiguous() or not isinstance(item.objs[0], O.Weapon):
-                continue
-            if self.inventory.items.get_letter(item) in bad:
-                continue
-            if item.count > 1 or item.at_ready or 'alternate weapon' in (item.text or ''):
-                continue   # engrave.c dulls the whole stack it writes with; missiles and the swap weapon stay sharp
-            obj = item.object
-            sub = getattr(obj, 'sub', None)
-            if sub is None or not (O.P_DAGGER <= sub <= O.P_SABER) or sub == O.P_PICK_AXE:
-                continue
-            athame = obj == O.from_name('athame') and item.status != Item.CURSED
-            if not athame:
-                if item.modifier is not None:
-                    if item.modifier < 0:
-                        continue
-                elif item.status not in (Item.UNCURSED, Item.BLESSED):
-                    continue
-            key = (0 if athame else 1, 0 if sub in (O.P_DAGGER, O.P_KNIFE) else 1,
-                   item.modifier if item.modifier is not None else 0)
-            if best is None or key < best[0]:
-                best = (key, item)
-        return None if best is None else best[1]
-
-    def _engrave_piece(self, letter, text, add):
-        """One engraving with the item at `letter`: 'ok', 'dust' (it only writes in the dust), 'dull' or 'fail'."""
-        result = 'fail'
-
-        def gen():
-            nonlocal result
-            if 'What do you want to write with?' not in self.single_message:
-                yield A.Command.ESC
-                return
-            yield letter
-            for _ in range(10):
-                msg = self.single_message
-                if 'Do you want to add to the current engraving?' in msg:
-                    yield add
-                    continue
-                if 'too dull for engraving' in msg:
-                    result = 'dull'
-                    return
-                if 'write in the dust' in msg:
-                    result = 'dust'
-                    break
-                if self._DURABLE_PROMPT.search(msg):
-                    break
-                if self._observation['misc'][2]:
-                    yield ' '
-                    continue
-                break
-            if result == 'dust' or not self._DURABLE_PROMPT.search(self.single_message):
-                if result != 'dust':
-                    result = 'fail'
-                yield A.Command.ESC
-                return
-            yield from text
-            yield '\r'
-            result = 'ok'
-            for _ in range(10):   # 'Your dagger gets dull.', the helpless turns' messages, 'You finish engraving.'
-                if not self._observation['misc'][2]:
-                    break
-                yield ' '
-
-        with self.atom_operation():
-            self.step(A.Command.ENGRAVE, gen())
-        return result
-
-    def engrave_durable(self, item):
-        """DURABLE_ELBERETH: engrave Elbereth with `item` (see durable_engrave_tool) -- an athame in one piece, any
-        other blade in three ('Elb', 'ere', 'th'): engrave.c dulls a weapon by len/2 per engraving and allows
-        (spe+3)*2+1 letters, so a +0 blade writes the three pieces and ends at -3 (one 8-letter piece would need +1);
-        each piece takes len helpless turns. True when it reads back as Elbereth."""
-        letter = self.inventory.items.get_letter(item)
-        athame = item.object == O.from_name('athame') and item.status != Item.CURSED
-        pieces = ['Elbereth'] if athame else ['Elb', 'ere', 'th']
-        self.log(f'DURABLE Elbereth with {item.text!r} ({len(pieces)} pieces)')
-        if not athame:
-            # the blade ends ~3 points duller (its enchantment may not be known): one Elbereth per blade
-            self._durable_bad_letters = getattr(self, '_durable_bad_letters', set()) | {letter}
-        # one atom: a strategy switch between the pieces (a prayer preempted after 'Elb') would leave a partial
-        # engraving that no dust Elbereth can be written over ('You cannot wipe out the message ...')
-        with self.atom_operation():
-            for k, piece in enumerate(pieces):
-                res = self._engrave_piece(letter, piece, 'n' if k == 0 else 'y')
-                if res != 'ok':
-                    self.log(f'DURABLE Elbereth stopped at {piece!r}: {res}')
-                    self._durable_bad_letters = getattr(self, '_durable_bad_letters', set()) | {letter}
-                    break
-            self.inventory.get_items_below_me()
-        text = self.inventory.engraving_below_me or ''
-        self.log(f'DURABLE Elbereth read back {text!r}')
-        return text.lower() == 'elbereth'
 
     ######## NON-TRIVIAL HELPERS
 
@@ -3215,29 +3053,10 @@ class Agent:
             return False
         return weight + 2 * MON.permonst(monster_id + nh.GLYPH_MON_OFF).cwt <= self.character.carrying_capacity
 
-    _PET_EATS = re.compile(r"\b(?:kitten|housecat|large cat|little dog|dog|large dog|pony|horse|warhorse) eats ")
-
-    def _note_pet_hunger(self):
-        """PET_HUNGER_FIX: dogmove.c dog_hunger prints '<pet> is confused from hunger.' (only for a tame monster) once
-        it is 500 turns past its hungrytime; the pet eating something (dog_eat) ends it."""
-        bl = getattr(self, 'blstats', None)
-        if bl is None:
-            return
-        msg = self.message or ''
-        if 'is confused from hunger' in msg:
-            if self._pet_starving_until < bl.time:
-                self.log('PET starving (confused from hunger): leaving the corpses to it')
-            self._pet_starving_until = bl.time + jf_config.PET_HUNGER_TURNS
-        elif self._pet_starving_until >= bl.time and self._PET_EATS.search(msg):
-            self._pet_starving_until = -1
-
     @utils.debug_log('eat_corpses_from_ground')
     @Strategy.wrap
     def eat_corpses_from_ground(self, only_below_me=True, max_dist=None, max_age=None):
         # max_dist / max_age (CLAIM_CORPSES): only fresh corpses a few steps away
-        if jf_config.PET_HUNGER_FIX and self.blstats.time <= self._pet_starving_until and \
-                self.blstats.hunger_state < Hunger.WEAK:
-            yield False   # our starving pet bites us until it eats (see jf_config.PET_HUNGER_FIX)
         yielded = False
         level = self.current_level()
         to_eat = []  # (y, x, monster_id)
@@ -3359,24 +3178,15 @@ class Agent:
                 return
 
 
-        # DEEP_PRAY_FIRST: deep in the dive a safe HP prayer at critically low HP goes before the heals below
-        if jf_config.DEEP_PRAY_FIRST and self._deep_pray_first():
-            yield True
-            self._pray_reason = 'hp (DEEP_PRAY_FIRST)'
-            self.pray()
-            return
-
         # a Healer starts with healing and extra healing: cast them before potions and prayer
         if self.should_cast_extra_heal():
             yield True
             self.cast('extra healing', direction=(0, 0))
-            self._deep_pray_after_heal()
             return
 
         if self.should_cast_heal():
             yield True
             self.cast('healing', direction=(0, 0))
-            self._deep_pray_after_heal()
             return
 
         # hypothesis (astra guard.py stop list): stoning, sliming, strangling and food poisoning /
@@ -3417,7 +3227,6 @@ class Agent:
         ):
             yield True
             self.inventory.quaff(items[0])
-            self._deep_pray_after_heal()
             return
 
         items = [item for item in flatten_items(self.inventory.items) if item.is_unambiguous() and
