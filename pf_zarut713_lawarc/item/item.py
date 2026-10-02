@@ -1,8 +1,8 @@
 import nle.nethack as nh
 
-from pf_zarut713_neuarcs import objects as O
-from pf_zarut713_neuarcs.glyph import MON, WEA
-from pf_zarut713_neuarcs import jf_config
+from pf_zarut713_lawarc import objects as O
+from pf_zarut713_lawarc.glyph import MON, WEA
+from pf_zarut713_lawarc import jf_config
 
 
 class Item:

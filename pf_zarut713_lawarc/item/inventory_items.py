@@ -1,6 +1,6 @@
 import nle.nethack as nh
 
-from pf_zarut713_neuarcs import objects as O
+from pf_zarut713_lawarc import objects as O
 
 
 class InventoryItems:
