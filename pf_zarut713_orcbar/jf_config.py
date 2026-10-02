@@ -546,6 +546,14 @@ BEARTRAP_ESCAPE = True
 LYCAN_FIXES = True
 # no lycanthropy cure prayer while Hungry without food (wait for the Weak hunger prayer; see cure_disease)
 LYCAN_CURE_WAIT = False
+# RECORD_MODEL_FIX (nhmodel/prayer.py on_prayer): the record +1 of pray.c:941 only for prayers made without major
+# trouble (the old rule also counted every hunger prayer, so record-0 heroes looked safe after their first prayer)
+RECORD_MODEL_FIX = True
+# ALIGN_PRAYER (agent.align_prayer): a hero whose modelled alignment record is still <= 0 makes one no-trouble prayer
+# (fed, no hostile in view, not on an altar) from turn ALIGN_PRAYER_TURN on, before any other prayer: +1 record, so
+# later prayers always fix the worst major trouble. Off pending an A/B (research/shallow_deaths.md)
+ALIGN_PRAYER = False
+ALIGN_PRAYER_TURN = 350
 # were_unload drops a were form's load whenever Overtaxed or worse, not only when Weak with food to eat
 # t35: jf16 s6 0.602 -> 0.051 (a 9-HP were form dropped all 20 items on Dlvl 3 and never went back for them), jf14 s12
 # and arm-jf25 s0 -0.040 each -- off
@@ -570,6 +578,9 @@ HOLD_LOOP = True
 HOLD_LOOP_RESCUE = False
 # dev only (never set in the arena): the Nth tour hunger prayer is treated as failed, turning games into rescues
 SIM_RESCUE_PRAYER = 0
+# PRAYER_RECORD_FIX (agent.pray): record a prayer (last_prayer_turn, the prayer model's timeout/result) even when a
+# preempting strategy interrupts the PRAY step -- see agent.pray (research/shallow_deaths.md item 1)
+PRAYER_RECORD_FIX = True
 # Water demon vigil fixes (dive_logic.water_demon_vigil): step off the fountain before engraving (the dip
 # leaves us on it: 'You can't write on the fountain!', so the vigil never held), hold while a demon is
 # within DEMON_VIGIL_RADIUS (not 2) for DEMON_VIGIL_TURNS. 74 of 975 dipping games released a demon, 22
@@ -598,6 +609,12 @@ WR_GRIND_PRAYER = 0
 WR_BLIND_LOOK = False
 # the Elbereth rest never hides from a lone monster one blow kills (difficulty <= 2, not fast), at any HP
 REST_FIGHT_WEAK = False
+# LONE_WEAK_THREAT (dive_logic._lone_weak_deadly): the Elbereth rest's 'a lone mlevel <= 2 monster is better killed'
+# exemption applies only while that monster can't kill us within LONE_WEAK_TURNS turns with P >= LONE_WEAK_PDIE (a rothe
+# at 19 HP: ~0.24; a giant bat at 16: ~0.66; a jackal or newt: ~0). Off pending an A/B (research/shallow_deaths.md)
+LONE_WEAK_THREAT = False
+LONE_WEAK_TURNS = 3
+LONE_WEAK_PDIE = 0.1
 # never kill a gas spore whose blast reaches any @, a shop's squares (its shopkeeper may be out of view) or anything in
 # Minetown; its melee is filtered out of fight2 (throws already skip it). Explosion damage from our kill is our
 # attack on every peaceful in the 3x3 (explode.c): 3 of the 4 murders in 16 recent runs came from it (cmp-main
@@ -618,6 +635,11 @@ FEYE_TELE = True
 # ...boxed in by an eye (no step to take): Elbereth to make it flee; still boxed after this many turns: hit it anyway
 # (at full HP, fed, alone; see agent.fight2)
 FEYE_TELE_BOXED = 150
+# FEYE_GUARD (agent.fight2): a floating eye we can see is meleed before telepathy too only alone, at >= 90% HP and not
+# Hungry, and every eye melee (stall breaker, FEYE_TELE boxed-in) needs 'not Hungry' instead of 'not Weak'. Off pending
+# an A/B (research/shallow_deaths.md: 6 of 7 eye-freeze deaths in 1023 games came before telepathy, 3 of them under
+# conditions this blocks)
+FEYE_GUARD = False
 # a missile/wand/ray hit breaks the Elbereth holds (rest, faint guard/shelter, demon vigil) and fight2's
 # wait-on-Elbereth for RANGED_BREAK_TURNS turns: fight2 then closes in on a weak shooter or leaves its line
 # ON (train 3.4, A063): a hold breaks when shot/zapped from range; guard vs base7 45 amd64 0.446 vs 0.415, grind deaths 5 -> 1
@@ -630,6 +652,10 @@ RANGED_BREAK_TURNS = 8
 # its castle is at Dlvl 28)
 # ON (train 3.5): t35/t36 public s11 kept its pick at that drop step (0.075 -> 0.602 / 0.466), no other game changed by it
 TOOL_KEEP_FIRST = True
+# HEAVY_LIFT_GUARD (item/inventory.pickup, item/item_manager): answer 'n' to 'You have much trouble / extreme difficulty
+# lifting X. Continue?' (Stressed or worse after the lift) and read a lycanthrope's corpse as its human form (1450, not
+# the animal's 40-500): 4 shallow deaths in 1023 games carried such a load (research/shallow_deaths.md)
+HEAVY_LIFT_GUARD = True
 # the faint guard (and its idle hold) also in a tool-less dive that is not a rescue -- the Mines camp waits
 # thousands of turns for a dwarf's pick like the grind waits for XP, but fainted unguarded among the Mines' hostiles:
 # base8 tool-less camps fainted 2-23 times, and all 6 died there (large dog, soldier ant, gargoyle, gray unicorn)
@@ -712,6 +738,12 @@ SHOP_GUARD = True
 # '?c?c  ??r ir?? ?', kicked the door open ("How dare you break my door?") and the shopkeeper killed the XL-7
 # grinder (0.051). 6 broken shop doors in ~6000 games of all runs.
 SHOP_SIGN_FIX = True
+# SHOP_SAFETY (item/inventory.get_ranged_combinations, combat/fight_heur.get_potential_wand_usages): in a shop or with a
+# shopkeeper in view only missiles known not to be cursed are thrown (dothrow.c: a cursed one slips 1 in 7 in a random
+# direction), elsewhere no known-cursed missile while a peaceful or the pet is in view; and no wand plan kills a gas
+# spore whose blast reaches a peaceful, a shop square or the pet (SPORE_SAFE's rule for melee and throws). 3 of the 5
+# shopkeeper deaths in 1023 games (research/shallow_deaths.md)
+SHOP_SAFETY = False
 
 # --- valley-run (the Valley of the Dead with real castle-arrival kits: XL 7-10, 55-114 HP, AC -8..+10) ---
 # VALLEY_SPRINT (off, REJECTED -- no signal): the Valley walk never stops to fight what it can outrun
@@ -1409,6 +1441,12 @@ ELBERETH_FUTILE = True
 
 # FORCE_BOLT (fight_heur.force_bolt_actions, eL1fe's port of CleverShovel 0d1fb22): cast force bolt in fights
 FORCE_BOLT = True
+# UNSEEN_PET_GUARD (combat/fight_heur.unseen_pet_may_be_at, eL1fe 76b511c): no throw or shot whose line or overshoot
+# crosses an unseen square the pet could have reached since it was last on screen (UNSEEN_PET_TURNS ago at most).
+# A/B it: on the hub's private seeds eL1fe's v6 -> v7 (this guard + the Archeologist shop dig) scored -0.024 per
+# Ranger and -0.026 per Monk identity group, +0.025 per Priest group (research/code_mining_2.md C2)
+UNSEEN_PET_GUARD = True
+UNSEEN_PET_TURNS = 20
 # SPORE_TRAP_FIX (fight_heur.melee_monster_priority): the trapped-by-a-gas-spore melee only when its blast can't kill us
 SPORE_TRAP_FIX = True
 # PANIC_TILE_FIX (agent._note_repeated_panic): the loop breaker also forbids a square a monster keeps blocking
@@ -1418,9 +1456,24 @@ PANIC_TILE_FIX = True
 DIG_TOOL_MELEE = True
 # RAY_BOUNCE_FIX (known_items): known cold/fire wands need a free run behind the target, like the other rays
 RAY_BOUNCE_FIX = True
+# SELF_ZAP_FIX (combat/fight_heur.get_potential_wand_usages): fight2's wand plans charge SELF_ZAP_PENALTY (not 30) per
+# expected pass of the ray through us (Valkyries' cold excepted); RAY_CRIT_RUN (known_items._candidates): at critically
+# low HP a known sleep/lightning/magic-missile ray still needs this many free squares behind its target (0: off, the
+# old 'critical overrides the bounce check'). In 1023 games 10 shallow and 10 deep deaths came right after our own ray
+# hit us: fight2 wand plans 6 (all shallow, 3 on b3/wz0's near-HEAD code), KNOWN_ITEMS 7 (4 at critical HP), the MINO
+# guard / POWER escape 6 (deep), last-resort unknown wands 2 (not covered) (research/shallow_deaths.md)
+SELF_ZAP_FIX = True
+SELF_ZAP_PENALTY = 300
+RAY_CRIT_RUN = 0
 DIG_TOOL_MELEE_MARGIN = 1.3
 # DITCH_RETRY (dive_logic._ditch_pet_check): a pet ditch that ran out of time is retried (DITCH_PET_TRIES)
 DITCH_RETRY = True
+# ELBERETH_REWRITE_FIX (dive_logic.dig_with_tool, _elbereth_before_digging_escape): waking from a faint mid-dig, a
+# garbled Elbereth is rewritten before the pick goes on (w1 wiz-gno-neu-mal s15 read '_lbcreth' after a faint on Dlvl 23,
+# re-applied the pick at once and was killed by a wood golem in the next faint); the per-square cap
+# (ELBERETH_TRIES_ESCAPE) counts only the writes since the engraving last read back whole, so a long dig's wipes don't
+# use it up
+ELBERETH_REWRITE_FIX = True
 # the grind's level table per role name (global_logic._grind_level; {}: Dlvl 1 throughout), overriding GRIND_LEVELS.
 # eL1fe (cfc38282): with working force bolt the Dlvl-3 grind pays for Wizards (+12.6 on 48 paired games); Rogues keep
 # Dlvl 1 (+3.3/+4.1). Their Priest (-1.9/-2.7) and Knight (+2.8/-1.4) numbers showed no gain and Tourists were not
@@ -1446,6 +1499,29 @@ RING_STARTING_WEAR = False          # every starting ring, kept on (CleverShovel
 RING_AMULET_TRIAL = False           # try unidentified amulets on (CleverShovel: never better on five leaders)
 RING_SCROLL_IDENTIFY = True         # read unknown scrolls at a safe moment to identify carried rings/amulets
 RING_SCROLL_ROLES = ('Wizard',)     # role names for the scroll reading (None: every role)
+
+# AT_THREAT_AVOID (dive_logic._at_hold): no new dig pit while an Elbereth-ignoring meleer -- an elf, a soldier or another
+# @, a minotaur -- is coming for us. Every attack, hit or miss, stops the dig occupation before its next turn (mhitu.c
+# stop_occupation; allmain.c also stops it for any unscared hostile next to us), and a pick-axe needs ~5 dig turns to the
+# pit and ~20 more to the hole (dig.c dig(): effort 10+rn2(5) a turn, the pit past 50, a fresh start in it, the hole past
+# 250; a dwarf's effort doubles each turn, ~8 turns in all). In the pit we fight at -3 to-hit (uhitm.c: u.utrap) and
+# PIT_AWARE_FIGHT keeps us there. 9% of the dives ended that way at Dlvl 9-24 (Woodland-/Green-/Grey-elves, soldiers and
+# their officers; Archeologists 15%), most within ~15 turns of landing. With a hostile @ within AT_THREAT_RADIUS (in view,
+# or seen there within AT_THREAT_MEMORY turns): a known wand of digging holes the floor at once (also one WAND_RESERVE
+# keeps for Medusa, below AT_THREAT_WAND_XL or at half HP); else, if it is too far away to reach us before the pit
+# (AT_THREAT_NEAR), no pit is started -- fight2 fights it on level ground and the dig waits until it is dead or gone.
+# One that stays no closer for AT_THREAT_STILL turns in view (asleep in its barracks, stuck) doesn't hold the dig, nor
+# does anything after AT_THREAT_MAX_HOLD turns of holding on a level. Above Medusa's level only (her level and the mazes
+# below keep their own plans); a dig already in our pit goes on.
+AT_THREAT_AVOID = False
+AT_THREAT_RADIUS = 8                # distance (BFS steps, else Chebyshev) of an @ that holds a new pit
+AT_THREAT_RADIUS_DWARF = 7          # a dwarf's whole hole takes ~8 actions (apply, 2 digs to the pit, apply, 4 digs)
+AT_THREAT_NEAR = 4                  # an @ closer than this is next to us before any pit (~5 actions: apply + 4-5 digs;
+AT_THREAT_NEAR_DWARF = 3            # a dwarf's 3): the dig starts as usual and fight2 meets it with the effort kept
+AT_THREAT_MEMORY = 10               # turns an @ seen within the radius keeps holding once out of view
+AT_THREAT_STILL = 4                 # turns an @ in view may stay no closer before we dig all the same
+AT_THREAT_MAX_HOLD = 40             # holding turns per level, at most
+AT_THREAT_WAND_XL = 10              # the kept wand of digging is spent on an @ below this XL (or at half HP)
 
 _raw = os.environ.get('JF_CFG')
 if _raw:

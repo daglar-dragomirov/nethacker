@@ -10,8 +10,8 @@ from collections.abc import Mapping
 from typing import Any
 
 import nle.nethack as nh
-from pf_zarut9c_monk import agent as autoascend_agent
-from pf_zarut9c_monk import jf_config, jf_log
+from pf_zarut713_orcbar import agent as autoascend_agent
+from pf_zarut713_orcbar import jf_config, jf_log
 
 _ACTIONS = tuple(nh.ACTIONS)
 _ACTION_TO_INDEX = {int(action): index for index, action in enumerate(_ACTIONS)}
@@ -23,7 +23,7 @@ def _warm_jit() -> None:
     (int64, int64, bool[:, :], bool[:, :], bool) specialization."""
     try:
         import numpy as np
-        from pf_zarut9c_monk import utils
+        from pf_zarut713_orcbar import utils
         walkable = np.zeros((21, 79), dtype=bool)
         walkable[10, 10:13] = True
         utils.bfs(np.int64(10), np.int64(10), walkable=walkable, walkable_diagonally=walkable, can_squeeze=False)

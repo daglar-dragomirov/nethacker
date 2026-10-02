@@ -164,16 +164,18 @@ def ranger_point_blank_priority(agent, monster, default):
 # seed 0 died that way at T3395 on Dlvl 1; seed 13 hit an unseen pet twice: "It yelps!  The dagger hits it").
 # Only visible floor squares are known to be free of the pet. Every role that throws or fires (Rogue daggers,
 # Ranger arrows) faces the same risk, so it is not gated by role.
-UNSEEN_PET_TURNS = 20
+UNSEEN_PET_TURNS = 20   # (the value in use is jf_config.UNSEEN_PET_TURNS)
 
 
 def unseen_pet_may_be_at(agent, y, x):
+    if not jf_config.UNSEEN_PET_GUARD:
+        return False
     where = getattr(agent, '_last_pet_where', None)
     if where is None or agent.glyphs[y, x] in G.VISIBLE_FLOOR or utils.any_in(agent.glyphs, G.PETS):
         return False
     key, turn, positions = where
     elapsed = agent.blstats.time - turn
-    if key != (agent.blstats.dungeon_number, agent.blstats.level_number) or elapsed > UNSEEN_PET_TURNS:
+    if key != (agent.blstats.dungeon_number, agent.blstats.level_number) or elapsed > jf_config.UNSEEN_PET_TURNS:
         return False
     reach = 2 + int(1.5 * elapsed)   # a kitten is speed 18 against our 12
     if any(max(abs(py - y), abs(px - x)) <= reach for py, px in positions):
@@ -330,7 +332,15 @@ def simulate_wand_path(agent, wand, monsters, dy, dx):
         yield y, x, hit_object, expected_hit_count
 
 
+_WAN_COLD = None
+
+
 def get_potential_wand_usages(agent, monsters, dy, dx):
+    global _WAN_COLD
+    if _WAN_COLD is None:
+        from .. import objects as O
+        import nle.nethack as nh
+        _WAN_COLD = O.from_name('cold', nh.WAND_CLASS)
     ret = []
     if missiles_risk_the_watch(agent):
         return ret
@@ -357,7 +367,18 @@ def get_potential_wand_usages(agent, monsters, dy, dx):
             elif monster == 'peaceful':
                 priority -= p * 200
             elif monster == 'self':
-                priority -= p * 30
+                # SELF_ZAP_FIX: our own bounce costs what the ray does to us, not a flat 30 per expected hit --
+                # 6d6 lightning (and blindness), fire, cold, 2d6 magic missile, death. A known wand of lightning at an
+                # adjacent giant ant with a wall behind it scored +25 per pass (out and back, 'dangerous') against -30
+                # for the return through us: tr0 val-hum-law-fem s210 zapped it 4 times from 68/68 HP ('The bolt of
+                # lightning bounces! The bolt of lightning hits you!', blinded, then hit again blind) and died of its
+                # own bolts; v2a val-dwa-law-fem s206 the same at a giant ant; b3 wiz-orc-cha-mal s601 and wz0
+                # wiz-gno-neu-mal s619 by their own bolts of fire. Only a Valkyrie's cold keeps the old weight.
+                if jf_config.SELF_ZAP_FIX and not (item.objs[0] == _WAN_COLD and
+                                                   agent.character.role == agent.character.VALKYRIE):
+                    priority -= p * jf_config.SELF_ZAP_PENALTY
+                else:
+                    priority -= p * 30
             elif monster is not None:
                 _, y, x, mon, _ = monster
                 if mon.mname in WEAK_MONSTERS:
@@ -367,6 +388,13 @@ def get_potential_wand_usages(agent, monsters, dy, dx):
                 else:
                     priority += min(p, 1) * 10
                 targeted_monsters.add((y, x, monster))
+        if jf_config.SHOP_SAFETY and any(getattr(m[3], 'mname', '') == 'gas spore' and
+                                         spore_blast_hits_friend(agent, ty, tx)
+                                         for ty, tx, m in targeted_monsters):
+            # SHOP_SAFETY: SPORE_SAFE kept fight2's melee and throws off a gas spore whose blast reaches a peaceful, a
+            # shop square or the pet, but not its wand plans: wz0 wiz-elf-cha-mal s631 zapped lightning at a spore in a
+            # shop -- 'You kill the gas spore! Changdu is caught in the gas spore's explosion! Changdu gets angry!'
+            continue
         if targeted_monsters:
             # priority = priority * (1 - player_hp_ratio) - 10
             priority = priority - 15

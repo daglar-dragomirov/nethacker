@@ -350,6 +350,25 @@ MEDUSA_SKIP_FLOODS = 1
 MEDUSA_SKIP_REROLLS = 8
 MEDUSA_SKIP_FIRST = False      # on Medusa-3 (ravens) reroll at once, before any dig, while the '<' is close
 MEDUSA_SKIP_FIRST_STEPS = 4
+# MEDUSA_HOLE_CYCLE (with DIG_ESCAPE): a hole we dig drops exactly one level (dig.c digactualhole: dlevel + 1 -- so
+# MEDUSA_SKIP's reroll never skipped her level), but stepping into an existing hole or trap door falls 1 + Geom(1/4)
+# levels (trap.c fall_through: newlevel++ while !rn2(4)), with no stop at Medusa's level. Every variant puts her
+# level's '<' inside or beside the region a fall lands in (medusa.des '<' / fall region: medusa-1 (5,14) / (1-5,1-17),
+# medusa-2 (4,9) / (2-5,3-16), medusa-3 (32-39,1-7) / (33-38,2-7), medusa-4 (67-74,1-20) / (64-74,1-17)). So on her
+# level climb her '<' at once (ravens, snakes and titans don't follow: mon.c levl_follower wants M2_STALK), dig one hole
+# beside the '>' up there (that fall lands us on her level again), and from then on follow every climb by a step into
+# that hole: 1 time in 4 the fall carries us past her level, 3 in 4 it lands us beside her '<' again. No dig on her
+# islands (no flood roll), a few steps among her ravens per landing, a rest up there between landings. Medusa passes
+# before (devruns tr0/p0/v2a/mt*/a*): medusa-1 86%, -2 51%, -3 40%, -4 58%.
+# REJECTED (mcb0/mcb1, 98 deterministic pairs of Medusa games): -0.0147 +- 0.0050 per game, 6 better / 20 worse. The skip
+# works (7 of 42 plunges, 17%), but the extra landings and the rests up there cost more: passes medusa-1 12 -> 7 of 15,
+# medusa-4 16 -> 10 of 28, medusa-2 11 -> 12 of 21, medusa-3 12 -> 11 of 24. (Also: a seen hole is escaped 1 time in 5,
+# trap.c dotrap -- the plunge should then use '>' (TOOKPLUNGE) instead of giving the hole up.)
+MEDUSA_HOLE_CYCLE = False
+MEDUSA_HOLE_CYCLE_MAX = 20          # climbs off Medusa's level
+MEDUSA_HOLE_CYCLE_STEPS = 16        # her '<' this many BFS steps away at most (else the usual dig)
+MEDUSA_HOLE_CYCLE_HOLE_STEPS = 10   # our hole up there this many steps away at most (else the dive digs one)
+MEDUSA_HOLE_CYCLE_REST = 0.9        # rest up there to this HP fraction before the plunge (or a new dig)
 # RAVEN_CYCLE: Medusa-3's raven island. Every island square borders water, so a pick-axe hole succeeds only
 # 1/(n+1)^2 (1 in 4 at best, n = 1) and each flood drowns a square of the island: a pick digger needs 2-4
 # tries (Monte Carlo on the map: 44% by the 2nd, 51% by the 4th, 65% at most), and the 30 ravens (speed 20,
@@ -1012,6 +1031,8 @@ class DiveLogic:
         self._max_wet_cache = None         # (turn, level key, max_wet) for _dig_max_wet
         self._hurt_on_elbereth = -1        # last turn HP fell while we stood on an intact Elbereth
         self._medusa_rerolls = 0           # climbs off a wet Medusa islet to fall in again elsewhere
+        self._medusa_cycles = 0            # MEDUSA_HOLE_CYCLE climbs off Medusa's level
+        self._dug_holes = {}               # level key -> (y, x) of the last hole we fell through there
         self._dig_walk_blocked_until = -1  # turn until which DIG_ESCAPE doesn't walk to a dig square
         self._medusa_reroll_blocked_until = -1
         self._raven_levels = set()         # Medusa's level key once ravens were seen there (Medusa-3)
@@ -1024,6 +1045,10 @@ class DiveLogic:
         self._medusa_hops = 0              # moat steps toward dry land on Medusa's level (MEDUSA_HOP)
         self._eel_hold_turn = -10          # last turn an eel/kraken grabbed us (or we failed to break free)
         self._eel_engraved = -10           # last turn we engraved Elbereth against such a hold
+        self._at_obs = []                  # AT_THREAT_AVOID: (turn, level key, distance of the nearest @ in view)
+        self._at_seen = None               # AT_THREAT_AVOID: (level key, turn) an @ was last seen within the radius
+        self._at_holds = {}                # AT_THREAT_AVOID: level key -> turns the dig was held there
+        self._at_logged = set()            # AT_THREAT_AVOID: (level key, what) already logged
         self._fed_wait_start = None     # DIVE_FED: turn the grind first reached its end XL
         self._prayer_wait_start = None  # DIVE_PRAYER_GAP: turn the dive first had to wait for the prayer
         self._hp_wait_start = None      # DIVE_START_HP: turn the dive first had to wait for its HP
@@ -1187,6 +1212,7 @@ class DiveLogic:
                 if old_level is not None:
                     old_level.objects[prev[1]] = SS.S_trap_door
                     agent.log(f'DIVE fell through a trap door at {prev[1]} on {prev[0]}; remembered')
+                self._dug_holes[prev[0]] = (int(prev[1][0]), int(prev[1][1]))   # MEDUSA_HOLE_CYCLE
         self._last_pos = (key, pos)
         self.castle.note_level()
         self._note_digging_tools(key, pos)
@@ -1886,6 +1912,89 @@ class DiveLogic:
             return self.agent.blstats.time - self._hurt_on_elbereth <= 3
         return cls == MON.S_HUMAN or name == 'minotaur'
 
+    def _at_threat(self):
+        """AT_THREAT_AVOID: the distance of the nearest hostile Elbereth-ignoring meleer that holds a new pit here -- in
+        view within the radius and not standing off, or seen there during the last AT_THREAT_MEMORY turns -- else None."""
+        if not (jf_config.AT_THREAT_AVOID and self.diving):
+            return None
+        agent = self.agent
+        level = agent.current_level()
+        if level.dungeon_number != Level.DUNGEONS_OF_DOOM or self._wand_zone():
+            return None   # Medusa's level and the mazes below her keep their own plans
+        key = level.key()
+        bl = agent.blstats
+        now = bl.time
+        if self._at_holds.get(key, (None, 0))[1] >= jf_config.AT_THREAT_MAX_HOLD:
+            return None
+        dwarf = agent.character.race == Character.DWARF
+        radius = jf_config.AT_THREAT_RADIUS_DWARF if dwarf else jf_config.AT_THREAT_RADIUS
+        y0, x0 = int(bl.y), int(bl.x)
+        dists = []
+        for m in agent.get_visible_monsters():
+            if getattr(m[3], 'mname', '') == 'unknown' or not self._melee_ignores_elbereth(m[3]):
+                continue
+            # BFS steps where its square is reachable (an @ behind a wall is further away than it looks)
+            d = int(m[0]) if m[0] > 0 else max(abs(int(m[1]) - y0), abs(int(m[2]) - x0))
+            if d <= radius:
+                dists.append(d)
+        if not dists:
+            seen = self._at_seen
+            if seen is not None and seen[0] == key and now - seen[1] <= jf_config.AT_THREAT_MEMORY:
+                return radius
+            return None
+        d = min(dists)
+        obs = self._at_obs
+        if not obs or obs[-1][:2] != (now, key):
+            obs.append((now, key, d))
+            del obs[:-30]
+        self._at_seen = (key, now)
+        # standing off: in view all along for AT_THREAT_STILL turns, and no closer now than then
+        past = [o for o in obs if o[1] == key and o[0] <= now - jf_config.AT_THREAT_STILL]
+        if past:
+            run = [o for o in obs if o[1] == key and o[0] >= past[-1][0]]
+            if all(b[0] - a[0] <= 2 for a, b in zip(run, run[1:])) and d >= past[-1][2]:
+                return None
+        return d
+
+    def _at_hold(self):
+        """AT_THREAT_AVOID: (True, action) while an @ holds the dig here -- action is a wand of digging's zap down when
+        one may be spent, else None (fight2 fights the @, try_dig_down waits for it); (False, None): dig as usual. In
+        our own pit the dig goes on, though a wand still takes us through at once. Only for a pick-axe digger: without
+        one the wand is the dig, and WAND_FIRST zaps it as before."""
+        if self.digging_tool() is None:
+            return False, None
+        d = self._at_threat()
+        if d is None:
+            return False, None
+        agent = self.agent
+        bl = agent.blstats
+        key = agent.current_level().key()
+        wand = self._dig_wand()
+        if wand is not None and not self._wand_waits() and \
+                (bl.experience_level < jf_config.AT_THREAT_WAND_XL or bl.hitpoints < 0.5 * bl.max_hitpoints):
+            zap = self._wand_escape(wand)
+            if zap is not None and self._wet_neighbours(bl.y, bl.x) == 0:
+                self._at_log(key, 'zap', f'an @ {d} away: zapping {wand.text!r} down')
+                return True, zap
+        dwarf = agent.character.race == Character.DWARF
+        if self._in_own_pit() or d < (jf_config.AT_THREAT_NEAR_DWARF if dwarf else jf_config.AT_THREAT_NEAR):
+            return False, None
+        self._at_log(key, 'hold', f'no pit with an @ {d} away; hostiles at '
+                                  f'{[(m[3].mname, int(m[0])) for m in agent.get_visible_monsters()[:4]]}')
+        return True, None
+
+    def _at_count(self, key):
+        """AT_THREAT_AVOID: one more turn the dig waited on this level (AT_THREAT_MAX_HOLD)."""
+        now = self.agent.blstats.time
+        last, n = self._at_holds.get(key, (None, 0))
+        if last != now:
+            self._at_holds[key] = (now, n + 1)
+
+    def _at_log(self, key, what, text):
+        if (key, what) not in self._at_logged:
+            self._at_logged.add((key, what))
+            self.agent.log(f'DIVE AT_THREAT {text}')
+
     def on_medusa_level(self):
         return self.medusa_level is not None and self.agent.current_level().key() == self.medusa_level
 
@@ -1943,6 +2052,35 @@ class DiveLogic:
         return jf_config.RANGED_ON_ELB and \
             self.agent.blstats.time - self._ranged_hit_turn <= jf_config.RANGED_BREAK_TURNS
 
+    def _lone_weak_deadly(self, monster):
+        """LONE_WEAK_THREAT: the lone-weak exemption above keys on the base level (mlevel <= 2), which takes in the
+        grind's worst killers -- rothes (3 attacks, 1d3/1d3/1d8), giant bats (speed 22), giant ants (speed 18),
+        dwarves with mattocks (d12), hill orcs, hobbits, were-creatures in animal form -- so below
+        ELBERETH_REST_BELOW the bot fought them on to death instead of resting on Elbereth (all of these respect it,
+        monmove.c onscary). With the flag the exemption holds only while the monster's own melee
+        (nhmodel.prayer.monster_turn_damage: mhitu.c to-hit against our AC, its attacks and speed) leaves P(it deals
+        >= our HP within LONE_WEAK_TURNS turns) below LONE_WEAK_PDIE.
+        Evidence (tr0/p0/v2a/b3/wz0, 1023 games): 60 shallow deaths end with a single attacker kind of mlevel <= 2 in
+        their last 8 turns, 34 of them with no Elbereth rest in their last 40 turns -- v2a wiz-hum-neu-mal s201 and
+        wiz-gno-neu-mal s201 (a lone rothe after the force bolts ran out, 10-11 HP to dead, no engraving), p0
+        wiz-hum-neu-mal s202 (a hobbit from 13 HP), tr0 bar-hum-cha-mal s211 (a rothe at 7-9 HP)."""
+        if not jf_config.LONE_WEAK_THREAT:
+            return False
+        try:
+            import math
+            from .nhmodel.prayer import _phi, monster_turn_damage
+            bl = self.agent.blstats
+            name = getattr(monster[3], 'mname', 'unknown')
+            m1, v1, spd = monster_turn_damage(name, int(bl.armor_class), int(bl.depth), int(bl.experience_level))
+            turns = jf_config.LONE_WEAK_TURNS
+            mean, var = m1 * spd * turns, v1 * spd * turns
+            if mean <= 0:
+                return False
+            p_die = 1.0 - _phi((bl.hitpoints - 0.5 - mean) / math.sqrt(max(var, 1.0)))
+            return p_die >= jf_config.LONE_WEAK_PDIE
+        except Exception:
+            return False
+
     @Strategy.wrap
     @_hold_loop
     def elbereth_rest(self):
@@ -1967,7 +2105,8 @@ class DiveLogic:
             yield False
         near = self._near_hostiles()
         # a lone weak monster is better killed than hidden from (engraving gives it a free hit)
-        if len(near) == 1 and getattr(near[0][3], 'mlevel', 99) <= 2 and bl.hitpoints >= 6:
+        if len(near) == 1 and getattr(near[0][3], 'mlevel', 99) <= 2 and bl.hitpoints >= 6 and \
+                not self._lone_weak_deadly(near[0]):
             self._elbereth_resting = False
             yield False
         # REST_FIGHT_WEAK: ... at any HP when one blow kills it (makemon difficulty <= 2, not faster than us): the
@@ -3373,6 +3512,20 @@ class DiveLogic:
         if what == 'reroll':
             self._medusa_reroll(arg)
             return
+        if what == 'cycle_up':
+            self._medusa_cycle_climb(arg)
+            return
+        if what == 'hole_walk':
+            self._raven_step_toward(arg)
+            return
+        if what == 'plunge':
+            self._medusa_plunge(arg)
+            return
+        if what == 'cycle_rest':
+            self._task('rest before the plunge')
+            if not self._rest_elbereth():
+                agent.search(1 if monsters else 10)
+            return
         if what == 'blind_engrave':
             tries = self.__dict__.setdefault('_elbereth_tries', {})
             tries[arg] = tries.get(arg, 0) + 1
@@ -3454,6 +3607,8 @@ class DiveLogic:
                       f'{f" (WAND_RESERVE zone zap {self._reserve_zaps})" if zone else ""}, hostiles at '
                       f'{[(m[3].mname, int(m[0])) for m in monsters[:3]]}')
             agent.zap(arg, '>')
+            if agent.current_level().key() != key:
+                self._dug_holes[key] = spot
             if agent.current_level().key() == key:
                 if 'here is too hard to dig' in agent.message:
                     self.undiggable.add(key)
@@ -3526,12 +3681,21 @@ class DiveLogic:
             # occupation only after the monsters' move), so a monster attacking every turn blocks all progress.
             # (dsafe-A jf16 s11 dug on in its pit beside a Grey-elf and a werewolf: 90 -> 12 HP, no hole.)
             return self._wand_escape(wand)
+        cycle = self._medusa_cycle_action()
+        if cycle is not None:
+            # MEDUSA_HOLE_CYCLE: no dig on her level; the hole above is the way down ('cycle_hold': fight first)
+            return None if cycle[0] == 'cycle_hold' else cycle
         blind_hold = self._blind_holding()
         if adjacent and agent._hurt_recently(2) and not self._elbereth_possible() and not blind_hold:
             # bitten while digging with no Elbereth under us and none to be had here (engrave cap, forbidden
             # square): every attack stops the dig, so a hole takes ~12 turns of free hits -- fight instead
             # (dsafe-t2 jf25 s11 dug on under a soldier ant and a large dog, 58 -> 16 HP in 5 turns)
             return self._wand_escape(wand)
+        if jf_config.AT_THREAT_AVOID:
+            holding, act = self._at_hold()
+            if holding:
+                self._at_count(level.key())   # (once per turn: this also runs as other strategies' condition)
+                return act   # a zap down, or None: fight2 fights the @ on level ground and try_dig_down waits
         pit_ok = not self._in_own_pit() or (WAND_RESERVE and self._reserve_emergency())
         if WAND_FIRST and wand is not None and pit_ok and not self._wand_waits() and not self._wand_reserved():
             # with hostiles in view the wand's instant hole beats the pick's ~8 turns under attack (and a pit
@@ -4384,6 +4548,99 @@ class DiveLogic:
         with agent.atom_operation():
             agent.direction(agent.calc_direction(y0, x0, y, x))
         agent.log(f'DIVE MEDUSA_HOP: now at {(agent.blstats.y, agent.blstats.x)} ({agent.message[-100:]!r})')
+
+    def _above_medusa(self):
+        """This is the level right above Medusa's."""
+        if self.medusa_level is None:
+            return False
+        key = self.agent.current_level().key()
+        return int(key[0]) == int(self.medusa_level[0]) and int(key[1]) + 1 == int(self.medusa_level[1])
+
+    def _medusa_cycle_action(self):
+        """MEDUSA_HOLE_CYCLE (see there): ('cycle_up', '<') on her level, ('plunge', hole) / ('hole_walk', square) /
+        ('cycle_rest', None) on the level above once we have climbed off hers, else None."""
+        if not (MEDUSA_HOLE_CYCLE and DIG_ESCAPE and self.diving) or self.medusa_level is None or self.levitating():
+            return None
+        agent = self.agent
+        bl = agent.blstats
+        level = agent.current_level()
+        if self.on_medusa_level():
+            if self._medusa_cycles >= MEDUSA_HOLE_CYCLE_MAX or self._in_own_pit() or \
+                    bl.time < self._medusa_reroll_blocked_until:
+                return None
+            above = (self.medusa_level[0], self.medusa_level[1] - 1)
+            if not any(int(k[0]) == int(above[0]) and int(k[1]) == int(above[1]) for k in self._dug_holes) and \
+                    self.digging_tool() is None and self.digging_wand() is None:
+                return None   # no hole up there and nothing to dig one with
+            dis = agent.bfs()
+            ups = {(int(y), int(x)) for y, x in zip(*utils.isin(level.objects, G.STAIR_UP).nonzero())}
+            # the '<' we came down by shows us, not the stairs: the stair memory knows it
+            ups |= {(int(p[0]), int(p[1])) for p, dest in level.stair_destination.items()
+                    if dest[0][0] == level.dungeon_number and dest[0][1] < level.level_number}
+            reachable = [(dis[p], p) for p in ups if 0 <= dis[p] <= MEDUSA_HOLE_CYCLE_STEPS]
+            return ('cycle_up', min(reachable)[1]) if reachable else None
+        if self._medusa_cycles == 0 or not self._above_medusa() or bl.time < self._medusa_reroll_blocked_until:
+            return None
+        hole = self._dug_holes.get(level.key())
+        if hole is not None:
+            hy, hx = hole
+            if max(abs(hy - bl.y), abs(hx - bl.x)) > 1:
+                dis = agent.bfs()
+                near = [(dis[hy + dy, hx + dx], (hy + dy, hx + dx)) for dy in (-1, 0, 1) for dx in (-1, 0, 1)
+                        if (dy or dx) and 0 <= hy + dy < dis.shape[0] and 0 <= hx + dx < dis.shape[1] and
+                        0 <= dis[hy + dy, hx + dx] <= MEDUSA_HOLE_CYCLE_HOLE_STEPS]
+                if near:
+                    return ('hole_walk', min(near)[1])
+                hole = None   # too far: the dive digs a new one
+        # every landing down there costs HP (bc-smoke: 53 of 81 in 6 turns among Medusa-3's ravens): rest up here
+        # first -- beside the hole (the walk above comes first), or before digging one; fight what is close
+        if bl.hitpoints < MEDUSA_HOLE_CYCLE_REST * bl.max_hitpoints and not self._in_own_pit():
+            return ('cycle_hold', None) if self._near_hostiles(radius=2) else ('cycle_rest', None)
+        if hole is None:
+            return None   # the dive digs one (beside the '>' we arrived on; the '>' itself is avoided)
+        return ('plunge', hole)
+
+    def _medusa_cycle_climb(self, up):
+        agent = self.agent
+        if (agent.blstats.y, agent.blstats.x) != up:
+            if getattr(self, '_cycle_walk_logged', None) != (self._medusa_cycles, up):
+                self._cycle_walk_logged = (self._medusa_cycles, up)
+                agent.log(f'MEDUSA_HOLE_CYCLE: to her < at {up} (climb {self._medusa_cycles + 1}, '
+                          f'hp {agent.blstats.hitpoints}/{agent.blstats.max_hitpoints})')
+            start = (agent.blstats.y, agent.blstats.x)
+            turn = agent.blstats.time
+            self._raven_step_toward(up)
+            if (agent.blstats.y, agent.blstats.x) == start and agent.blstats.time == turn:
+                self._medusa_reroll_blocked_until = turn + 3   # no move and no turn: let the dig plan act
+            return
+        key = agent.current_level().key()
+        agent.log(f'MEDUSA_HOLE_CYCLE: climbing off her level (climb {self._medusa_cycles + 1})')
+        agent.move('<')
+        if agent.current_level().key() != key:
+            self._medusa_cycles += 1
+            # the '>' we stand on leads straight back onto her '<': our hole is the way down
+            self._avoid_stairs_until[(agent.current_level().key(), (agent.blstats.y, agent.blstats.x))] = 10 ** 9
+
+    def _medusa_plunge(self, hole):
+        agent = self.agent
+        key = agent.current_level().key()
+        hy, hx = hole
+        if agent.monster_tracker.monster_mask[hy, hx]:
+            agent.log(f'MEDUSA_HOLE_CYCLE: hitting the monster on our hole at {hole}')
+            agent.step(A.Command.FIGHT)
+            agent.direction(hy, hx)
+            return
+        agent.log(f'MEDUSA_HOLE_CYCLE: into our hole at {hole} (after climb {self._medusa_cycles}, '
+                  f'hp {agent.blstats.hitpoints}/{agent.blstats.max_hitpoints})')
+        turn = agent.blstats.time
+        agent.direction(hy, hx)
+        if agent.current_level().key() != key:
+            return
+        if (agent.blstats.y, agent.blstats.x) == (hy, hx):
+            agent.log('MEDUSA_HOLE_CYCLE: no fall -- the hole is gone')
+            self._dug_holes.pop(key, None)
+        elif agent.blstats.time == turn:
+            self._medusa_reroll_blocked_until = turn + 3
 
     def _medusa_reroll_stairs(self, max_wet):
         """DIG_ESCAPE on Medusa's level, stranded where every reachable square has >= MEDUSA_REROLL_WET moat
@@ -5821,6 +6078,12 @@ class DiveLogic:
             if not self._rest_elbereth():
                 agent.search(10)
             return True
+        cycle = self._medusa_cycle_action()
+        if cycle is not None:
+            if cycle[0] == 'cycle_hold':
+                return False   # MEDUSA_HOLE_CYCLE: hurt with a hostile close -- no plunge, no dig (fight2 fights)
+            self._escape_act(cycle)   # MEDUSA_HOLE_CYCLE
+            return True
         tool = self.digging_tool() if agent.blstats.time >= self._dig_blocked_until else None
         wand = self.digging_wand() if tool is None else None
         # WAND_RESERVE: on Medusa's level the kept wand holes the floor instead of the pick-axe (one flood roll and
@@ -5843,6 +6106,17 @@ class DiveLogic:
             for d, _, _, kind in self.down_targets():
                 if kind == 'stairs' and d <= DIG_STAIRS_RADIUS:
                     return False
+        if jf_config.AT_THREAT_AVOID and tool is not None:
+            holding, act = self._at_hold()
+            if holding:
+                # an @ comes for us (or was just in sight): no pit to be caught in -- fight2 meets it on level ground
+                self._at_count(key)
+                if act is not None:
+                    self._escape_act(act)
+                else:
+                    self._task('AT_THREAT hold')
+                    agent.search(1)
+                return True
         y, x = agent.blstats.y, agent.blstats.x
         candidates = utils.isin(level.objects, PLAIN_FLOOR) | ((level.objects == -1) & level.walkable)
         floor = [p for p in zip(*candidates.nonzero()) if dis[p] >= 0]
@@ -5914,6 +6188,8 @@ class DiveLogic:
             return True
         agent.log(f'DIVE zapping {wand.text!r} down')
         agent.zap(wand, '>')
+        if agent.current_level().key() != key:
+            self._dug_holes[key] = (y, x)
         if agent.current_level().key() == key and ('too hard to dig' in agent.message or
                                                     'here is too hard' in agent.message):
             self.undiggable.add(key)
@@ -5964,9 +6240,15 @@ class DiveLogic:
             return False   # on our scroll of scare monster: nothing melees us, and the pit doesn't remove it
         blind = agent.character.prop.blind
         self._look_after_sight()   # MEDUSA_BLIND_DIG
-        if not blind and (agent.inventory.engraving_below_me or '').lower() == 'elbereth':
-            return False
         bl = agent.blstats
+        tries = self.__dict__.setdefault('_elbereth_tries', {})
+        # ELBERETH_REWRITE_FIX: the writes up to the last whole read-back don't count against the cap
+        held = self.__dict__.setdefault('_elbereth_held', {})
+        if not blind and (agent.inventory.engraving_below_me or '').lower() == 'elbereth':
+            if jf_config.ELBERETH_REWRITE_FIX:
+                spot = (agent.current_level().key(), bl.y, bl.x, self._in_own_pit())
+                held[spot] = tries.get(spot, 0)
+            return False
         near = [m for m in agent.get_visible_monsters()
                 if max(abs(m[1] - bl.y), abs(m[2] - bl.x)) <= ELBERETH_DIG_RADIUS and
                 not self._melee_ignores_elbereth(m[3])]
@@ -5974,7 +6256,6 @@ class DiveLogic:
         # base-jf16 s13: a giant ant, base-jf16 s9: a panther -- all Elbereth-respecting -- killed fainted
         # diggers); the engraving holds them off while we're out
         spot = (agent.current_level().key(), bl.y, bl.x, self._in_own_pit())
-        tries = self.__dict__.setdefault('_elbereth_tries', {})
         # the pit erased the Elbereth we needed before it: the monsters that made us engrave are still around
         # even if out of sight now (base-public s14: an invisible ogre king hit us in the fresh pit; s1: a
         # chameleon)
@@ -5991,7 +6272,7 @@ class DiveLogic:
             last = self.__dict__.setdefault('_engrave_turn', {}).get(spot)
             if tries.get(spot, 0) >= ELBERETH_TRIES_BLIND or (last is not None and not self._hurt_since(last)):
                 return False
-        elif tries.get(spot, 0) >= ELBERETH_TRIES_ESCAPE:
+        elif tries.get(spot, 0) - (held.get(spot, 0) if jf_config.ELBERETH_REWRITE_FIX else 0) >= ELBERETH_TRIES_ESCAPE:
             return False
         tries[spot] = tries.get(spot, 0) + 1
         self.__dict__.setdefault('_engrave_turn', {})[spot] = bl.time
@@ -6118,6 +6399,7 @@ class DiveLogic:
                     agent.step(A.Command.ESC)
             msg = agent.message
             if agent.current_level().key() != key:
+                self._dug_holes[key] = spot   # (MEDUSA_HOLE_CYCLE) it stays open behind us
                 return
             # Waking from a faint: the deafness that came with it ends right after, and its 'You can hear
             # again' stops the new dig before any progress (a starving rescue dive spent ~300 turns and
@@ -6127,6 +6409,9 @@ class DiveLogic:
                     any(s in msg for s in ('You can hear again', 'You regain consciousness', 'You faint')):
                 self._dig_tries[key] = tries - 1
                 if agent.blstats.hunger_state <= Hunger.FAINTING:   # not passed out again
+                    if jf_config.ELBERETH_REWRITE_FIX and not agent.character.prop.blind and \
+                            (agent.inventory.engraving_below_me or '').lower() != 'elbereth':
+                        return   # the faint's wipes: the next call writes it again first (_elbereth_before_digging)
                     continue
             break
         if prompted and 'dig a pit in the' in msg:
