@@ -1,6 +1,6 @@
 {
   "schema": "nethackers.solution/v1",
-  "name": "daglar-zA",
+  "name": "daglar-zB",
   "root": ".",
   "parents": [
     "github.com/zarutskiysy/nethack@71335bf6953b5fd3b792b5d7677ece3da5e6ae8a",

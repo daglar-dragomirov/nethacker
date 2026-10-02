@@ -552,7 +552,7 @@ RECORD_MODEL_FIX = True
 # ALIGN_PRAYER (agent.align_prayer): a hero whose modelled alignment record is still <= 0 makes one no-trouble prayer
 # (fed, no hostile in view, not on an altar) from turn ALIGN_PRAYER_TURN on, before any other prayer: +1 record, so
 # later prayers always fix the worst major trouble. Off pending an A/B (research/shallow_deaths.md)
-ALIGN_PRAYER = True
+ALIGN_PRAYER = False
 ALIGN_PRAYER_TURN = 350
 # were_unload drops a were form's load whenever Overtaxed or worse, not only when Weak with food to eat
 # t35: jf16 s6 0.602 -> 0.051 (a 9-HP were form dropped all 20 items on Dlvl 3 and never went back for them), jf14 s12
@@ -612,7 +612,7 @@ REST_FIGHT_WEAK = False
 # LONE_WEAK_THREAT (dive_logic._lone_weak_deadly): the Elbereth rest's 'a lone mlevel <= 2 monster is better killed'
 # exemption applies only while that monster can't kill us within LONE_WEAK_TURNS turns with P >= LONE_WEAK_PDIE (a rothe
 # at 19 HP: ~0.24; a giant bat at 16: ~0.66; a jackal or newt: ~0). Off pending an A/B (research/shallow_deaths.md)
-LONE_WEAK_THREAT = True
+LONE_WEAK_THREAT = False
 LONE_WEAK_TURNS = 3
 LONE_WEAK_PDIE = 0.1
 # never kill a gas spore whose blast reaches any @, a shop's squares (its shopkeeper may be out of view) or anything in
@@ -639,7 +639,7 @@ FEYE_TELE_BOXED = 150
 # Hungry, and every eye melee (stall breaker, FEYE_TELE boxed-in) needs 'not Hungry' instead of 'not Weak'. Off pending
 # an A/B (research/shallow_deaths.md: 6 of 7 eye-freeze deaths in 1023 games came before telepathy, 3 of them under
 # conditions this blocks)
-FEYE_GUARD = True
+FEYE_GUARD = False
 # a missile/wand/ray hit breaks the Elbereth holds (rest, faint guard/shelter, demon vigil) and fight2's
 # wait-on-Elbereth for RANGED_BREAK_TURNS turns: fight2 then closes in on a weak shooter or leaves its line
 # ON (train 3.4, A063): a hold breaks when shot/zapped from range; guard vs base7 45 amd64 0.446 vs 0.415, grind deaths 5 -> 1
@@ -743,7 +743,7 @@ SHOP_SIGN_FIX = True
 # direction), elsewhere no known-cursed missile while a peaceful or the pet is in view; and no wand plan kills a gas
 # spore whose blast reaches a peaceful, a shop square or the pet (SPORE_SAFE's rule for melee and throws). 3 of the 5
 # shopkeeper deaths in 1023 games (research/shallow_deaths.md)
-SHOP_SAFETY = True
+SHOP_SAFETY = False
 
 # --- valley-run (the Valley of the Dead with real castle-arrival kits: XL 7-10, 55-114 HP, AC -8..+10) ---
 # VALLEY_SPRINT (off, REJECTED -- no signal): the Valley walk never stops to fight what it can outrun
@@ -1490,7 +1490,7 @@ ROLE_GRIND_LEVELS = {'Rogue': {}, 'Knight': {}, 'Tourist': {}, 'Priest': {}}
 # 0.243 vs 0.210 and 0.326 vs <=0.223) -- a Wizard starts with two identified rings -- and lost ~0.01 per identity
 # elsewhere (0.2836 vs 0.2864 overall); CleverShovel's own public-seed panels: negative on most non-Wizard identities.
 # Measured on e29eb82's Wizard (Dlvl-1 grind, no force bolt), not on this engine's: A/B it here.
-RING_MODULE = False                 # master switch (A/B pending: on for Wizards only)
+RING_MODULE = True
 RING_WEAR_ROLES = ('Wizard',)       # role names for the wearing strategies below (None: every role)
 RING_WEAR_IDENTIFIED = True         # the always-wear list (ring_amulet_config.ALWAYS_WEAR_*)
 RING_COMBAT_ONLY_WEAR = True        # protection / increase accuracy / increase damage / reflection near hostiles only
