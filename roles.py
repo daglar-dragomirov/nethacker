@@ -14,7 +14,7 @@ import os
 import re
 
 # identity prefix -> {"module.NAME": value}
-OVERRIDES: dict[str, dict[str, object]] = {'mon': {'dive_logic.DIVE_XL': 9}, 'pri': {'dive_logic.DIVE_XL': 9}, 'wiz': {'dive_logic.DIVE_XL': 9}}
+OVERRIDES: dict[str, dict[str, object]] = {}
 
 _ROLES = {"Archeologist": "arc", "Barbarian": "bar", "Caveman": "cav", "Cavewoman": "cav", "Healer": "hea",
           "Knight": "kni", "Monk": "mon", "Priest": "pri", "Priestess": "pri", "Ranger": "ran", "Rogue": "rog",

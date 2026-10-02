@@ -41,8 +41,21 @@
   over 235 deterministic pairs), `MEDUSA_HOLE_CYCLE` (skip Medusa's level through our own hole from above: the skip works
   1 time in 4-6, but the extra landings cost more, -0.015 +- 0.005 per Medusa game), Wizards on the Dlvl-1 grind
   (-0.058 +- 0.026 over 101 pairs).
+- **v4:** fixes from log studies of the deep game and of Wizards (`research` notes in the workspace). Deep game: lawful
+  minions (Aleax, couatl, ...) ignore Elbereth (`LMINION_ELBERETH`), a safe prayer before a heal at critical HP deep in the
+  dive (`DEEP_PRAY_FIRST`), no castle-only strategies on a deep Medusa level, Medusa-2 recognised by its titan's messages,
+  a stranded Medusa-3 '<' rerolls, minotaur guard fixes (`MINO_*`): +0.0021 +- 0.0012 over 512 deterministic held-out
+  pairs vs v3. Wizards: force bolt beats the melee bonus against Elbereth-ignorers and is cast from an Elbereth square at
+  what the engraving doesn't scare (`FB_FOCUS`; 52 of 412 Wizard games died meleeing with power left), no casting while
+  stunned/confused, no ray-wand zaps in the grind while the bolt is castable; a starving pet gets the corpses, a pet
+  turned hostile is fought, no Elbereth on altars. Knights stay on the Dlvl-1 grind (the deep grind: -0.020 +- 0.023 over
+  160 pairs); a durable (engraved) Elbereth for holds measured +0.000 over 512 pairs (flag off).
 
-
-
-## Experimental zV4B (2026-10-02)
-Nine nhbot runtime files from zarutskiysy/nethack@14a3bbd871061d63bda57da6c82af91f46959d21 transplanted onto exact zB; see DONOR_CHANGES_zarut14a3.md. Preserve zB router, specialists, role policy, ring module and Medusa hop. Add donor Wizard casting safeguards, pet/hostility corrections, safe deep prayer, Medusa/Castle separation and minotaur escape repairs. Donor disabled experiments remain disabled. Public source evidence only; fresh validation separate, no gain claimed.
+- **v5:** merged daglar-dragomirov/nethacker@6c814836 (the generalist-board leader, mean 0.350) into this v4 tree, which
+  was already a strict superset of its engine-code changes (v4's deep-game and Wizard fixes are additive new flags;
+  daglar made no edits to those nhbot files). Adopted from daglar: the populated per-identity `OVERRIDES` in `roles.py`
+  (arc/cav/mon/pri/wiz play aggressive — `RING_MODULE` and `MEDUSA_HOP` on, the four safety flags off, `DIVE_XL` 8;
+  bar/kni/ran/rog/tou/val play safe — the opposite, `ran` `DIVE_XL` 7), the `^X` attributes-screen identity probe
+  (`roles.attributes_identity`, so the per-role config applies even when the welcome line is missed), and the Tourist
+  engine `pf_dtad7a` (DT6A/nethacker@ad7a864) routed for `tou`. The `RING_MODULE`/`MEDUSA_HOP` module code is
+  byte-identical to daglar's, so this reproduces the leader's behaviour exactly, with v4's extra fixes on top.
