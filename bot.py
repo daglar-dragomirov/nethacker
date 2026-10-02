@@ -17,6 +17,7 @@ import roles  # noqa: E402
 # Human Priests left PetrAnokhin's pf_pa for nhbot (eL1fe's spell bundle casts their healing): +0.053 +- 0.022 per game
 # over 113 paired held-out games (ph0/ph1), in line with the hub's private seeds (dag25 0.260 vs pf_pa 0.228).
 SPECIALISTS = {
+    "tou": "adapter_pf_dtad7a",
     "hea-gno": "adapter_pf_hg",
     "hea-hum": "adapter_pf_hh",
     "sam": "adapter_pf_v35",
