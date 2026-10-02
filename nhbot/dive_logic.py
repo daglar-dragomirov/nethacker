@@ -5079,7 +5079,7 @@ class DiveLogic:
         """The tour's Dlvl 1 grind ends at XL 8 (DT6A), or earlier for a tool run or a Samurai (SAM_DIVE_XL)."""
         xl = self.agent.blstats.experience_level
         # DIVE_FED / DIVE_PRAYER_GAP hold the grind (the milestone would otherwise move on to the Mines tour)
-        return (xl >= 8 or self._sam_grind_over(xl) or (TOOL_RUN_XL is not None and xl >= TOOL_RUN_XL)) and \
+        return (xl >= DIVE_XL or self._sam_grind_over(xl) or (TOOL_RUN_XL is not None and xl >= TOOL_RUN_XL)) and \
             self.fed_for_dive() and self.prayer_ready_for_dive() and self.hp_ready_for_dive()
 
     def _sam_grind_over(self, xl):
