@@ -41,11 +41,32 @@
   over 235 deterministic pairs), `MEDUSA_HOLE_CYCLE` (skip Medusa's level through our own hole from above: the skip works
   1 time in 4-6, but the extra landings cost more, -0.015 +- 0.005 per Medusa game), Wizards on the Dlvl-1 grind
   (-0.058 +- 0.026 over 101 pairs).
+- **v4:** fixes from log studies of the deep game and of Wizards (`research` notes in the workspace). Deep game: lawful
+  minions (Aleax, couatl, ...) ignore Elbereth (`LMINION_ELBERETH`), a safe prayer before a heal at critical HP deep in the
+  dive (`DEEP_PRAY_FIRST`), no castle-only strategies on a deep Medusa level, Medusa-2 recognised by its titan's messages,
+  a stranded Medusa-3 '<' rerolls, minotaur guard fixes (`MINO_*`): +0.0021 +- 0.0012 over 512 deterministic held-out
+  pairs vs v3. Wizards: force bolt beats the melee bonus against Elbereth-ignorers and is cast from an Elbereth square at
+  what the engraving doesn't scare (`FB_FOCUS`; 52 of 412 Wizard games died meleeing with power left), no casting while
+  stunned/confused, no ray-wand zaps in the grind while the bolt is castable; a starving pet gets the corpses, a pet
+  turned hostile is fought, no Elbereth on altars. Knights stay on the Dlvl-1 grind (the deep grind: -0.020 +- 0.023 over
+  160 pairs); a durable (engraved) Elbereth for holds measured +0.000 over 512 pairs (flag off).
 
+- **v5:** merged daglar-dragomirov/nethacker@6c814836 (the generalist-board leader, mean 0.350) into this v4 tree, which
+  was already a strict superset of its engine-code changes (v4's deep-game and Wizard fixes are additive new flags;
+  daglar made no edits to those nhbot files). Adopted from daglar: the populated per-identity `OVERRIDES` in `roles.py`
+  (arc/cav/mon/pri/wiz play aggressive — `RING_MODULE` and `MEDUSA_HOP` on, the four safety flags off, `DIVE_XL` 8;
+  bar/kni/ran/rog/tou/val play safe — the opposite, `ran` `DIVE_XL` 7), the `^X` attributes-screen identity probe
+  (`roles.attributes_identity`, so the per-role config applies even when the welcome line is missed), and the Tourist
+  engine `pf_dtad7a` (DT6A/nethacker@ad7a864) routed for `tou`. The `RING_MODULE`/`MEDUSA_HOP` module code is
+  byte-identical to daglar's, so this reproduces the leader's behaviour exactly, with v4's extra fixes on top.
+- **v6:** built on v5. Specialist engine ports for the identities where a competitor engine clearly beats nhbot
+  (gaps shared by daglar's own 0.350 generalist, which routes these to older/nhbot engines): sam-hum-law-fem -> pf_v37
+  (v5 0.260 -> 0.351), sam-hum-law-mal -> pf_vk_s25 (0.257 -> 0.345), val-dwa-law-fem -> pf_vk_s23 (0.318 -> 0.508),
+  all measured on the exact public seeds; engines from daglar-dragomirov/nethacker@d8da1f72, routing per daglar@96597c11.
+  val-hum stays on nhbot (already ~0.49). Also shipped default-OFF (for later A/B): ENGRAVE_DURABLE (proactive
+  blade-engraved Elbereth on safe dive arrival) and SCARE_CARPET (carry a scare scroll through a self-dug hole).
+  Tried and dropped (regressed on public seeds): FB_RESERVE=15 for wizards (-0.055 on the two tested, despite +0.031
+  on dev seeds) and the Knight deep grind (-0.02..-0.03).
 
-
-## Experimental zV4B (2026-10-02)
-Nine nhbot runtime files from zarutskiysy/nethack@14a3bbd871061d63bda57da6c82af91f46959d21 transplanted onto exact zB; see DONOR_CHANGES_zarut14a3.md. Preserve zB router, specialists, role policy, ring module and Medusa hop. Add donor Wizard casting safeguards, pet/hostility corrections, safe deep prayer, Medusa/Castle separation and minotaur escape repairs. Donor disabled experiments remain disabled. Public source evidence only; fresh validation separate, no gain claimed.
-
-## Experimental zV7B
-Port the exact specialist routing/engines retained by Public leader zarutskiysy@94c4c1c, while preserving zV4B main engine, zB role policy and main Tourist engine. These specialists originate in our historical d8da1f72 portfolio; donor attribution retained. No private-guided choices. Full73 Public and predeclared fresh comparison against exact new Public leader, zB and zRole2; no confirmed gain claimed.
+## Experimental zFrontierDEV
+Exact complete Public leader94 portfolio, preserving its role profiles, specialists and missing-welcome router. Add only public DEV-motivated bb0825 Ranger unseen-pet guard setting and gnome Caveman Dlvl1 grind. No private-selected v9p2/v10a portfolio imported. Full73 native Public15 incremental registration; separate frozen20pair comparison against exact Publicleader94, zB and zRole2. No confirmed gain claimed.
