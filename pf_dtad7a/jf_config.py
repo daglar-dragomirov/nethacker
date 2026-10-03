@@ -322,3 +322,8 @@ if LATE_FIXES:
 CORRIDOR_FIGHT = True
 CORRIDOR_FIGHT_MIN = 4
 CORRIDOR_FIGHT_MAX_DEPTH = 5
+
+# DT6A759c1c new DEV hurt/faint rescue; retain original new-branch thresholds.
+THREAT_HURT_GAP = 800
+THREAT_HURT_FRAC = 0.6
+THREAT_HURT_RADIUS = 2
