@@ -1,6 +1,6 @@
 {
   "schema": "nethackers.solution/v1",
-  "name": "daglar-zPublicIO",
+  "name": "daglar-zMedusa",
   "root": ".",
   "parents": [
     "github.com/zarutskiysy/nethack@14a3bbd871061d63bda57da6c82af91f46959d21",
@@ -16,7 +16,8 @@
     "github.com/DT6A/nethacker@ad7a864d9385f84c9b4f9865bb68141c90ca5e1b",
     "github.com/zarutskiysy/nethack@00cf417f05ec9c20846b848cd70243af67695c54",
     "github.com/OlegPapulov/nethacker@a27b54aa85283b82987d9c9d3f4efadd2cb0cec8",
-    "github.com/daglar-dragomirov/nethacker@8e94cf67d62bfb6306c34d95be80dfb9469a4b89"
+    "github.com/daglar-dragomirov/nethacker@8e94cf67d62bfb6306c34d95be80dfb9469a4b89",
+    "github.com/zarutskiysy/nethack@f31cc4ac0970bed0e7e30ef9d2d81b212512e23c"
   ],
   "influences": [
     "github.com/CleverShovel/nethacker@0d1fb22498024cdcac06be9d15d0f70e8cae803c",

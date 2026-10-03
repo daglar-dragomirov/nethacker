@@ -78,3 +78,6 @@
 
 ## Experimental zPublicIO
 Experimental complete program zPublicIO: exact current Public leader zarutskiysy00cf417 v11pub portfolio plus attributed Oleg a27b protocol fixes as corrected in zFrontierIO. Current-screen spell-menu handling, retained forgotten-spell exclusion, menu cleanup, corpse-name and wear-refusal guards. Full73 native15 incremental publication; frozen full73x20 fresh comparison against exact zar11pub,zB,zRole2,zFrontierIO. Public-selected portfolio remains exploratory; no Private selection or confirmed generalization claim. All previous best versions retained.
+
+## Experimental zMedusa
+Experimental complete program zMedusa: current Public-leading v11pub portfolio plus zPublicIO protocol fixes and selective bounded Medusa reentry/standoff/attacked-Elbereth rewrite from zarutskiysy f31cc4/441811, originally vkurenkov 4921bc3. No unrelated donor portfolio or MEDUSA2_CYCLE imported. Donor DEV replay evidence is not full-game validation. All73 native15 results registered incrementally after smoke, sanity and exact bytes; separate frozen full73x20 comparison against exact zar11pub,zPublicIO,zV7B,zB,zRole2. No Private-guided selection or confirmed generalist improvement claim; prior bests retained.
