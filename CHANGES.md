@@ -76,5 +76,5 @@
   engine `pf_dtad7a` (DT6A/nethacker@ad7a864) routed for `tou`. The `RING_MODULE`/`MEDUSA_HOP` module code is
   byte-identical to daglar's, so this reproduces the leader's behaviour exactly, with v4's extra fixes on top.
 
-## Experimental zGeneralistRoles
-Experimental complete transfer generalist zGeneralistRoles: clean Public11 plus exact zB whole-role Priest/Ranger main engine and Samurai specialist, namespace-isolated with reversible source transformation. Selected from completed70200 development role evidence; known Public tradeoffs, no Private selection. Other53 identities retain Public11. Native73x15 incremental registration; disjoint full73x30 at73000..73029 vs exact Public11,zFrontierDEV,zB. Simultaneous conservative seed-block intervals, no confirmed gain claimed; prior bests retained.
+## Experimental zWizardEconomy
+Experimental complete Public program zWizardEconomy: exact Public11 with Wizard-only two-force-bolt energy reserve above XL3 while healthy and known-shop off-path casting. Existing passive/explosive, low-HP, fast-target, ray-bounce, shop-tail, pet and peaceful guards retained. All10 Wizard routes use main engine; other63 identities retain baseline behavior. Open development mechanism evidence, no Private selection. Native73x15 incremental registration after73 smoke, sanity and exact bytes. No independent confirmation scheduled for this exploratory wave; no generalist improvement claimed. Prior best programs retained.
