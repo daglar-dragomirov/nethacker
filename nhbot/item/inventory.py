@@ -229,10 +229,6 @@ class Inventory:
             self.agent.type_text(letter)
             if jf_config.ROBUST_FIXES and self._wear_refused(item):
                 return False
-            # OlegPapulov a27b; existing wear_best_stuff applies its slot cooldown.
-            if 'while wielding a two-handed weapon' in self.agent.message or \
-                    'You stop putting on' in self.agent.message:
-                return False
             assert 'You finish your dressing maneuver.' in self.agent.message or \
                    'You are now wearing ' in self.agent.message or \
                    'Your foot is trapped!' in self.agent.message, self.agent.message

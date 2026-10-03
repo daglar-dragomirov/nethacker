@@ -2564,10 +2564,6 @@ class Agent:
 
             # FEYE_TELE: the same filter once the eye's corpse has nothing left to give (telepathy is ours)
             feye_tele = jf_config.FEYE_TELE and not jf_config.FEYE_FIX and self.character.telepathic
-            # eL1fe bd8cb7: Knights use the existing blindfold/boxed-eye
-            # escape policy even before gaining telepathy; preserve its fallback.
-            if jf_config.FEYE_TELE and not jf_config.FEYE_FIX and self.character.role == Character.KNIGHT:
-                feye_tele = True
             if (jf_config.FEYE_FIX or feye_tele) and not self.character.prop.blind:
                 # never melee a floating eye we can see: its passive gaze freezes us for up to 127 turns. The
                 # exploration's stall breaker (allow_attack_all, below) keeps only attacks, and the eye's -110

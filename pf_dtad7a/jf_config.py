@@ -317,3 +317,8 @@ if TOUR_FIXES is not None:
     EARLY_FIXES = LATE_FIXES = bool(TOUR_FIXES)
 if LATE_FIXES:
     HAZARD_FIXES = True
+
+# DT6A63db55 early crowd positioning; original source thresholds.
+CORRIDOR_FIGHT = True
+CORRIDOR_FIGHT_MIN = 4
+CORRIDOR_FIGHT_MAX_DEPTH = 5
