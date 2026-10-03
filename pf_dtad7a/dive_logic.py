@@ -1182,8 +1182,7 @@ class DiveLogic:
         mlet = getattr(mon, 'mlet', '')
         cls = ord(mlet) if isinstance(mlet, str) and len(mlet) == 1 else -1
         name = getattr(mon, 'mname', '')
-        # DT6A997495: lawful minions also bypass Elbereth during rest.
-        return cls in (MON.S_HUMAN, MON.S_DRAGON, MON.S_ANGEL) or name in ('minotaur', 'unknown') or name in RANGED_MONSTERS
+        return cls in (MON.S_HUMAN, MON.S_DRAGON) or name in ('minotaur', 'unknown') or name in RANGED_MONSTERS
 
     def _melee_ignores_elbereth(self, mon):
         """onscary() for melee only: @ humans and elves (also shopkeepers, guards, priests) and minotaurs

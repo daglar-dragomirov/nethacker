@@ -1109,24 +1109,7 @@ class Agent:
         hostile attack during the faints and 9 of those died (~8%), while rnz(350) fails a prayer 6.2% of the
         time at a 950 gap, 5.5% at 1000 and 3.9% at 1100 -- and the Weak->Fainting transition always faints
         at once (eat.c newuhs), so an approaching monster gets 10+ free turns."""
-        # DT6A759c1c DEV832108: a hurt, foodless hero can die during the
-        # next faint before the normal hunger prayer becomes available.
-        # Retain prayer failure, dive and existing prayer-hold protections.
-        if self.prayer_failed or self.global_logic.dive.diving:
-            return False
-        bl = self.blstats
-        if (jf_config.THREAT_HURT_GAP and bl.hunger_state >= Hunger.WEAK and
-                bl.hitpoints < jf_config.THREAT_HURT_FRAC * bl.max_hitpoints):
-            for _, y, x, mon, _ in self.get_visible_monsters():
-                # A stationary passive monster cannot attack through a faint.
-                if (mon.mname in combat.monster_utils.ONLY_RANGED_SLOW_MONSTERS or
-                        getattr(mon, 'mmove', 12) <= 3):
-                    continue
-                if max(abs(int(y) - bl.y), abs(int(x) - bl.x)) <= jf_config.THREAT_HURT_RADIUS:
-                    if self.is_safe_to_pray(jf_config.THREAT_HURT_GAP):
-                        self._pray_reason = f'hunger-hurt {mon.mname}'
-                        return True
-        if not jf_config.THREAT_PRAYER_GAP:
+        if not jf_config.THREAT_PRAYER_GAP or self.prayer_failed or self.global_logic.dive.diving:
             return False
         bl = self.blstats
         if bl.hunger_state < Hunger.WEAK:

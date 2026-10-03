@@ -513,14 +513,6 @@ def get_priorities(agent):
         draw_monster_priority_negative(agent, m, priority, walkable)
     priority[~walkable] = float('nan')
 
-    # Adapted from DT6A 63db556: prefer existing corridor geometry in early
-    # crowd/ant fights. Monster mlet stores the NetHack class index.
-    if jf_config.CORRIDOR_FIGHT and agent.blstats.depth <= jf_config.CORRIDOR_FIGHT_MAX_DEPTH:
-        strong = [m for m in monsters if m[3].mname not in ONLY_RANGED_SLOW_MONSTERS and
-                  m[3].mname not in WEAK_MONSTERS]
-        if len(strong) >= jf_config.CORRIDOR_FIGHT_MIN or any(ord(m[3].mlet) == MON.S_ANT for m in strong):
-            priority += get_corridors_priority_map(walkable)
-
     # TODO: figure out how to use corridors priority so that it improves the score
     # if len([m for m in monsters if m[3].mname not in chain(ONLY_RANGED_SLOW_MONSTERS, WEAK_MONSTERS)]) >= 4:
     #     priority += get_corridors_priority_map(walkable)
