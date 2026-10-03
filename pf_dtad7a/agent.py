@@ -32,8 +32,6 @@ BLStats = namedtuple('BLStats',
 GRIND_DESPERATE_PRAYER_GAP = 200
 
 
-_PET_HUNGER_MESSAGE = re.compile('(?:^|[.!?]\\s+)([^.!?]+?) is confused from hunger(?=[.!?])', re.I)
-
 class Agent:
     def __init__(self, env, seed=0, verbose=False, panic_on_errors=False):
         self.env = env
@@ -68,8 +66,6 @@ class Agent:
         self.last_bfs_dis = None
         self.last_bfs_step = None
         self.last_prayer_turn = None
-        self._hungry_pets = {}
-        self._pet_starving_until = -1
         self.prayer_hold_until = -1
         self._fainting_since = None   # turn Fainting was first seen (jf_config.STARVE_CLOCK)
         self._weak_since = None       # turn Weak was first seen (jf_config.THREAT_PRAYER_GAP)
@@ -388,16 +384,6 @@ class Agent:
 
         return message, popup, False
 
-    def _note_pet_kill_prayer_hold(self, message, turn):
-        # DT6A751f31: pet kills can make routine hunger prayers unsafe.
-        # Inspect only the current screen, never accumulated message history.
-        event = ('rumble of distant thunder' in message or
-                 'studio audience applaud' in message)
-        if event and not getattr(self, '_pet_kill_message_active', False):
-            self.prayer_hold_until = max(self.prayer_hold_until, turn + 3000)
-            self.log('Pet kill: hold routine prayers until {}'.format(self.prayer_hold_until))
-        self._pet_kill_message_active = event
-
     def update_message_and_popup(self, obs):
         if self._is_reading_message_or_popup:
             message_prefix = self.message + (' ' if self.message else '')
@@ -408,7 +394,6 @@ class Agent:
 
         self.single_message, self.single_popup, done = self.get_message_and_popup(obs)
         self.single_message = self.single_message.strip()
-        self._note_pet_kill_prayer_hold(self.single_message, BLStats(*obs['blstats']).time)
         self.single_popup = [p.strip() for p in self.single_popup]
 
         self.message = message_prefix + self.single_message
@@ -543,7 +528,6 @@ class Agent:
             self.last_observation = observation
 
         self.blstats = BLStats(*self.last_observation['blstats'])
-        self._note_pet_hunger()
         self.glyphs = self.last_observation['glyphs']
 
         self.stats_logger.log_cumulative_value('max_turns_on_position',
@@ -2251,30 +2235,9 @@ class Agent:
             return False
         return weight + 2 * MON.permonst(monster_id + nh.GLYPH_MON_OFF).cwt <= self.character.carrying_capacity
 
-    # DT6A88140 idea; current-clock, named-pet and multi-pet corrections.
-    def _note_pet_hunger(self):
-        now = self.blstats.time
-        pets = {name: until for name, until in getattr(self, '_hungry_pets', {}).items() if until >= now}
-        message = self.message or ''
-        warnings = {}
-        for match in _PET_HUNGER_MESSAGE.finditer(message):
-            name = re.sub('^(?:the|your)\\s+', '', match.group(1).strip(), flags=re.I).strip().lower()
-            if name:
-                pets[name] = now + 250
-                warnings[name] = match.end()
-        for name in list(pets):
-            meals = list(re.finditer('(?<!\\w)' + re.escape(name) + '\\s+eats\\b', message, re.I))
-            if any((meal.start() >= warnings.get(name, 0) for meal in meals)):
-                del pets[name]
-        self._hungry_pets = pets
-        self._pet_starving_until = max(pets.values(), default=-1)
-
     @utils.debug_log('eat_corpses_from_ground')
     @Strategy.wrap
     def eat_corpses_from_ground(self, only_below_me=True, max_dist=None, max_age=None):
-        # DT6A88140 pet-food reservation; never withhold food from a Weak hero.
-        if self.blstats.time <= self._pet_starving_until and self.blstats.hunger_state < Hunger.WEAK:
-            yield False
         # max_dist / max_age (CLAIM_CORPSES): only fresh corpses a few steps away
         yielded = False
         level = self.current_level()

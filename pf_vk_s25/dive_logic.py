@@ -1785,6 +1785,9 @@ class DiveLogic:
         mlet = getattr(mon, 'mlet', '')
         cls = ord(mlet) if isinstance(mlet, str) and len(mlet) == 1 else -1
         name = getattr(mon, 'mname', '')
+        # eL1fe bd8cb7: lawful minions do not respect Elbereth.
+        if cls == MON.S_ANGEL and self.agent.character.role == Character.BARBARIAN:
+            return True
         return cls in (MON.S_HUMAN, MON.S_DRAGON) or name in ('minotaur', 'unknown') or name in RANGED_MONSTERS
 
     def _melee_ignores_elbereth(self, mon):
@@ -1797,6 +1800,9 @@ class DiveLogic:
         name = getattr(mon, 'mname', '')
         if name == 'unknown':
             return self.agent.blstats.time - self._hurt_on_elbereth <= 3
+        # eL1fe bd8cb7: lawful minions do not respect Elbereth.
+        if cls == MON.S_ANGEL and self.agent.character.role == Character.BARBARIAN:
+            return True
         return cls == MON.S_HUMAN or name == 'minotaur'
 
     def on_medusa_level(self):

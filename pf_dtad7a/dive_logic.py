@@ -65,9 +65,6 @@ MINES_MIN_LEVELS = 8           # dungeon.def: the Mines have 8-9 levels, Mines' 
 # XP gate inside the Mines: before going to Mines level k, explore the current level fully while
 # XL < MINES_REQUIRED_XL[k] (hostile orcs/ants there are the XP). Empty = no gate.
 MINES_REQUIRED_XL = {}
-# DT6A3e6489: bounded tool acquisition; our camp/search ownership corrections below.
-PICK_DETOUR = True
-PICK_DETOUR_LEVELS = 2
 # astra: retreat onto Elbereth at 45-65% HP, rest there with searches, never attack from it
 # hand-over from AutoAscend's levelling tour to the dive
 DIVE_XL = 8
@@ -1079,10 +1076,6 @@ class DiveLogic:
         if MINES_UNSTUCK and self._clear_blocker():
             return
 
-        if self._pick_detour_exit():
-            self._task('leave bounded pick detour')
-            return self.return_to_main_dungeon()
-
         if self.should_fetch_digging_tool():
             self._task('fetch digging tool')
             return self.fetch_digging_tool()
@@ -1120,10 +1113,6 @@ class DiveLogic:
                 lambda: bool(self._peaceful_dwarves()) or self.digging_tool() is not None,
                 lambda: agent.blstats.time - started > DWARF_SEARCH_TURNS)).run()
             return
-
-        if self._pick_detour_exit(after_search=True):
-            self._task('bounded pick detour searched; return')
-            return self.return_to_main_dungeon()
 
         if self.should_tool_quest():
             self._task('tool quest')
@@ -1273,9 +1262,8 @@ class DiveLogic:
             self._elbereth_resting = False
             yield False
         near = self._near_hostiles()
-        # DT6A f284bd burst-defense idea: rapid HP loss overrides the weak-monster exemption.
-        # Preserve the active rest until the existing recovery threshold or a safety veto ends it.
-        if len(near) == 1 and getattr(near[0][3], 'mlevel', 99) <= 2 and bl.hitpoints >= 6 and not (falling or resting):
+        # a lone weak monster is better killed than hidden from (engraving gives it a free hit)
+        if len(near) == 1 and getattr(near[0][3], 'mlevel', 99) <= 2 and bl.hitpoints >= 6:
             self._elbereth_resting = False
             yield False
         if not near or any(self._ignores_elbereth(m[3]) for m in near) or \
@@ -1600,36 +1588,10 @@ class DiveLogic:
     # ---------------------------------------------------------------- mines
 
     def use_mines(self):
-        if MINES_ROUTE and (not self.mines_done) and (self.agent.character.race in (Character.DWARF, Character.GNOME)) and (not self.diving or self.digging_tool() is None):
-            return True
-        return self._pick_detour()
-
-    def _pick_detour(self):
-        """PICK_DETOUR: a tool-less stairs dive of any other race walks the first PICK_DETOUR_LEVELS Mines levels
-            (Dlvl 3-6) for a hostile dwarf's pick-axe or mattock, then climbs back to the main dungeon (dig there)."""
-        if not PICK_DETOUR or not MINES_ROUTE or self._tool_blocked() or self.mines_done or (not self.diving) or self.rescue or (self.agent.character.race in (Character.DWARF, Character.GNOME)) or (self.digging_tool() is not None) or (self.digging_wand() is not None):
-            return False
-        level = self.agent.current_level()
-        if level.dungeon_number == Level.GNOMISH_MINES and level.level_number >= PICK_DETOUR_LEVELS:
-            self.agent.log(f'DIVE pick detour: Mines level {level.level_number} reached, back to the main dungeon')
-            self.mines_done = True
-            return False
-        return True
-
-    def _pick_detour_exit(self, after_search=False):
-        # A short Tourist trip must not be taken over by the older 8000-turn camp.
-        if not PICK_DETOUR or not self.diving or self.agent.character.race in (Character.DWARF, Character.GNOME):
-            return False
-        level = self.agent.current_level()
-        if level.dungeon_number != Level.GNOMISH_MINES:
-            return False
-        terminal = self.rescue or self.digging_tool() is not None or self.digging_wand() is not None or self._tool_blocked()
-        terminal = terminal or level.level_number > PICK_DETOUR_LEVELS
-        terminal = terminal or (self.mines_done and level.level_number < PICK_DETOUR_LEVELS)
-        terminal = terminal or (after_search and (self.mines_done or level.level_number >= PICK_DETOUR_LEVELS))
-        if terminal:
-            self.mines_done = True
-        return terminal
+        # with a pick-axe, digging the main dungeon beats banking Mines' End
+        return MINES_ROUTE and not self.mines_done and \
+            self.agent.character.race in (Character.DWARF, Character.GNOME) and \
+            (not self.diving or self.digging_tool() is None)
 
     def _stairs_down(self, level):
         return list(zip(*utils.isin(level.objects, G.STAIR_DOWN).nonzero()))
@@ -2789,8 +2751,6 @@ class DiveLogic:
 
     def should_camp(self):
         agent = self.agent
-        if PICK_DETOUR and agent.character.race not in (Character.DWARF, Character.GNOME):
-            return False  # bounded search uses should_search_dwarves; never the four-level camp
         if not MINES_CAMP or self._camp_over or not self.diving or self.rescue or self._tool_blocked():
             return False
         if self.digging_tool() is not None or agent.prayer_failed:
