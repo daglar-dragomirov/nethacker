@@ -51,3 +51,9 @@ fn = from_name
 
 ALL_MONS = [nh.GLYPH_MON_OFF + i for i in range(nh.NUMMONS)]
 ALL_PETS = [nh.GLYPH_PET_OFF + i for i in range(nh.NUMMONS)]
+
+
+@functools.lru_cache(nh.NUMMONS * 2)
+def is_valid_name(name):
+    """OlegPapulov a27b: validate parsed corpse names before converting them."""
+    return any(nh.permonst(i).mname == name for i in range(nh.NUMMONS))

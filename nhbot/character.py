@@ -451,36 +451,33 @@ class Character:
     def parse_spellcast_view(self):
         self.known_spells = dict()
         self.spell_fail_chance = dict()
-
-        # Healers heal themselves, Wizards cast force bolt (see fight_heur.force_bolt_actions)
         if self.role not in (self.HEALER, self.WIZARD, self.MONK, self.PRIEST):
             return
-
+        # OlegPapulov a27b: tolerate unfamiliar rows and always close the menu.
+        # Retain Public94's forgotten-spell exclusion; require explicit retention.
+        names = '|'.join(re.escape(n) for n in sorted(ALL_SPELL_NAMES, key=len, reverse=True))
+        pattern = re.compile(r'^([a-zA-Z]) -\s*(' + names +
+                             r')\s+(\d+)\s+([a-zA-Z]+)\s+(\d+)\s*%\s+(\d+\s*%|\(gone\))\s*$')
         with self.agent.atom_operation():
-            self.agent.step(A.Command.CAST)
-            if not self.agent.popup:
-                self.known_spells[self.agent.message] = None
-                return
-            if self.agent.popup[0] not in ('Choose which spell to cast') or \
-                    not self.agent.popup[1].startswith('Name'):
-                raise ValueError(f'Invalid cast popup text format: {self.agent.popup}')
-            for line in self.agent.popup[2:]:
-                matches = re.findall(r'^([a-zA-Z]) - *' +
-                                     r'(' + '|'.join(ALL_SPELL_NAMES) + ') *' +
-                                     r'([0-9]*) *' +
-                                     r'(' + '|'.join(ALL_SPELL_CATEGORIES) + ') *' +
-                                     r'([0-9]*)\% *' +
-                                     r'([0-9]*\%|\(gone\))', line)
-                assert len(matches) == 1, (matches, line)
-                letter, spell_name, level, category, fail, retention = matches[0]
-                assert len(letter) == 1, letter
-                # FB_SANITY: a spell whose memory has run out (spell.c: KEEN = 20000 turns after it was learnt -- every
-                # starting spell at T20000) only backfires: 'Your knowledge of this spell is twisted.'
-                if jf_config.FB_SANITY and retention == '(gone)':
-                    continue
-                self.known_spells[spell_name] = letter
-                self.spell_fail_chance[spell_name] = int(fail) / 100
-        self.agent.step(A.Command.ESC)
+            menu_open = False
+            try:
+                self.agent.step(A.Command.CAST)
+                menu_open = any(line.startswith(('Choose which spell to cast', 'Choose a spell to cast'))
+                                for line in self.agent.popup)
+                if not menu_open:
+                    return
+                for line in self.agent.popup:
+                    match = pattern.fullmatch(line.strip())
+                    if match is None:
+                        continue
+                    letter, spell_name, level, category, fail, retention = match.groups()
+                    if retention == '(gone)':
+                        continue
+                    self.known_spells[spell_name] = letter
+                    self.spell_fail_chance[spell_name] = int(fail) / 100
+            finally:
+                if menu_open:
+                    self.agent.step(A.Command.ESC)
 
     def parse_enhance_view(self):
         with self.agent.atom_operation():

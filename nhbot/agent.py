@@ -805,6 +805,9 @@ class Agent:
             assert mons.any()
 
             for mname in mnames:
+                # OlegPapulov a27b: free text may describe destroyed armor.
+                if not MON.is_valid_name(mname):
+                    continue
                 glyph = MON.from_name(mname)
                 monster_id = glyph - nh.GLYPH_MON_OFF
                 corpse_glyph = MON.body_from_name(mname)
@@ -1945,7 +1948,15 @@ class Agent:
     # FB_SANITY: the game's refusals of a cast (spell.c rejectcasting / spelleffects) and a forgotten spell's backfire
     _CAST_REFUSED = re.compile(r"You are too impaired to cast|Your arms are not free to cast|You lack the strength to "
                                r"cast|You are too hungry to cast|You are unable to chant|You don't know any spells|"
-                               r"Your knowledge of this spell is twisted")
+                               r"Your knowledge of this spell is twisted|You don't have enough energy to cast|"
+                               r"You fail to cast the spell correctly|must be able to move")
+
+    def _spell_menu_open(self):
+        # The aggregate popup can contain an old menu after a refusal. Inspect
+        # only the current screen while the extra-action iterator is running.
+        return any(line.startswith(('Choose which spell to cast', 'Choose a spell to cast')) or
+                   re.match(r'^[a-zA-Z] - ', line)
+                   for line in self.single_popup)
 
     def cast(self, spell_name, direction):
         with self.atom_operation():
@@ -1966,18 +1977,22 @@ class Agent:
                 #     yield A.TextCharacters.SPACE
                 # if self.single_message.startswith("You fail to cast the spell correctly."):
                 #     return
-                if 'You are too impaired' in self.message:
+                if 'You are too impaired' in self.single_message:
                     return
-                if jf_config.FB_SANITY and self._CAST_REFUSED.search(self.message):
+                if jf_config.FB_SANITY and self._CAST_REFUSED.search(self.single_message):
                     return   # no menu came up: the spell letter would be a command ('a': apply)
+                if not self._spell_menu_open():
+                    return
                 yield self.character.known_spells[spell_name]
                 for _ in range(3):
-                    if 'In what direction?' in self.message:
+                    if 'In what direction?' in self.single_message:
                         break
-                    if jf_config.FB_SANITY and self._CAST_REFUSED.search(self.message):
+                    if jf_config.FB_SANITY and self._CAST_REFUSED.search(self.single_message):
+                        return
+                    if not self._spell_menu_open():
                         return
                     yield ' '
-                if 'In what direction?' in self.message:
+                if 'In what direction?' in self.single_message:
                     success[0] = True
                     yield direction
 
