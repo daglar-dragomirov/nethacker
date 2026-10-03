@@ -1,6 +1,6 @@
 {
   "schema": "nethackers.solution/v1",
-  "name": "daglar-zHealerGrind",
+  "name": "daglar-zTouristCare",
   "root": ".",
   "parents": [
     "github.com/zarutskiysy/nethack@14a3bbd871061d63bda57da6c82af91f46959d21",
@@ -18,7 +18,8 @@
     "github.com/OlegPapulov/nethacker@a27b54aa85283b82987d9c9d3f4efadd2cb0cec8",
     "github.com/daglar-dragomirov/nethacker@8e94cf67d62bfb6306c34d95be80dfb9469a4b89",
     "github.com/zarutskiysy/nethack@f31cc4ac0970bed0e7e30ef9d2d81b212512e23c",
-    "github.com/zarutskiysy/nethack@781552db23c81795f1a601c1a05fee144ceb8015"
+    "github.com/DT6A/nethacker@751f31dcff9ec937fd1659d5690c99661f233773",
+    "github.com/daglar-dragomirov/nethacker@036fe7c6aa5cb5c7f89097adbe1e591f40478ac3"
   ],
   "influences": [
     "github.com/CleverShovel/nethacker@0d1fb22498024cdcac06be9d15d0f70e8cae803c",
