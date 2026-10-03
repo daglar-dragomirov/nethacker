@@ -304,6 +304,9 @@ LR_ELBERETH = True
 # (6 of 90 baseline games, up to 5 charges = 5 levels each; jf16/5, jf27/1).
 WAND_STAIRS_FIX = True
 
+# Public94 main / DT6A9267: only unique adjacent domestic attackers, never pet glyphs.
+HOSTILE_RECHECK = True
+
 _raw = os.environ.get('JF_CFG')
 if _raw:
     for _name, _value in json.loads(_raw).items():

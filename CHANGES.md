@@ -73,3 +73,6 @@ Exact complete Public leader94 portfolio, preserving its role profiles, speciali
 
 ## Experimental zFrontierRest
 Complete Public94 portfolio plus open DEV early-game Caveman/Ranger settings from zFrontierDEV. Tourist rapid-HP-loss defense attributed to DT6A f284bd, with our correction to preserve rest through the existing recovery threshold instead of exiting after engraving. Blindness, polymorph, hostile eligibility, digging escape and engraving vetoes retained. Actual strategy/hold-loop fixtures verified. Full73 native Public15 incremental registration; separate frozen20pairs against exact zar94, zB, zRole2 and zFrontierDEV, sharing immutable baseline games. Experimental; no confirmed improvement or Private-guided selection.
+
+## Experimental zFrontierPet
+Complete Public94 early-survival composition from zFrontierRest. Tourist pet-food reservation attributed to DT6A88140, corrected to current clock, named/multiple pets, ordered messages and bounded250turn expiry; Weak hero always retains food access. Tourist stale-peaceful domestic attacker recheck from Public94 main/DT6A9267, preserving unique-adjacent, non-pet, explicit attack and hallucination guards. Actual integrated fixtures. Full73 native15; independent20pairs vs exact strong references and both preceding compositions; no Private selection or confirmed improvement claim.
