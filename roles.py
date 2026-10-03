@@ -164,3 +164,10 @@ OVERRIDES["wiz-hum-neu-fem"] = {'jf_config.ALIGN_PRAYER': False, 'jf_config.LONE
 OVERRIDES["wiz-hum-neu-mal"] = {'jf_config.ALIGN_PRAYER': False, 'jf_config.LONE_WEAK_THREAT': False, 'jf_config.FEYE_GUARD': False, 'jf_config.SHOP_SAFETY': False, 'jf_config.RING_MODULE': True, 'dive_logic.DIVE_XL': 8, 'dive_logic.MEDUSA_HOP': True, 'jf_config.UNSEEN_PET_GUARD': True, 'jf_config.ROLE_GRIND_LEVELS': {'Rogue': {}, 'Knight': {}, 'Tourist': {}, 'Priest': {}}}
 OVERRIDES["wiz-orc-cha-fem"] = {'jf_config.ALIGN_PRAYER': False, 'jf_config.LONE_WEAK_THREAT': False, 'jf_config.FEYE_GUARD': False, 'jf_config.SHOP_SAFETY': False, 'jf_config.RING_MODULE': False, 'dive_logic.DIVE_XL': 8, 'dive_logic.MEDUSA_HOP': False, 'jf_config.UNSEEN_PET_GUARD': True, 'jf_config.ROLE_GRIND_LEVELS': {'Rogue': {}, 'Knight': {}, 'Tourist': {}, 'Priest': {}}}
 OVERRIDES["wiz-orc-cha-mal"] = {'jf_config.ALIGN_PRAYER': False, 'jf_config.LONE_WEAK_THREAT': False, 'jf_config.FEYE_GUARD': False, 'jf_config.SHOP_SAFETY': False, 'jf_config.RING_MODULE': False, 'dive_logic.DIVE_XL': 8, 'dive_logic.MEDUSA_HOP': False, 'jf_config.UNSEEN_PET_GUARD': True, 'jf_config.ROLE_GRIND_LEVELS': {'Rogue': {}, 'Knight': {}, 'Tourist': {}, 'Priest': {}}}
+
+# Experimental Healer lane: zarutskiysy781552 open DEV grind result;
+# route all four Healers to main with the Dlvl1 role map, preserving other identities.
+OVERRIDES.setdefault('hea-gno-neu-fem', {})['jf_config.ROLE_GRIND_LEVELS'] = {'Rogue': {}, 'Knight': {}, 'Tourist': {}, 'Priest': {}, 'Healer': {}}
+OVERRIDES.setdefault('hea-gno-neu-mal', {})['jf_config.ROLE_GRIND_LEVELS'] = {'Rogue': {}, 'Knight': {}, 'Tourist': {}, 'Priest': {}, 'Healer': {}}
+OVERRIDES.setdefault('hea-hum-neu-fem', {})['jf_config.ROLE_GRIND_LEVELS'] = {'Rogue': {}, 'Knight': {}, 'Tourist': {}, 'Priest': {}, 'Healer': {}}
+OVERRIDES.setdefault('hea-hum-neu-mal', {})['jf_config.ROLE_GRIND_LEVELS'] = {'Rogue': {}, 'Knight': {}, 'Tourist': {}, 'Priest': {}, 'Healer': {}}
