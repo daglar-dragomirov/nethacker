@@ -70,3 +70,6 @@
 
 ## Experimental zFrontierDEV
 Exact complete Public leader94 portfolio, preserving its role profiles, specialists and missing-welcome router. Add only public DEV-motivated bb0825 Ranger unseen-pet guard setting and gnome Caveman Dlvl1 grind. No private-selected v9p2/v10a portfolio imported. Full73 native Public15 incremental registration; separate frozen20pair comparison against exact Publicleader94, zB and zRole2. No confirmed gain claimed.
+
+## Experimental zFrontierRest
+Complete Public94 portfolio plus open DEV early-game Caveman/Ranger settings from zFrontierDEV. Tourist rapid-HP-loss defense attributed to DT6A f284bd, with our correction to preserve rest through the existing recovery threshold instead of exiting after engraving. Blindness, polymorph, hostile eligibility, digging escape and engraving vetoes retained. Actual strategy/hold-loop fixtures verified. Full73 native Public15 incremental registration; separate frozen20pairs against exact zar94, zB, zRole2 and zFrontierDEV, sharing immutable baseline games. Experimental; no confirmed improvement or Private-guided selection.
