@@ -104,40 +104,6 @@ class Inventory:
             if count and power.is_scare_candidate(item):
                 self.dropped_scrolls.add(here + (self._scroll_key(item),))
 
-    # ---- durable Elbereth (jf_config.DURABLE_ELBERETH / ENGRAVE_DURABLE): the blade to engrave with
-
-    def engrave_tool_candidate(self, items, bad_letters=frozenset()):
-        """The best weapon in `items` to engrave a lasting Elbereth with, or None: an athame (not known cursed: one
-        piece, no dulling), else an unwielded blade (dagger to saber skill, not a pick-axe) known +0 or better, or of
-        unknown enchantment but known not cursed (mkobj.c: a random weapon's negative enchantment comes with a curse).
-        Daggers and knives first, then the lowest enchantment. Equipped/swap/stacked/missile weapons are skipped, so the
-        primary and the thrown pile are never spent. Shared by agent.durable_engrave_tool (the engraver, which excludes
-        letters a past engraving already dulled via `bad_letters`) and the ENGRAVE_DURABLE pickup keep."""
-        best = None
-        for item in items:
-            if item.equipped or not item.is_unambiguous() or not isinstance(item.objs[0], O.Weapon):
-                continue
-            if bad_letters and self.items.get_letter(item) in bad_letters:
-                continue
-            if item.count > 1 or item.at_ready or 'alternate weapon' in (item.text or ''):
-                continue   # engrave.c dulls the whole stack it writes with; missiles and the swap weapon stay sharp
-            obj = item.object
-            sub = getattr(obj, 'sub', None)
-            if sub is None or not (O.P_DAGGER <= sub <= O.P_SABER) or sub == O.P_PICK_AXE:
-                continue
-            athame = obj == O.from_name('athame') and item.status != Item.CURSED
-            if not athame:
-                if item.modifier is not None:
-                    if item.modifier < 0:
-                        continue
-                elif item.status not in (Item.UNCURSED, Item.BLESSED):
-                    continue
-            key = (0 if athame else 1, 0 if sub in (O.P_DAGGER, O.P_KNIFE) else 1,
-                   item.modifier if item.modifier is not None else 0)
-            if best is None or key < best[0]:
-                best = (key, item)
-        return None if best is None else best[1]
-
     def set_unknown_below_me(self):
         """Stand-in when the square can't be parsed: pretend nothing useful is here."""
         if self.items_below_me is None:
@@ -262,6 +228,10 @@ class Inventory:
             assert 'What do you want to wear?' in self.agent.message, self.agent.message
             self.agent.type_text(letter)
             if jf_config.ROBUST_FIXES and self._wear_refused(item):
+                return False
+            # OlegPapulov a27b; existing wear_best_stuff applies its slot cooldown.
+            if 'while wielding a two-handed weapon' in self.agent.message or \
+                    'You stop putting on' in self.agent.message:
                 return False
             assert 'You finish your dressing maneuver.' in self.agent.message or \
                    'You are now wearing ' in self.agent.message or \

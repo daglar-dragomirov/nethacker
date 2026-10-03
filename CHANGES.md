@@ -1,5 +1,21 @@
 # Changes over the parent engine (pf_s25p)
 
+- **v9p (private-safe router)**: v5 plus only the specialist routes that beat nhbot on the hub's VERIFIED (private-seed)
+  tier -- Gnomish Archeologists on pf_v36, neutral human Rangers and the female elven Ranger on pf_s25p8, Knights on
+  pf_s25p8 -- and no daglar profile for Rangers, Rogues and Tourists (every Ranger and Rogue identity scored lower with
+  it); Tourists back on nhbot. The public-seed-selected ports of v6/v7 overfit the 15 public seeds and are left out.
+- **v9p2**: v9p plus three routes with one verified sample each: neutral human Archeologists and orcish Barbarians on
+  pf_s25p8, neutral human Wizards on pf_vk_s25.
+
+- **v10a**: Healers and Samurai back on nhbot: every Healer and Samurai specialist lost to nhbot on 90 dev held-out
+  seeds (hea-gno pf_hg -0.050, hea-hum pf_hh -0.024, sam pf_v35 -0.051).
+- **v10b**: dev-confirmed config: Rangers on nhbot without UNSEEN_PET_GUARD (+0.022 +- 0.012, 420 pairs), gnomish
+  Cavemen on the Dlvl-1 grind (+0.073 +- 0.022, 120 pairs).
+- **v10c**: neutral human Wizards on pf_s25p8 instead of pf_vk_s25 (dev held-out: 0.252 vs 0.153 over 90 seeds; the
+  verified tier agrees).
+- **v11pub** (public board only): per identity the best public-seed setup among v10c, v7, v9p2 and v4 (same nhbot
+  code; tools/mkpub.py), as explicit per-identity routes and configs. Public-seed selection overfits by design: for the
+  private/verified tier use v10c.
 - **eL1fe's fixes** (ported from eL1fe/nethacker@cfc3828, its `dag25` engine = this same base): the spell-direction fix
   (`Agent.cast` sent the compass string as keys: every aimed cast was wasted), force bolt for Wizards (from
   CleverShovel 0d1fb22: never into shops, never flying on into a pet), healing spells for any role that knows them,
@@ -59,23 +75,6 @@
   (`roles.attributes_identity`, so the per-role config applies even when the welcome line is missed), and the Tourist
   engine `pf_dtad7a` (DT6A/nethacker@ad7a864) routed for `tou`. The `RING_MODULE`/`MEDUSA_HOP` module code is
   byte-identical to daglar's, so this reproduces the leader's behaviour exactly, with v4's extra fixes on top.
-- **v6:** built on v5. Specialist engine ports for the identities where a competitor engine clearly beats nhbot
-  (gaps shared by daglar's own 0.350 generalist, which routes these to older/nhbot engines): sam-hum-law-fem -> pf_v37
-  (v5 0.260 -> 0.351), sam-hum-law-mal -> pf_vk_s25 (0.257 -> 0.345), val-dwa-law-fem -> pf_vk_s23 (0.318 -> 0.508),
-  all measured on the exact public seeds; engines from daglar-dragomirov/nethacker@d8da1f72, routing per daglar@96597c11.
-  val-hum stays on nhbot (already ~0.49). Also shipped default-OFF (for later A/B): ENGRAVE_DURABLE (proactive
-  blade-engraved Elbereth on safe dive arrival) and SCARE_CARPET (carry a scare scroll through a self-dug hole).
-  Tried and dropped (regressed on public seeds): FB_RESERVE=15 for wizards (-0.055 on the two tested, despite +0.031
-  on dev seeds) and the Knight deep grind (-0.02..-0.03).
 
-## Experimental zFrontierDEV
-Exact complete Public leader94 portfolio, preserving its role profiles, specialists and missing-welcome router. Add only public DEV-motivated bb0825 Ranger unseen-pet guard setting and gnome Caveman Dlvl1 grind. No private-selected v9p2/v10a portfolio imported. Full73 native Public15 incremental registration; separate frozen20pair comparison against exact Publicleader94, zB and zRole2. No confirmed gain claimed.
-
-## Experimental zFrontierRest
-Complete Public94 portfolio plus open DEV early-game Caveman/Ranger settings from zFrontierDEV. Tourist rapid-HP-loss defense attributed to DT6A f284bd, with our correction to preserve rest through the existing recovery threshold instead of exiting after engraving. Blindness, polymorph, hostile eligibility, digging escape and engraving vetoes retained. Actual strategy/hold-loop fixtures verified. Full73 native Public15 incremental registration; separate frozen20pairs against exact zar94, zB, zRole2 and zFrontierDEV, sharing immutable baseline games. Experimental; no confirmed improvement or Private-guided selection.
-
-## Experimental zFrontierPet
-Complete Public94 early-survival composition from zFrontierRest. Tourist pet-food reservation attributed to DT6A88140, corrected to current clock, named/multiple pets, ordered messages and bounded250turn expiry; Weak hero always retains food access. Tourist stale-peaceful domestic attacker recheck from Public94 main/DT6A9267, preserving unique-adjacent, non-pet, explicit attack and hallucination guards. Actual integrated fixtures. Full73 native15; independent20pairs vs exact strong references and both preceding compositions; no Private selection or confirmed improvement claim.
-
-## Experimental zFrontierMines
-Complete Public94-based pet/rest composition from zFrontierPet. Tourist two-level pick-axe acquisition route attributed to DT6A3e6489, corrected to own the route instead of handing off to its four-level8000turn camp. Existing dwarf search remains bounded by its original budget. Actual plan exits on tool/wand acquisition, rescue, unusable tools, accidental deeper falls, or after searching Mines2; native dwarf/gnome routes unchanged. Twenty actual-method routing cases and146router fixtures. Full73 native15 incremental experimental registration; independent20pairs versus exact zar94,zB,zRole2,zFrontierDEV,zFrontierRest,zFrontierPet using shared immutable reference games. No Private selection or confirmed improvement claim.
+## Experimental zPublicIO
+Experimental complete program zPublicIO: exact current Public leader zarutskiysy00cf417 v11pub portfolio plus attributed Oleg a27b protocol fixes as corrected in zFrontierIO. Current-screen spell-menu handling, retained forgotten-spell exclusion, menu cleanup, corpse-name and wear-refusal guards. Full73 native15 incremental publication; frozen full73x20 fresh comparison against exact zar11pub,zB,zRole2,zFrontierIO. Public-selected portfolio remains exploratory; no Private selection or confirmed generalization claim. All previous best versions retained.

@@ -5,14 +5,12 @@ import numpy as np
 from nle.nethack import actions as A
 
 from .kernels import figure_out_monster_movement
-from .. import jf_config, utils
+from .. import utils
 from ..exceptions import AgentPanic
-from ..glyph import C, G, MON
+from ..glyph import C, G
 
 
 class MonsterTracker:
-    _ATTACK_ON_US = re.compile('\\bThe ([a-z][a-z -]*?) (?:bites|hits|kicks|butts|claws|scratches|touches|misses|just misses)!')
-    _DOMESTIC = frozenset(('kitten', 'housecat', 'large cat', 'little dog', 'dog', 'large dog', 'pony', 'horse', 'warhorse'))
     _UNSEEN_ATTACK = re.compile(r"\bIt (?:hits|bites|misses|just misses|stings|touches|butts|kicks|claws|"
                                 r"thrusts|swings|lashes|squeezes|gores|pummels|scratches|stabs|zaps|casts|spits)")
 
@@ -89,8 +87,6 @@ class MonsterTracker:
             else:
                 self.peaceful_monster_mask = new_peaceful_mons
         # TODO: on hallu no monsters are peaceful
-        if jf_config.HOSTILE_RECHECK and self.peaceful_monster_mask.any() and not self.agent.character.prop.hallu:
-            self._recheck_attackers()
 
         # an unseen monster ('I': felt while blind, or an invisible one) next to where a shopkeeper stood in
         # the last 30 turns is presumed to be him -- neither attacked nor walked into (a move into an 'I'
@@ -115,24 +111,3 @@ class MonsterTracker:
 
         assert (~self.peaceful_monster_mask | self.monster_mask).all()
         self._last_glyphs = self.agent.glyphs.copy()
-
-    def _recheck_attackers(self):
-        """HOSTILE_RECHECK: a peaceful-marked domestic animal next to us that the message says attacked us is hostile
-            (when it is the only monster of that name next to us)."""
-        names = set(self._ATTACK_ON_US.findall(self.agent.message or '')) & self._DOMESTIC
-        if not names:
-            return
-        y0, x0 = (self.agent.blstats.y, self.agent.blstats.x)
-        seen = {}
-        for y in range(max(y0 - 1, 0), min(y0 + 2, C.SIZE_Y)):
-            for x in range(max(x0 - 1, 0), min(x0 + 2, C.SIZE_X)):
-                g = self.agent.glyphs[y, x]
-                if (y, x) == (y0, x0) or not self.monster_mask[y, x] or (not MON.is_monster(g)):
-                    continue
-                name = MON.permonst(g).mname
-                if name in names:
-                    seen.setdefault(name, []).append((y, x))
-        for name, squares in seen.items():
-            if len(squares) == 1 and self.peaceful_monster_mask[squares[0]]:
-                self.peaceful_monster_mask[squares[0]] = False
-                self.agent.log(f'HOSTILE_RECHECK: the {name} at {squares[0]} attacked us: not peaceful')

@@ -1,11 +1,12 @@
 {
   "schema": "nethackers.solution/v1",
-  "name": "daglar-zFrontierMines",
+  "name": "daglar-zPublicIO",
   "root": ".",
   "parents": [
+    "github.com/zarutskiysy/nethack@14a3bbd871061d63bda57da6c82af91f46959d21",
+    "github.com/zarutskiysy/nethack@94c4c1cd21c51f9feec0eaabd9c63831a8ee3316",
     "github.com/zarutskiysy/nethack@bb7def3548dcb618066c2c92b8bc3335631aaee1",
     "github.com/daglar-dragomirov/nethacker@6c814836b3b36d63e2055de88d9549b9908062ef",
-    "github.com/daglar-dragomirov/nethacker@96597c11db0a602f3e12b2ee6d03275d9c4bcddd",
     "github.com/zarutskiysy/nethack@71335bf6953b5fd3b792b5d7677ece3da5e6ae8a",
     "github.com/daglar-dragomirov/nethacker@008bd0b076f94416867d96d147b715aeafe4c680",
     "github.com/daglar-dragomirov/nethacker@8aa7d764d47fbb48779222922232b8e13a9ec71a",
@@ -13,12 +14,9 @@
     "github.com/daglar-dragomirov/nethacker@e29eb8281b13784716d9121e4f01ec60c2bb2165",
     "github.com/daglar-dragomirov/nethacker@d8da1f72c197a54ac66d69466eee32f7bc4e72d9",
     "github.com/DT6A/nethacker@ad7a864d9385f84c9b4f9865bb68141c90ca5e1b",
-    "github.com/zarutskiysy/nethack@94c4c1cd21c51f9feec0eaabd9c63831a8ee3316",
-    "github.com/zarutskiysy/nethack@bb082511ff4f8633c2a9b28c2eeab387bb64f368",
-    "github.com/DT6A/nethacker@f284bd2ae1fe21a7cad766369f2865f20c31198c",
-    "github.com/DT6A/nethacker@88140ea63a0f4a6a7db58485de1b89ba5958b65a",
-    "github.com/DT6A/nethacker@9267ea9f7602a977349ed19af876f95911b42af8",
-    "github.com/DT6A/nethacker@3e64892a95c530d49010ffe4f7ed3a24bbbcae68"
+    "github.com/zarutskiysy/nethack@00cf417f05ec9c20846b848cd70243af67695c54",
+    "github.com/OlegPapulov/nethacker@a27b54aa85283b82987d9c9d3f4efadd2cb0cec8",
+    "github.com/daglar-dragomirov/nethacker@8e94cf67d62bfb6306c34d95be80dfb9469a4b89"
   ],
   "influences": [
     "github.com/CleverShovel/nethacker@0d1fb22498024cdcac06be9d15d0f70e8cae803c",
