@@ -1751,13 +1751,16 @@ if TOUR_FIXES is not None:
 if LATE_FIXES:
     HAZARD_FIXES = True
 
-# Equipment-only experiment. Existing role defaults and router remain intact.
+# Combat-only experiment: preserve existing defaults and role/router config.
 WIZ_KIT_ROLES = ('Wizard',)
-WIZ_SPEED_SELF = True
-WIZ_KIT_BOOST = True
-WIZ_RING_SAFE = True
-WIZ_BOOST_POTIONS = ('gain level', 'gain energy', 'gain ability')
-WIZ_RING_EXTRA = ('stealth',)
-WIZ_REGEN_ON = 0.5
-WIZ_REGEN_OFF = 0.95
-WIZ_RING_RETRY = 20
+WIZ_WAND_FIGHT = True
+WIZ_SLEEP_SPELL = True
+WIZ_WAND_TURNS = 3
+WIZ_WAND_PDIE = 0.2
+WIZ_WAND_PDIE_BOLT = 0.5
+WIZ_WAND_PDIE_LAST = 0.5
+WIZ_WAND_RESERVE = 1
+WIZ_WAND_RANGE = 5
+WIZ_WAND_MIN_SHARE = 0.4
+WIZ_WAND_SELF_P = 0.03
+MON_SLEEP_FIGHT = False

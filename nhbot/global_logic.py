@@ -14,7 +14,7 @@ from . import castle_cross
 from . import castle_front
 from . import castle_landing
 from . import mino_guard
-from . import wizard_equipment
+from . import wizard_combat
 from . import known_items
 from . import opp_items
 from . import tele_route
@@ -290,7 +290,7 @@ class GlobalLogic:
         self.landing = castle_landing.LandingGuard(self.dive)   # jf_config.LANDING_GUARD (valley-exit)
         self.mino = mino_guard.MinoGuard(self.dive)   # jf_config.MINO_GUARD (minotaur lane)
         self.known = known_items.KnownItemsGuard(self.dive, self.mino)   # jf_config.KNOWN_ITEMS (dive-audit)
-        self.wizard_equipment = wizard_equipment.WizardEquipmentGuard(self.dive, self.mino)
+        self.wizard_combat = wizard_combat.WizardCombatGuard(self.dive,self.mino)
         # Knight only (kni_steed.py): feed the saddled pony so hunger never turns it on us
         self.steed = SteedKeeper(agent)
 
@@ -1184,7 +1184,7 @@ class GlobalLogic:
             .preempt(self.agent, [
                 self.dive.deep_items_strategy().condition(lambda: jf_config.DEEP_ITEMS),
             ])
-            .preempt(self.agent, [self.wizard_equipment.strategy()])
+            .preempt(self.agent, [self.wizard_combat.strategy()])
             .preempt(self.agent, [
                 self.agent.emergency_strategy(),
             ])
