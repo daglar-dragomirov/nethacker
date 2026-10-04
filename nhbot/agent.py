@@ -3341,20 +3341,6 @@ class Agent:
         low_hp = hp_ratio < 0.5 and (self.blstats.max_hitpoints - self.blstats.hitpoints > 25)
         return self.blstats.energy >= 15 and low_hp
 
-    def _blind_healing_potion(self, items, poly_buffer):
-        """Cure blindness during a damaged dive using a known effective potion.
-
-        Based on DT6A 7bae227 blind-quaff, with beatitude-aware cure selection.
-        NetHack 3.6.6 potion.c: extra/full always cure blindness; ordinary healing
-        only does so when not cursed. Preserve critical-HP and prayer priority.
-        """
-        if poly_buffer or not self.character.prop.blind or not self.global_logic.dive.diving or \
-                not self._hurt_recently(2) or \
-                self.blstats.hitpoints >= 0.9 * self.blstats.max_hitpoints:
-            return None
-        return next((item for item in items if item.object.name in ('extra healing', 'full healing') or
-                     (item.object.name == 'healing' and item.status in (Item.UNCURSED, Item.BLESSED))), None)
-
     @utils.debug_log('emergency_strategy')
     @Strategy.wrap
     def emergency_strategy(self):
@@ -3431,16 +3417,6 @@ class Agent:
         ):
             yield True
             self.inventory.quaff(items[0])
-            self._deep_pray_after_heal()
-            return
-
-        # Blind emergency: preserve all higher-priority cures/prayer/casts and critical-HP quaff.
-        # Unknown or cursed ordinary healing is not a guaranteed blindness cure.
-        blind_potion = self._blind_healing_potion(items, poly_buffer)
-        if blind_potion is not None:
-            yield True
-            self.log(f'BLIND cure {blind_potion.text!r} at hp {self.blstats.hitpoints}/{self.blstats.max_hitpoints}')
-            self.inventory.quaff(blind_potion)
             self._deep_pray_after_heal()
             return
 

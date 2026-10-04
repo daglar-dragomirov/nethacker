@@ -1768,7 +1768,7 @@ class DiveLogic:
         # (not a Gehennom digger: see GEHENNOM_DIG_REST_BELOW)
         bl = agent.blstats
         digger = DIVE_REST and self._digger_here()
-        rest_below = DIG_REST_BELOW if digger else REST_BELOW
+        rest_below = self._deep_dig_rest_below() if digger else REST_BELOW
         if bl.hitpoints < rest_below * bl.max_hitpoints and not agent.get_visible_monsters() and \
                 bl.hunger_state < Hunger.WEAK and not (digger and self._in_own_pit()) and \
                 not self._gehennom_digger() and not self._mino_alert():
@@ -3143,7 +3143,7 @@ class DiveLogic:
         digger = DIVE_REST and self.diving and self.digging_tool() is not None
         # a digger takes stairs like a hole: a deep rest to 95% at XL 8 (1 HP per 5 turns) lets the level's
         # monsters come (base-jf25 s13 rested 180 turns at a Dlvl 14 '>' and died there)
-        threshold = DIG_REST_BELOW if digger else REST_BEFORE_DESCEND
+        threshold = self._deep_dig_rest_below() if digger else REST_BEFORE_DESCEND
         # RAVEN_CYCLE: these stairs lead back onto the raven island -- only at full strength and seeing
         raven = RAVEN_CYCLE and self._stairs_lead_to_raven_level()
         if raven:
@@ -3169,6 +3169,16 @@ class DiveLogic:
             return True
         agent.search(1 if agent.get_visible_monsters() else 20)
         return True
+
+    def _deep_dig_rest_below(self):
+        """Open DT6A cd7b271 rest-tempo hypothesis, restricted to usable main-line digging.
+
+        Preserve full recovery policies where no dig escape is available and all
+        Raven/Gehennom/hunger/emergency rules at the callers. Experimental.
+        """
+        if self.agent.blstats.depth >= 13 and self._digger_here():
+            return min(DIG_REST_BELOW, 0.35)
+        return DIG_REST_BELOW
 
     def _digger_here(self):
         """Diving with a usable digging tool on a level we can still dig through."""
@@ -6308,7 +6318,7 @@ class DiveLogic:
             agent.go_to(*(order if order is not None and dis[order] > 0 else min(spots)[1]))
             return True
         if tool is not None:
-            rest_below = GEHENNOM_DIG_REST_BELOW if self.in_gehennom() else DIG_REST_BELOW
+            rest_below = GEHENNOM_DIG_REST_BELOW if self.in_gehennom() else self._deep_dig_rest_below()
             if agent.blstats.hitpoints < rest_below * agent.blstats.max_hitpoints and \
                     not (DIVE_REST and self._in_own_pit()) and not self.xorn_buffer() and not self._mino_alert():
                 self._task('rest before digging')
