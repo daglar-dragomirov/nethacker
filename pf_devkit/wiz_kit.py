@@ -329,7 +329,7 @@ class WizKitGuard(hea_kit.HeaKitGuard):
     def speed_plan(self):
         if not jf_config.WIZ_SPEED_SELF or self.speed_done or not self._role_ok() or not self._usable():
             return None
-        if not self._calm():
+        if not self._calm() or self._in_shop_view():
             return None
         for it in self.agent.inventory.items:
             if it.is_wand() and it.is_unambiguous() and _wand_name(it) == 'speed monster' and \
@@ -369,17 +369,11 @@ class WizKitGuard(hea_kit.HeaKitGuard):
         from .item import ring_amulet_config as rcfg
         from .item.ring_amulet_logic import _safe_to_put_on, _puton_blocked
         bl = agent.blstats
-        if bl.depth >= rcfg.MAX_DEPTH:
-            return None
-        try:
-            if int(agent.last_observation['blstats'][nh.NLE_BL_CONDITION]) & nh.BL_MASK_LEV:
-                return None
-        except Exception:  # noqa: BLE001
-            pass
         inv = agent.inventory
         now = bl.time
         weak = bl.hunger_state >= Hunger.WEAK
-        rings = [i for i in inv.items if i.category == nh.RING_CLASS and i.is_unambiguous()]
+        rings = [i for i in inv.items if i.category == nh.RING_CLASS and i.is_unambiguous()
+                 and 'unpaid' not in (getattr(i, 'text', '') or '')]
 
         def recent(it):
             return now - self.ring_tries.get(it.glyphs[0], -10 ** 9) < jf_config.WIZ_RING_RETRY
@@ -390,6 +384,13 @@ class WizKitGuard(hea_kit.HeaKitGuard):
         if worn_regen is not None and (weak or bl.hitpoints >= jf_config.WIZ_REGEN_OFF * bl.max_hitpoints) and \
                 not recent(worn_regen) and self._calm(1):
             return ('remove', worn_regen, 'regeneration: healed' if not weak else 'regeneration: Weak')
+        if bl.depth >= rcfg.MAX_DEPTH:
+            return None
+        try:
+            if int(agent.last_observation['blstats'][nh.NLE_BL_CONDITION]) & nh.BL_MASK_LEV:
+                return None
+        except Exception:  # noqa: BLE001
+            pass
         if weak:
             return None
         free = self._ring_slots() < 2
