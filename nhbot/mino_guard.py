@@ -19,7 +19,7 @@ While a minotaur is in view within MINO_RANGE (one action per step; best first):
      scared monster doesn't stop the occupation, hack.c monster_nearby);
   1. a known wand of digging zapped down (not on the castle: Can_dig_down is false there);
   2. a known wand at it in a straight line: teleportation / polymorph (beams, no bounce), sleep (a ray: it hits the
-     minotaur first; a bounce may put us to sleep too, but its sleep adds up on the way back);
+     minotaur first; a bounce may put us to sleep too, but repeat hits do not extend an already frozen counter);
   3. on an up staircase: climb (a minotaur has no M2_STALK: it never follows); that '>' is then avoided a while;
   4. where teleports work (not the castle, Medusa, the Valley, Sokoban): a known wand of teleportation at ourselves,
      a known scroll of teleportation (a cursed one level-teleports -- away too);
@@ -33,7 +33,7 @@ While a minotaur is in view within MINO_RANGE (one action per step; best first):
  10. an unknown wand at it in line (the best P(sleep/death/teleportation/polymorph), castle_power's odds);
  11. where teleports work and it is within 5: an unknown scroll (P(teleportation + scare monster + taming + genocide)
      is ~15% for an unknown label; the effects that don't help cost only the turn).
-And: every minotaur in view frozen by our sleep ray -> dig out now; while one was seen on this level lately the dive
+And: a single attributed recent sleep hit -> conditional dig opportunity; ambiguous/aged hits keep the escape policy active; while one was seen on this level lately the dive
 doesn't rest (mino_alert: it hunts us -- monmove.c set_apparxy knows where we are).
 """
 import re
@@ -47,6 +47,7 @@ from .glyph import G
 from .item import Item
 from .level import Level
 from .strategy import Strategy
+from .mino_evidence import SleepEvidence
 
 MINO_RANGE = 6            # react to a minotaur in view this close (Chebyshev); beams reach 6-13, rays 7-13
 MINO_CONSUME_RANGE = 5    # ...scrolls and self-teleports only this close: at first sight (mino-g1 jf16 s10 saw it at
@@ -54,8 +55,6 @@ MINO_CONSUME_RANGE = 5    # ...scrolls and self-teleports only this close: at fi
 MINO_STAIRS_STEPS = 2     # walk to an up staircase this many steps away
 MINO_STAIRS_AVOID = 1000  # turns the '>' we climbed onto is avoided (dig down elsewhere instead)
 MINO_ALERT_TURNS = 300    # after a minotaur sighting on a level, no rest there this long
-SLEEP_WINDOW = 150        # our sleep ray froze it for d(6,25) turns (zap.c sleep_monst): frozen until it acts or
-                          # moves (_note), at most this long
 
 _SCR = {n: O.from_name(n, nh.SCROLL_CLASS) for n in ('teleportation', 'genocide', 'scare monster', 'taming')}
 _W = castle_power._W
@@ -81,7 +80,8 @@ class MinoGuard:
         self.agent = dive.agent
         dive.mino_guard = self
         self._seen = {}            # level key -> last turn a minotaur was in view
-        self._asleep = {}          # (level key, (y, x)) -> turn our sleep ray hit a minotaur there
+        self._sleep = SleepEvidence()
+        self._sleep_hp = None
         self._noteleport = set()   # level keys where a teleport was refused
         self._read_glyphs = set()  # unknown scroll labels read by the guard (never twice)
         self._last_note = None
@@ -118,7 +118,9 @@ class MinoGuard:
         return True
 
     def _note(self):
-        """Idempotent message parsing (runs on every check): our sleep ray froze a minotaur; a refused teleport."""
+        """Observe actual messages/map without issuing actions or renewing old text."""
+        if not jf_config.MINO_GUARD:
+            return
         agent = self.agent
         msg = agent.message or ''
         key = agent.current_level().key()
@@ -128,17 +130,14 @@ class MinoGuard:
         self._last_note = stamp
         if _NOTELEPORT in msg:
             self._noteleport.add(key)
-        if _MINO_ACTS.search(msg):
-            # awake (the message of this step: a sleep ray's hit in the same message comes after its blows)
-            last = max(msg.rfind('The minotaur hits'), msg.rfind('The minotaur misses'),
-                       msg.rfind('The minotaur just misses'), msg.rfind('The minotaur butts'),
-                       msg.rfind('The minotaur bites'))
-            ray = msg.rfind('The sleep ray hits')
-            if ray < last:
-                self._asleep = {k: v for k, v in self._asleep.items() if k[0] != key}
-        if _SLEEP_HIT.search(msg):
-            for m in self._minos():
-                self._asleep[(key, (m[1], m[2]))] = agent.blstats.time
+        hp = (key, int(agent.blstats.hitpoints))
+        lost_hp = self._sleep_hp is not None and self._sleep_hp[0] == key and hp[1] < self._sleep_hp[1]
+        self._sleep_hp = hp
+        condition = int(agent.last_observation['blstats'][nh.NLE_BL_CONDITION])
+        self._sleep.observe(level=key, turn=int(agent.blstats.time), stamp=agent.step_count,
+            message_stamp=getattr(agent, '_mino_message_stamp', agent.step_count),
+            visible=[(m[1], m[2]) for m in self._minos()], message=msg, lost_hp=lost_hp,
+            reliable=not (condition & nh.BL_MASK_HALLU) and not getattr(agent, '_terrain_view', False))
         if jf_config.HORN_SCARE and 'The minotaur turns to flee' in msg:
             self._fled[key] = agent.blstats.time
 
@@ -162,9 +161,13 @@ class MinoGuard:
         out.sort(key=lambda m: m[0])
         return out
 
+    def _sleep_class(self, m):
+        return self._sleep.classify((m[1], m[2]), level=self.agent.current_level().key(),
+            turn=int(self.agent.blstats.time))
+
     def _frozen(self, m):
-        t = self._asleep.get((self.agent.current_level().key(), (m[1], m[2])))
-        return t is not None and self.agent.blstats.time - t <= SLEEP_WINDOW
+        """Recent attributed evidence only; not a direct engine mcanmove reading."""
+        return self._sleep_class(m) == 'recent_hit'
 
     def _diggable(self):
         """This level can be holed (not the castle or another bottom, not the Valley's hardfloor)."""
@@ -267,17 +270,21 @@ class MinoGuard:
 
     # ------------------------------------------------------------------ items
 
-    def _wand(self, names):
+    def _wand(self, names, sleep_target=None):
         """A known, not-empty wand of one of `names` (in that order): (item, name) or (None, None)."""
         agent = self.agent
         for name in names:
+            if name == 'sleep' and sleep_target is not None and self._sleep_class(sleep_target) != 'unassociated':
+                continue   # another hit cannot renew an already frozen target's duration
             obj = _W[name]
             for it in agent.inventory.items:
                 if it.is_wand() and it.is_unambiguous() and it.object == obj and not power._empty(agent, it):
                     return it, name
         return None, None
 
-    def _sleep_or_death(self):
+    def _sleep_or_death(self, sleep_target=None):
+        if sleep_target is not None and self._sleep_class(sleep_target) != 'unassociated':
+            return None
         agent = self.agent
         for it in agent.inventory.items:
             if it.is_wand() and not it.is_unambiguous() and set(it.objs) <= _SLEEP_OR_DEATH and \
@@ -409,7 +416,7 @@ class MinoGuard:
         awake = [m for m in minos if not self._frozen(m)]
         diggable = self._diggable()
         if not awake:
-            # every minotaur in view is frozen by our sleep ray: out now (a frozen monster neither attacks nor
+            # Every visible target has recent attributed evidence: try the escape immediately (a genuinely frozen monster
             # stops the occupation: hack.c monster_nearby !mcanmove)
             if diggable and minos[0][0] <= MINO_RANGE and self._dig_action() is not None and \
                     not (jf_config.MINO_DIG_GUARD and self._dig_interrupter() is not None):
@@ -490,9 +497,10 @@ class MinoGuard:
         # 2. a known wand at it in line: teleportation, polymorph, sleep (we keep our square and its pit)
         lines = [(self._line(m), m) for m in awake]
         lines = [(ln, m) for ln, m in lines if ln is not None]
+        lines.sort(key=lambda pair: (self._sleep_class(pair[1]) != 'unassociated', pair[0][1]))
         if lines:
             (direction, dist, (sy, sx)), m = lines[0]
-            wand, name = self._wand(('teleportation', 'polymorph', 'sleep'))
+            wand, name = self._wand(('teleportation', 'polymorph', 'sleep'), sleep_target=m)
             if wand is not None:
                 yield ('zap', (wand, direction, m), f'known {name} at {dist}')
         # 2b. HORN_SCARE: an expensive camera in line within 2 squares (uhitm.c flash_hits_mon: dist2 < 9 -> flees 3
@@ -534,7 +542,7 @@ class MinoGuard:
             (direction, dist, (sy, sx)), m = lines[0]
             wand, name = self._wand(('death',))
             if wand is None:
-                wand, name = self._sleep_or_death(), 'sleep or death'
+                wand, name = self._sleep_or_death(sleep_target=m), 'sleep or death'
             if wand is not None:
                 yield ('zap', (wand, direction, m), f'known {name} at {dist}')
         # 8. an up staircase a step or two away (not out of our pit: climbing out takes turns)
@@ -553,6 +561,17 @@ class MinoGuard:
                 wand, name = self._wand(('fire', 'lightning'))
             if wand is not None:
                 yield ('zap', (wand, direction, m), f'known {name} at {dist}')
+        # Evidence has aged beyond its conditional short bound. Prefer a real
+        # existing escape/dig over spending unknown kit merely to refresh a lease.
+        # Known digging/teleportation/genocide/death/stairs/damage retain their order.
+        if awake and all(self._sleep_class(m) == 'possible_sleep' for m in awake):
+            if near <= 1 and not dive._in_own_pit() and not agent.in_pit():
+                spot = self._step_away(awake)
+                if spot is not None:
+                    yield ('step_away', spot, 'sleep uncertain: out of minotaur reach')
+            if diggable and self._dig_action() is not None and \
+                    not (jf_config.MINO_DIG_GUARD and self._dig_interrupter() is not None):
+                yield ('dig', None, 'sleep uncertain: continue escape with observed-attack invalidation')
         # 10. an unknown wand at it
         if lines and consume:
             (direction, dist, (sy, sx)), m = lines[0]
@@ -686,7 +705,13 @@ class MinoGuard:
             if not wand.is_unambiguous():
                 agent._last_resort_zapped.add(wand.glyphs[0])
             agent.log(f'MINO zapping {wand.text!r} {direction} at the minotaur at {(m[1], m[2])} ({why}), {hp}')
-            agent.zap(wand, direction)
+            self._sleep.arm(level=key, turn=int(bl.time), origin=(int(bl.y), int(bl.x)),
+                target=(m[1], m[2]), visible=[(other[1], other[2]) for other in self._minos()])
+            try:
+                agent.zap(wand, direction)
+                self._note()
+            finally:
+                self._sleep.disarm()
             agent.log(f'MINO zap -> {(agent.message or "")[:160]!r}')
             if 'Nothing happens' in (agent.message or '') or 'You wrest' in (agent.message or ''):
                 agent.inventory.empty_wands.add(wand.text)
