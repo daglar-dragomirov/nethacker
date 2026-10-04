@@ -21,7 +21,91 @@ import roles  # noqa: E402
 # v10a: Healers and Samurai back on nhbot -- every Healer/Samurai specialist lost to nhbot on 90 DEV held-out seeds
 # (hea-gno pf_hg -0.050, hea-hum pf_hh -0.024, sam pf_v35 -0.051, pf_v37 -0.111); pre-probe hub runs of hea-gno on nhbot
 # scored 0.24-0.27 verified vs pf_hg 0.160.
-SPECIALISTS = {'arc-gno': 'adapter_pf_v36', 'ran-hum-neu': 'adapter_pf_s25p8', 'ran-elf-cha-fem': 'adapter_pf_s25p8', 'kni': 'adapter_pf_s25p8', 'arc-hum-neu': 'adapter_pf_s25p8', 'bar-orc': 'adapter_pf_s25p8', 'wiz-hum-neu': 'adapter_pf_s25p8', 'arc-dwa-law-fem': 'adapter_nhbot_v3', 'arc-dwa-law-mal': '', 'arc-gno-neu-fem': 'adapter_pf_v36', 'arc-gno-neu-mal': 'adapter_pf_v36', 'arc-hum-law-fem': '', 'arc-hum-law-mal': 'adapter_nhbot_v3', 'arc-hum-neu-fem': 'adapter_nhbot_v3', 'arc-hum-neu-mal': 'adapter_nhbot_v3', 'bar-hum-cha-fem': 'adapter_nhbot_v2', 'bar-hum-cha-mal': 'adapter_nhbot_v2', 'bar-hum-neu-fem': '', 'bar-hum-neu-mal': 'adapter_pf_vk_s25', 'bar-orc-cha-fem': '', 'bar-orc-cha-mal': '', 'cav-dwa-law-fem': 'adapter_nhbot_v2', 'cav-dwa-law-mal': 'adapter_nhbot_v2', 'cav-gno-neu-fem': '', 'cav-gno-neu-mal': '', 'cav-hum-law-fem': 'adapter_nhbot_v3', 'cav-hum-law-mal': 'adapter_nhbot_v3', 'cav-hum-neu-fem': 'adapter_nhbot_v2', 'cav-hum-neu-mal': '', 'hea-gno-neu-fem': 'adapter_pf_vlom_9ef4063', 'hea-gno-neu-mal': 'adapter_pf_vlom_9ef4063', 'hea-hum-neu-fem': 'adapter_pf_hh', 'hea-hum-neu-mal': 'adapter_pf_vlom_8b492ce', 'kni-hum-law-fem': 'adapter_pf_s25p8', 'kni-hum-law-mal': 'adapter_pf_s25p8', 'mon-hum-cha-fem': '', 'mon-hum-cha-mal': '', 'mon-hum-law-fem': 'adapter_nhbot_v2', 'mon-hum-law-mal': 'adapter_nhbot_v2', 'mon-hum-neu-fem': 'adapter_nhbot_v3', 'mon-hum-neu-mal': 'adapter_nhbot_v3', 'pri-elf-cha-fem': '', 'pri-elf-cha-mal': 'adapter_nhbot_v3', 'pri-hum-cha-fem': 'adapter_nhbot_v3', 'pri-hum-cha-mal': 'adapter_nhbot_v3', 'pri-hum-law-fem': 'adapter_pf_pa', 'pri-hum-law-mal': 'adapter_nhbot_v3', 'pri-hum-neu-fem': '', 'pri-hum-neu-mal': '', 'ran-elf-cha-mal': 'adapter_pf_s25p8', 'ran-gno-neu-fem': '', 'ran-gno-neu-mal': '', 'ran-hum-cha-fem': '', 'ran-hum-cha-mal': '', 'ran-hum-neu-fem': 'adapter_pf_s25p8', 'ran-hum-neu-mal': 'adapter_pf_s25p8', 'ran-orc-cha-fem': '', 'ran-orc-cha-mal': '', 'rog-hum-cha-fem': 'adapter_pf_pa_5c1186c', 'rog-hum-cha-mal': 'adapter_pf_pa_5c1186c', 'rog-orc-cha-fem': '', 'rog-orc-cha-mal': '', 'sam-hum-law-fem': 'adapter_pf_v37', 'sam-hum-law-mal': 'adapter_pf_vk_s25', 'tou-hum-neu-fem': 'adapter_pf_dtad7a', 'tou-hum-neu-mal': 'adapter_pf_dtad7a', 'val-dwa-law-fem': 'adapter_pf_vk_s23', 'val-hum-law-fem': '', 'val-hum-neu-fem': 'adapter_nhbot_v3', 'wiz-elf-cha-fem': 'adapter_pf_devkit', 'wiz-elf-cha-mal': 'adapter_pf_devkit', 'wiz-gno-neu-fem': 'adapter_nhbot_v2', 'wiz-gno-neu-mal': 'adapter_nhbot_v2', 'wiz-hum-cha-fem': 'adapter_pf_devkit', 'wiz-hum-cha-mal': 'adapter_pf_devkit', 'wiz-hum-neu-fem': 'adapter_pf_devkit', 'wiz-hum-neu-mal': 'adapter_pf_devkit', 'wiz-orc-cha-fem': 'adapter_pf_devkit', 'wiz-orc-cha-mal': 'adapter_pf_devkit'}
+SPECIALISTS = {
+    "arc-gno": "adapter_pf_v36",              # verified 0.405 vs nhbot 0.356
+    "ran-hum-neu": "adapter_pf_s25p8",        # verified 0.31 vs nhbot 0.21-0.25
+    "ran-elf-cha-fem": "adapter_pf_s25p8",    # verified 0.356 vs nhbot 0.325
+    "kni": "adapter_pf_s25p8",                # verified 0.209/0.247 vs nhbot 0.144/0.144
+    # v9p2: the e29-family engines beat four verified runs of nhbot here as well (one verified sample each)
+    "arc-hum-neu": "adapter_pf_s25p8",        # e29/pf_s25p 0.360/0.380 vs nhbot 0.31-0.33
+    "bar-orc": "adapter_pf_s25p8",            # e29/pf_s25p8 0.45-0.48 vs nhbot 0.36-0.41
+    "wiz-hum-neu": "adapter_pf_s25p8",        # dev 90 seeds: pf_s25p8 0.252 > nhbot 0.214 > pf_vk_s25 0.153; verified e29 ~0.25 vs pf_vk_s25 0.125
+    # v12pub: v11pub + v2/v3 sources (LEGACY below) + v4's config on arc-dwa-law-mal / arc-hum-law-fem (tools/mkpub12.py)
+    # v11pub (PUBLIC-board variant): per identity the best public-seed setup among v10c / v7 / v9p2 / v4 (tools/mkpub.py)
+    "arc-dwa-law-fem": "adapter_nhbot_v3",
+    "arc-dwa-law-mal": "",
+    "arc-gno-neu-fem": "adapter_pf_v36",
+    "arc-gno-neu-mal": "adapter_pf_v36",
+    "arc-hum-law-fem": "",
+    "arc-hum-law-mal": "adapter_nhbot_v3",
+    "arc-hum-neu-fem": "adapter_nhbot_v3",
+    "arc-hum-neu-mal": "adapter_nhbot_v3",
+    "bar-hum-cha-fem": "adapter_nhbot_v2",
+    "bar-hum-cha-mal": "adapter_nhbot_v2",
+    "bar-hum-neu-fem": "",
+    "bar-hum-neu-mal": "adapter_pf_vk_s25",
+    "bar-orc-cha-fem": "",
+    "bar-orc-cha-mal": "",
+    "cav-dwa-law-fem": "adapter_nhbot_v2",
+    "cav-dwa-law-mal": "adapter_nhbot_v2",
+    "cav-gno-neu-fem": "",
+    "cav-gno-neu-mal": "",
+    "cav-hum-law-fem": "adapter_nhbot_v3",
+    "cav-hum-law-mal": "adapter_nhbot_v3",
+    "cav-hum-neu-fem": "adapter_nhbot_v2",
+    "cav-hum-neu-mal": "",
+    "hea-gno-neu-fem": "adapter_pf_vlom_9ef4063",
+    "hea-gno-neu-mal": "adapter_pf_vlom_9ef4063",
+    "hea-hum-neu-fem": "adapter_pf_hh",
+    "hea-hum-neu-mal": "adapter_pf_vlom_8b492ce",
+    "kni-hum-law-fem": "adapter_pf_s25p8",
+    "kni-hum-law-mal": "adapter_pf_s25p8",
+    "mon-hum-cha-fem": "",
+    "mon-hum-cha-mal": "",
+    "mon-hum-law-fem": "adapter_nhbot_v2",
+    "mon-hum-law-mal": "adapter_nhbot_v2",
+    "mon-hum-neu-fem": "adapter_nhbot_v3",
+    "mon-hum-neu-mal": "adapter_nhbot_v3",
+    "pri-elf-cha-fem": "",
+    "pri-elf-cha-mal": "adapter_nhbot_v3",
+    "pri-hum-cha-fem": "adapter_nhbot_v3",
+    "pri-hum-cha-mal": "adapter_nhbot_v3",
+    "pri-hum-law-fem": "adapter_pf_pa",
+    "pri-hum-law-mal": "adapter_nhbot_v3",
+    "pri-hum-neu-fem": "",
+    "pri-hum-neu-mal": "",
+    "ran-elf-cha-fem": "adapter_pf_s25p8",
+    "ran-elf-cha-mal": "adapter_pf_s25p8",
+    "ran-gno-neu-fem": "",
+    "ran-gno-neu-mal": "",
+    "ran-hum-cha-fem": "",
+    "ran-hum-cha-mal": "",
+    "ran-hum-neu-fem": "adapter_pf_s25p8",
+    "ran-hum-neu-mal": "adapter_pf_s25p8",
+    "ran-orc-cha-fem": "",
+    "ran-orc-cha-mal": "",
+    "rog-hum-cha-fem": "adapter_pf_pa_5c1186c",
+    "rog-hum-cha-mal": "adapter_pf_pa_5c1186c",
+    "rog-orc-cha-fem": "",
+    "rog-orc-cha-mal": "",
+    "sam-hum-law-fem": "adapter_pf_v37",
+    "sam-hum-law-mal": "adapter_pf_vk_s25",
+    "tou-hum-neu-fem": "adapter_pf_dtad7a",
+    "tou-hum-neu-mal": "adapter_pf_dtad7a",
+    "val-dwa-law-fem": "adapter_pf_vk_s23",
+    "val-hum-law-fem": "",
+    "val-hum-neu-fem": "adapter_nhbot_v3",
+    "wiz-elf-cha-fem": "",
+    "wiz-elf-cha-mal": "",
+    "wiz-gno-neu-fem": "adapter_nhbot_v2",
+    "wiz-gno-neu-mal": "adapter_nhbot_v2",
+    "wiz-hum-cha-fem": "",
+    "wiz-hum-cha-mal": "",
+    "wiz-hum-neu-fem": "",
+    "wiz-hum-neu-mal": "",
+    "wiz-orc-cha-fem": "",
+    "wiz-orc-cha-mal": "",
+}
 
 # v12pub (PUBLIC-board variant): identities whose best public score came from v2 (9c1cc90) or v3 (71335bf), programs
 # whose nhbot differs from today's. They play a verbatim copy of that program's nhbot (nhbot_v2 / nhbot_v3: only the
@@ -126,9 +210,6 @@ class Bot:
                 roles.apply(ident)
             except Exception:  # noqa: BLE001 -- a bad override must never cost the episode
                 pass
-        if module_name == "adapter_pf_devkit":
-            import roles_devkit
-            roles_devkit.apply(ident)
         self._driver = self._get(module_name)
         self._driver.reset(initial_observation)
 

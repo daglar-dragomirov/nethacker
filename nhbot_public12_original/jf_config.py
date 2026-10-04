@@ -1302,7 +1302,7 @@ BUGLE_SCARE = True
 # HORN_KEEP (off): once diving, keep one horn / drum / camera in the pack (ItemPriority). Instruments are rarely shed (3
 # drop messages in 180 cmp-main games) and a keep reorders a shed: on90a jf47 s0 (Mines, diving) kept one of two
 # horns, dropped a second looking glass instead, and the whole game reshuffled (0.602 -> 0.117, chaos not cause).
-HORN_KEEP = True
+HORN_KEEP = False
 HORN_REFRESH = 15          # turns a flee (or a blow in range) holds before the horn is blown again, unless it attacks
 # TENGU_EAT (parked, R159: EV <= 0): in the dive, hit a HOSTILE tengu next to us (HP >= 60%, nothing else close) and
 # eat a fresh tengu corpse within 6 steps when not Satiated: eat.c cpostfx picks one of poison res / teleportitis /
@@ -1327,7 +1327,7 @@ CASTLE_TREASURY = True
 # interrupted its boulder dig at (-2,12) four times (30 turns), the minotaur came at +71 before the moat. With the flag
 # the swap follows DIG_TOOL_MELEE's rule (the best weapon must beat the pick by DIG_TOOL_MELEE_MARGIN in expected
 # damage: Excalibur and two-handers still come out). Sea-monster fights (castle_logic._wield_weapon, CFP_DUEL) unchanged.
-CASTLE_PICK_MELEE = True
+CASTLE_PICK_MELEE = False
 
 # ROBUST_FIXES2 (off, robustness-audit lane): stalls found by a census of the botlogs of 5456 unique dev games
 # (1047 of them since s23; $SCR/robust). Each piece acts only where the old code asserted or spun without a turn.
@@ -1750,14 +1750,3 @@ if TOUR_FIXES is not None:
     EARLY_FIXES = LATE_FIXES = bool(TOUR_FIXES)
 if LATE_FIXES:
     HAZARD_FIXES = True
-
-# Equipment-only experiment. Existing role defaults and router remain intact.
-WIZ_KIT_ROLES = ('Wizard',)
-WIZ_SPEED_SELF = True
-WIZ_KIT_BOOST = True
-WIZ_RING_SAFE = True
-WIZ_BOOST_POTIONS = ('gain level', 'gain energy', 'gain ability')
-WIZ_RING_EXTRA = ('stealth',)
-WIZ_REGEN_ON = 0.5
-WIZ_REGEN_OFF = 0.95
-WIZ_RING_RETRY = 20

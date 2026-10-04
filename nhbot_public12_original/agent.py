@@ -413,7 +413,6 @@ class Agent:
         self.single_popup = [p.strip() for p in self.single_popup]
 
         self.message = message_prefix + self.single_message
-        self._mino_message_stamp = self.step_count
         self.popup = popup_prefix + self.single_popup
         if 'You can move again' in self.single_message:
             try:
@@ -631,8 +630,6 @@ class Agent:
 
         self.blstats = BLStats(*self.last_observation['blstats'])
         self.glyphs = self.last_observation['glyphs']
-        if jf_config.MINO_GUARD:
-            self.global_logic.mino._note()
 
         if self._prayer_model_active():
             try:
@@ -669,7 +666,6 @@ class Agent:
         self._is_updating_state = True
         message = self.message
         popup = self.popup
-        mino_message_stamp = getattr(self, '_mino_message_stamp', self.step_count)
 
         try:
             if allow_update:
@@ -699,7 +695,6 @@ class Agent:
                     finally:
                         self.message = message
                         self.popup = popup
-                        self._mino_message_stamp = mino_message_stamp
 
             if allow_callbacks:
                 self.call_update_functions()
@@ -1817,8 +1812,6 @@ class Agent:
         """CORPSE_TRACK: remember where our attack went (and the map before it), so that a kill's corpse gets
         its age even when the kill message is parsed a few observations later or the victim had a
         same-kind neighbour. See _track_kill_positions."""
-        if jf_config.MINO_GUARD:
-            self.global_logic.mino._sleep.invalidate_own_attack()
         if jf_config.CORPSE_TRACK and getattr(self, 'glyphs', None) is not None:
             self._attack_ctx = (self.blstats.time, target, direction, (self.blstats.y, self.blstats.x),
                                 self.glyphs.copy())
