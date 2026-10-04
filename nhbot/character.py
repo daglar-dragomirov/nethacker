@@ -504,6 +504,12 @@ class Character:
 
     def select_skill_to_upgrade(self):
         assert self.upgradable_skills
+        # Known launcher investment; default ordering stays intact for every other case.
+        if self.role == self.RANGER:
+            from .ranger_supply import launcher_skill
+            skill = launcher_skill(self.agent)
+            if skill is not None and skill in self.upgradable_skills:
+                return skill
         # TODO: logic
         return next(iter(self.upgradable_skills.keys()))
 

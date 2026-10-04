@@ -1750,17 +1750,3 @@ if TOUR_FIXES is not None:
     EARLY_FIXES = LATE_FIXES = bool(TOUR_FIXES)
 if LATE_FIXES:
     HAZARD_FIXES = True
-
-# Combat-only experiment: preserve existing defaults and role/router config.
-WIZ_KIT_ROLES = ('Wizard',)
-WIZ_WAND_FIGHT = True
-WIZ_SLEEP_SPELL = True
-WIZ_WAND_TURNS = 3
-WIZ_WAND_PDIE = 0.2
-WIZ_WAND_PDIE_BOLT = 0.5
-WIZ_WAND_PDIE_LAST = 0.5
-WIZ_WAND_RESERVE = 1
-WIZ_WAND_RANGE = 5
-WIZ_WAND_MIN_SHARE = 0.4
-WIZ_WAND_SELF_P = 0.03
-MON_SLEEP_FIGHT = False
