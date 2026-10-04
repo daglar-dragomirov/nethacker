@@ -451,6 +451,8 @@ class Character:
     def parse_spellcast_view(self):
         self.known_spells = dict()
         self.spell_fail_chance = dict()
+        if self.role == self.PRIEST:
+            self._priest_spellcare_retention = {}
 
         # Healers heal themselves, Wizards cast force bolt (see fight_heur.force_bolt_actions)
         if self.role not in (self.HEALER, self.WIZARD, self.MONK, self.PRIEST):
@@ -473,6 +475,8 @@ class Character:
                                      r'([0-9]*\%|\(gone\))', line)
                 assert len(matches) == 1, (matches, line)
                 letter, spell_name, level, category, fail, retention = matches[0]
+                if self.role == self.PRIEST:
+                    self._priest_spellcare_retention[spell_name] = retention != '(gone)'
                 assert len(letter) == 1, letter
                 # FB_SANITY: a spell whose memory has run out (spell.c: KEEN = 20000 turns after it was learnt -- every
                 # starting spell at T20000) only backfires: 'Your knowledge of this spell is twisted.'
@@ -504,10 +508,9 @@ class Character:
 
     def select_skill_to_upgrade(self):
         assert self.upgradable_skills
-        # Known launcher investment; default ordering stays intact for every other case.
-        if self.role == self.RANGER:
-            from .ranger_supply import launcher_skill
-            skill = launcher_skill(self.agent)
+        if self.role == self.PRIEST:
+            from .priest_spellcare import healing_skill
+            skill = healing_skill(self)
             if skill is not None and skill in self.upgradable_skills:
                 return skill
         # TODO: logic

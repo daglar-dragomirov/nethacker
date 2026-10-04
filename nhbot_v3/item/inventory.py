@@ -1058,6 +1058,11 @@ class Inventory:
                 best_ac[slot] = ac
                 best_items[slot] = item
 
+        if self.agent.character.role == Character.PRIEST:
+            from ..priest_spellcare import preferred_shield
+            best_items[O.ARM_SHIELD] = preferred_shield(self.agent, best_items[O.ARM_SHIELD])
+            shield = best_items[O.ARM_SHIELD]
+            best_ac[O.ARM_SHIELD] = None if shield is None else shield.get_ac()
         if return_ac:
             return best_items, best_ac
         return best_items

@@ -1,6 +1,6 @@
 {
   "schema": "nethackers.solution/v1",
-  "name": "daglar-zEvidenceRangerSupply",
+  "name": "daglar-zPriestSpellCare",
   "root": ".",
   "parents": [
     "github.com/zarutskiysy/nethack@9c1cc902b6d9d88e6a14e0c9e5dc7494d9882bcd",
@@ -18,8 +18,7 @@
     "github.com/DT6A/nethacker@ad7a864d9385f84c9b4f9865bb68141c90ca5e1b",
     "github.com/zarutskiysy/nethack@96ef3261bd61e151858b181be95b066bbde9d6f4",
     "github.com/daglar-dragomirov/nethacker@93960fb4687e35f8a6352a230773b4e2fbc86cef",
-    "github.com/daglar-dragomirov/nethacker@c82c418a8b12f1605b176c2e2ef4cc6c6cd3e109",
-    "github.com/zarutskiysy/nethack@69f6da875ef24c95614a910b3444ad39112a0d8c"
+    "github.com/daglar-dragomirov/nethacker@c82c418a8b12f1605b176c2e2ef4cc6c6cd3e109"
   ],
   "influences": [
     "github.com/CleverShovel/nethacker@0d1fb22498024cdcac06be9d15d0f70e8cae803c",
