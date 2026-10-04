@@ -229,11 +229,21 @@ class MinoGuard:
         vkey, vpos = getattr(dive, '_visit_pos', (None, None))
         return vkey == key and vpos is not None and int(vpos[1]) <= 9
 
+    def _urgent_status_first(self):
+        """Yield only when the existing emergency layer can act on a deadly status."""
+        agent = self.agent
+        deadly = int(agent.last_observation['blstats'][nh.NLE_BL_CONDITION]) & (
+            nh.BL_MASK_STONE | nh.BL_MASK_SLIME | nh.BL_MASK_STRNGL |
+            nh.BL_MASK_FOODPOIS | nh.BL_MASK_TERMILL)
+        return bool(deadly) and agent.emergency_strategy().check_condition()
+
     def _prayer_first(self):
         """emergency_strategy (below us) would pray now: let it -- the prayer's 3 invulnerable turns and full HP
         come before any item (then the item from full HP)."""
         agent = self.agent
         bl = agent.blstats
+        if self._urgent_status_first():
+            return True
         if agent.prayer_failed:
             return False
         xl = bl.experience_level
@@ -370,6 +380,8 @@ class MinoGuard:
         Side-effect free apart from bookkeeping: it runs as the preempt condition on every step."""
         if not jf_config.MINO_GUARD or not utils.isin(self.agent.glyphs, _MINO_GLYPHS).any() or \
                 not self._in_scope():
+            return None
+        if self._urgent_status_first():
             return None
         turn = self.agent.blstats.time
         for plan in self._candidates():
@@ -809,9 +821,7 @@ class MinoGuard:
                 return
             yield True
             self._act(plan)
-            if not (jf_config.HORN_SCARE and self._instruments()):
-                return
-            # HORN_SCARE with an instrument in the pack: keep acting while the guard has a plan (as HOLD_LOOP). After a
+            # Keep acting while the guard has a plan, including kits without a scare instrument. After a
             # one-action return agent.preempt runs one step of the lower chain before this condition is checked
             # again: fight2 swung at the fleeing minotaur, the dive engraved Elbereth (useless against it) between
             # the horn and the dig (harness oi-smk mino-horn s0, mino-camera s0)
