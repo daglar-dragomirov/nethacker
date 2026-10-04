@@ -3341,132 +3341,23 @@ class Agent:
         low_hp = hp_ratio < 0.5 and (self.blstats.max_hitpoints - self.blstats.hitpoints > 25)
         return self.blstats.energy >= 15 and low_hp
 
-    def _urgent_status_spell_ready(self, spell, energy):
-        """Use existing cast refusal/failure protections and the spell menu's metadata."""
-        prop = self.character.prop
-        return bool(self.character.known_spells.get(spell)) and \
-            self.character.spell_fail_chance.get(spell, 1) <= 0.15 and \
-            self.blstats.energy >= energy and self.blstats.carrying_capacity < 2 and \
-            self.blstats.hunger_state < Hunger.FAINTING and not prop.stun and not prop.confusion and \
-            self.blstats.time >= getattr(self, '_cast_refused_until', -1) and \
-            self._last_turn - self.last_cast_fail_turn.get(spell, -1000) >= 2
-
-
-    def _urgent_status_plan(self):
-        """Choose an actual cure; a generic HP cast is not a status cure."""
-        deadly = int(self.last_observation['blstats'][nh.NLE_BL_CONDITION]) & (
-            nh.BL_MASK_STONE | nh.BL_MASK_SLIME | nh.BL_MASK_STRNGL |
-            nh.BL_MASK_FOODPOIS | nh.BL_MASK_TERMILL)
-        if not deadly:
-            return None
-        # A cure inside a bag needs extra actions; only plan directly accessible items.
-        items = list(self.inventory.items)
-        can_consume = not (deadly & nh.BL_MASK_STRNGL)
-        if deadly & nh.BL_MASK_STONE:
-            names = ('lizard', 'acid blob') if self.character.prop.stoned else ('lizard',)
-            ids = {MON.from_name(name) - nh.GLYPH_MON_OFF for name in names}
-            corpse = next((it for it in items if it.is_corpse() and it.monster_id in ids), None) \
-                if can_consume and self.blstats.carrying_capacity < 4 else None
-            if corpse is not None:
-                return ('eat', corpse, 'carried stoning cure')
-            # Preserve the current special stoning prayer fallback.
-            if self.character.prop.stoned and (self.last_prayer_turn is None or
-                    self.blstats.time - self.last_prayer_turn > 5):
-                return ('pray', None, 'existing stoning fallback')
-        sick = deadly & (nh.BL_MASK_FOODPOIS | nh.BL_MASK_TERMILL)
-        slimed = deadly & nh.BL_MASK_SLIME
-        # Cure sickness removes slime as well as sickness. Avoid spending a sickness
-        # potion first when slime is also present and this spell is available.
-        if slimed and self._urgent_status_spell_ready('cure sickness', 15):
-            return ('cast', 'cure sickness', 'slime/sickness cure')
-        if sick:
-            for name in ('full healing', 'extra healing', 'healing') if can_consume and \
-                    self.blstats.time != getattr(self, '_urgent_quaff_blocked_at', -1) else ():
-                statuses = (Item.BLESSED,) if name == 'healing' else (Item.BLESSED, Item.UNCURSED)
-                potion = next((it for it in items if it.category == nh.POTION_CLASS and it.is_unambiguous()
-                    and it.object.name == name and it.status in statuses and it.shop_status != Item.UNPAID), None)
-                if potion is not None:
-                    return ('quaff', potion, 'known sickness-curing potion')
-            if self._urgent_status_spell_ready('cure sickness', 15):
-                return ('cast', 'cure sickness', 'sickness cure')
-        if self.current_level().dungeon_number != 1 and (
-                self.is_safe_to_pray(100, certain_death=True) or self._status_prayer_due()):
-            return ('pray', None, 'existing deadly-status prayer criterion')
-        return None
-
-
-    def _urgent_status_act(self, plan):
-        kind, arg, reason = plan
-        self.log(f'EMERGENCY_STATUS {kind}: {reason}')
-        if kind == 'eat':
-            self.inventory.eat(arg, smart=False)
-        elif kind == 'quaff':
-            self._urgent_status_quaff(arg)
-        elif kind == 'cast':
-            self._urgent_status_cast()
-        elif kind == 'pray':
-            self.pray()
-        else:
-            raise ValueError(kind)
-
-
-    def _urgent_status_quaff(self, item):
-        """Select a carried potion only at the actual drink prompt."""
-        letter = self.inventory.items.get_letter(item)
-        selected = False
-        with self.atom_operation():
-            def letters():
-                nonlocal selected
-                for _ in range(4):
-                    if self.message.startswith(('Drink from the fountain?', 'Drink from the sink?',
-                                                'Drink the water around you?')):
-                        yield 'n'
-                        continue
-                    if self.message.startswith('What do you want to drink?'):
-                        selected = True
-                        yield letter
-                        return
-                    if self.popup:
-                        yield A.Command.ESC
-                    return
-                if self.popup:
-                    yield A.Command.ESC
-            self.step(A.Command.QUAFF, letters())
-        if not selected:
-            self._urgent_quaff_blocked_at = self.blstats.time
-            self.log('EMERGENCY_STATUS potion command refused or unexpected prompt')
-
-
-    def _urgent_status_cast(self):
-        """Cure sickness is NODIR: submit only its menu letter, then read the status."""
-        spell = 'cure sickness'
-        with self.atom_operation():
-            def letters():
-                if self._CAST_REFUSED.search(self.message):
-                    return
-                if not self.popup or self.popup[0] != 'Choose which spell to cast':
-                    yield A.Command.ESC
-                    return
-                yield self.character.known_spells[spell]
-            self.step(A.Command.CAST, letters())
-        remaining = int(self.last_observation['blstats'][nh.NLE_BL_CONDITION]) & (
-            nh.BL_MASK_SLIME | nh.BL_MASK_FOODPOIS | nh.BL_MASK_TERMILL)
-        if remaining:
-            self.last_cast_fail_turn[spell] = self._last_turn
-            self.stats_logger.log_event(f'cast_fail_{spell}')
-        else:
-            self.stats_logger.log_event(f'cast_{spell}')
-        if self._CAST_REFUSED.search(self.message):
-            self._cast_refused_until = self.blstats.time + jf_config.FB_REFUSE_TURNS
-
     @utils.debug_log('emergency_strategy')
     @Strategy.wrap
     def emergency_strategy(self):
-        plan = self._urgent_status_plan()
-        if plan is not None:
-            yield True
-            self._urgent_status_act(plan)
-            return
+        # a cockatrice's touch or hiss starts delayed stoning: a few turns to eat a lizard
+        # or acidic corpse, and prayer fixes it as major trouble even outside the safe window
+        if self.character.prop.stoned:
+            for item in flatten_items(self.inventory.items):
+                if item.is_corpse() and item.monster_id in \
+                        [MON.from_name(n) - nh.GLYPH_MON_OFF for n in ['lizard', 'acid blob']]:
+                    yield True
+                    self.inventory.eat(item, smart=False)
+                    return
+            if self.last_prayer_turn is None or self.blstats.time - self.last_prayer_turn > 5:
+                yield True
+                self.pray()
+                return
+
 
         # DEEP_PRAY_FIRST: deep in the dive a safe HP prayer at critically low HP goes before the heals below
         if jf_config.DEEP_PRAY_FIRST and self._deep_pray_first():
@@ -3487,6 +3378,29 @@ class Agent:
             self.cast('healing', direction=(0, 0))
             self._deep_pray_after_heal()
             return
+
+        # hypothesis (astra guard.py stop list): stoning, sliming, strangling and food poisoning /
+        # terminal illness kill within a few turns; prayer fixes all of them, so a riskier-than-usual
+        # prayer beats certain death. Stoning: a carried lizard corpse cures it without prayer.
+        deadly = int(self.last_observation['blstats'][nh.NLE_BL_CONDITION]) & (
+            nh.BL_MASK_STONE | nh.BL_MASK_SLIME | nh.BL_MASK_STRNGL | nh.BL_MASK_FOODPOIS | nh.BL_MASK_TERMILL)
+        # Only fires when death is otherwise certain within a few turns, so it can never lower a
+        # max-progress score: on in every configuration (the elite's early game is untouched).
+        if deadly:
+            if deadly & nh.BL_MASK_STONE:
+                lizards = [item for item in flatten_items(self.inventory.items) if item.is_corpse() and
+                           item.monster_id == MON.from_name('lizard') - nh.GLYPH_MON_OFF]
+                if lizards:
+                    yield True
+                    self.log('EMERGENCY stoning: eating a lizard corpse')
+                    self.inventory.eat(lizards[0])
+                    return
+            if self.current_level().dungeon_number != 1 and \
+                    (self.is_safe_to_pray(100, certain_death=True) or self._status_prayer_due()):
+                yield True
+                self.log(f'EMERGENCY deadly status {deadly:#x}: praying')
+                self.pray()
+                return
 
         # a were form's HP is only a buffer: at 0 we rehumanize with the HP we had before (polyself.c), so
         # low form HP is no reason to spend healing, a prayer or the last resort (jf16 s11 and jf25 s9 prayed

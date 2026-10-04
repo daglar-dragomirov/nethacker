@@ -1,8 +1,10 @@
 {
   "schema": "nethackers.solution/v1",
-  "name": "daglar-zUrgentCure",
+  "name": "daglar-zPublic12Kit",
   "root": ".",
   "parents": [
+    "github.com/zarutskiysy/nethack@9c1cc902b6d9d88e6a14e0c9e5dc7494d9882bcd",
+    "github.com/zarutskiysy/nethack@00cf417f05ec9c20846b848cd70243af67695c54",
     "github.com/zarutskiysy/nethack@14a3bbd871061d63bda57da6c82af91f46959d21",
     "github.com/zarutskiysy/nethack@94c4c1cd21c51f9feec0eaabd9c63831a8ee3316",
     "github.com/zarutskiysy/nethack@bb7def3548dcb618066c2c92b8bc3335631aaee1",
@@ -14,10 +16,8 @@
     "github.com/daglar-dragomirov/nethacker@e29eb8281b13784716d9121e4f01ec60c2bb2165",
     "github.com/daglar-dragomirov/nethacker@d8da1f72c197a54ac66d69466eee32f7bc4e72d9",
     "github.com/DT6A/nethacker@ad7a864d9385f84c9b4f9865bb68141c90ca5e1b",
-    "github.com/zarutskiysy/nethack@00cf417f05ec9c20846b848cd70243af67695c54",
-    "github.com/DT6A/nethacker@8fe20346f13fc8b78b35b400a82fa5c3bae469a3",
-    "github.com/daglar-dragomirov/nethacker@a4c2c2f5d4a2ca3da7091ba0e439959c23ee4e47",
-    "github.com/daglar-dragomirov/nethacker@93960fb4687e35f8a6352a230773b4e2fbc86cef"
+    "github.com/zarutskiysy/nethack@96ef3261bd61e151858b181be95b066bbde9d6f4",
+    "github.com/zarutskiysy/nethack@69f6da875ef24c95614a910b3444ad39112a0d8c"
   ],
   "influences": [
     "github.com/CleverShovel/nethacker@0d1fb22498024cdcac06be9d15d0f70e8cae803c",
