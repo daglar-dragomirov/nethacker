@@ -2147,6 +2147,7 @@ class DiveLogic:
         near = self._near_hostiles()
         # a lone weak monster is better killed than hidden from (engraving gives it a free hit)
         if len(near) == 1 and getattr(near[0][3], 'mlevel', 99) <= 2 and bl.hitpoints >= 6 and \
+                getattr(near[0][3], 'mname', '') != 'homunculus' and \
                 not self._lone_weak_deadly(near[0]):
             self._elbereth_resting = False
             yield False
@@ -2156,6 +2157,7 @@ class DiveLogic:
         # goblin that the leaked attack used to kill (gc-h3smoke public s4 vs base3)
         if jf_config.REST_FIGHT_WEAK and len(near) == 1 and getattr(near[0][3], 'difficulty', 99) <= 2 and \
                 getattr(near[0][3], 'mmove', 99) <= 12 and \
+                getattr(near[0][3], 'mname', '') != 'homunculus' and \
                 getattr(near[0][3], 'mname', '') not in _only_ranged_monsters():
             self._elbereth_resting = False
             yield False
