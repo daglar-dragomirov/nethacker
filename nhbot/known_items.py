@@ -79,7 +79,7 @@ class KnownItemsGuard:
     def _in_scope(self):
         agent = self.agent
         dive = self.dive
-        if not dive.diving:
+        if not (dive.diving or jf_config.SURVIVAL_IN_TOUR):
             return False
         level = agent.current_level()
         if level.dungeon_number not in (Level.DUNGEONS_OF_DOOM, Level.GNOMISH_MINES, GEHENNOM):
@@ -365,6 +365,18 @@ class KnownItemsGuard:
                 yield False
                 return
             yield True
-            self._act(plan)
+            # Resolve continuing mortal danger before handing back to a lower
+            # strategy. Recompute item availability and emergency precedence
+            # after every action; retain the existing refusal bookkeeping.
+            agent = self.agent
+            key = agent.current_level().key()
+            for _ in range(40):
+                before = agent.step_count
+                self._act(plan)
+                if agent.step_count == before or agent.current_level().key() != key:
+                    return
+                plan = self._plan()
+                if plan is None:
+                    return
 
         return Strategy(f)
