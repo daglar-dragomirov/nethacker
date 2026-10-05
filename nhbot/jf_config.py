@@ -1750,3 +1750,6 @@ if TOUR_FIXES is not None:
     EARLY_FIXES = LATE_FIXES = bool(TOUR_FIXES)
 if LATE_FIXES:
     HAZARD_FIXES = True
+
+# zWizardForage: off by default; main-engine Wizards use radius8.
+HUNGRY_CORPSE_DIST = 0

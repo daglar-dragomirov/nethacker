@@ -5,7 +5,6 @@ import numpy as np
 from nle.nethack import actions as A
 
 from . import jf_config
-from .weapon_tools import is_melee_tool, tool_melee_bonus
 from . import objects as O
 
 ALL_SPELL_NAMES = [
@@ -651,13 +650,6 @@ class Character:
         return 7
 
     def get_melee_bonus(self, item, monster=None, large_monster=False):
-        if monster is not None:
-            raise NotImplementedError()
-        if is_melee_tool(item):
-            return tool_melee_bonus(self, item, large_monster)
-        return self._parent_melee_bonus(item, monster, large_monster)
-
-    def _parent_melee_bonus(self, item, monster=None, large_monster=False):
         """ Returns a pair (to_hit, damaga)
         https://github.com/facebookresearch/nle/blob/master/src/uhitm.c : find_roll_to_hit
          """
