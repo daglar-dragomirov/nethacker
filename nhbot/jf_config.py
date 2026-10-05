@@ -644,7 +644,7 @@ FEYE_FIX = False
 DEMON_NO_REDIP = True
 # the last resort (unknown wands/potions/scrolls) yields to the Elbereth rest while everything close respects
 # Elbereth and we are on one or can engrave (a zap erased it, a bounced ray / potion of sickness killed at 2-3 HP)
-LR_ELBERETH = False
+LR_ELBERETH = True
 # weak-role lane (DT6A's Tourist leader, GRIND_DESPERATE_PRAYER_GAP 200; 0: off): the tour's own desperate prayer --
 # critically low HP, a hostile adjacent, no prayer yet failed and at least this many turns since the last one ->
 # pray before the unknown-item gambles (and before LR_ELBERETH). The dive has DESPERATE_PRAYER_GAP (depth >= 5, only
@@ -1302,7 +1302,7 @@ BUGLE_SCARE = True
 # HORN_KEEP (off): once diving, keep one horn / drum / camera in the pack (ItemPriority). Instruments are rarely shed (3
 # drop messages in 180 cmp-main games) and a keep reorders a shed: on90a jf47 s0 (Mines, diving) kept one of two
 # horns, dropped a second looking glass instead, and the whole game reshuffled (0.602 -> 0.117, chaos not cause).
-HORN_KEEP = True
+HORN_KEEP = False
 HORN_REFRESH = 15          # turns a flee (or a blow in range) holds before the horn is blown again, unless it attacks
 # TENGU_EAT (parked, R159: EV <= 0): in the dive, hit a HOSTILE tengu next to us (HP >= 60%, nothing else close) and
 # eat a fresh tengu corpse within 6 steps when not Satiated: eat.c cpostfx picks one of poison res / teleportitis /
@@ -1327,7 +1327,7 @@ CASTLE_TREASURY = True
 # interrupted its boulder dig at (-2,12) four times (30 turns), the minotaur came at +71 before the moat. With the flag
 # the swap follows DIG_TOOL_MELEE's rule (the best weapon must beat the pick by DIG_TOOL_MELEE_MARGIN in expected
 # damage: Excalibur and two-handers still come out). Sea-monster fights (castle_logic._wield_weapon, CFP_DUEL) unchanged.
-CASTLE_PICK_MELEE = True
+CASTLE_PICK_MELEE = False
 
 # ROBUST_FIXES2 (off, robustness-audit lane): stalls found by a census of the botlogs of 5456 unique dev games
 # (1047 of them since s23; $SCR/robust). Each piece acts only where the old code asserted or spun without a turn.
