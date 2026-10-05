@@ -14,46 +14,7 @@ from .movement_priority import draw_monster_priority_positive, draw_monster_prio
 from .utils import wielding_ranged_weapon, line_dis_from, inside
 
 
-_GAS_SPORE_GLYPH = None
-
-
-def _spore_chain_positions(agent, y, x):
-    """Conservative connected visible blast component, radius one in both axes.
-
-    Adapted from DT6A/nethacker@a687804a2de754dd23c05e4fbe17d6f792977c8b.
-    Visibility, intervening barriers and actual monster HP can reduce the chain.
-    """
-    global _GAS_SPORE_GLYPH
-    if _GAS_SPORE_GLYPH is None:
-        _GAS_SPORE_GLYPH = MON.from_name('gas spore')
-    spores = set(zip(*np.nonzero(agent.glyphs == _GAS_SPORE_GLYPH)))
-    spores.add((y, x))
-    component, todo = {(y, x)}, [(y, x)]
-    while todo:
-        cy, cx = todo.pop()
-        for sy, sx in spores:
-            if (sy, sx) not in component and max(abs(sy-cy), abs(sx-cx)) <= 1:
-                component.add((sy, sx))
-                todo.append((sy, sx))
-    return component
-
-
 def spore_blast_hits_friend(agent, y, x):
-    """Veto a potentially lethal multiple blast or any chained protected exposure.
-
-    Keep lone-spore hero handling unchanged. The 24-per-blast bound follows the
-    NetHack3.6.6 gas-spore AT_BOOM 4d6 entry; this is not expected damage.
-    """
-    component = _spore_chain_positions(agent, y, x)
-    y0, x0 = agent.blstats.y, agent.blstats.x
-    hits = sum(max(abs(sy-y0), abs(sx-x0)) <= 1 for sy, sx in component)
-    if hits > 1 and agent.blstats.hitpoints <= 24 * hits:
-        return True
-    return any(_single_spore_blast_hits_friend(agent, sy, sx)
-               for sy, sx in sorted(component))
-
-
-def _single_spore_blast_hits_friend(agent, y, x):
     """A gas spore killed at (y, x) explodes over its 3x3 square: a pet or peaceful there gets hurt and
     the hero gets the blame (a shopkeeper next to a spore turned hostile and killed an XL8 Valkyrie)."""
     sl = np.s_[max(y - 1, 0):y + 2, max(x - 1, 0):x + 2]
@@ -406,10 +367,6 @@ def get_potential_wand_usages(agent, monsters, dy, dx):
                 else:
                     priority += min(p, 1) * 10
                 targeted_monsters.add((y, x, monster))
-        if any(getattr(m[3], 'mname', '') == 'gas spore' and
-               spore_blast_hits_friend(agent, ty, tx)
-               for ty, tx, m in targeted_monsters):
-            continue
         if targeted_monsters:
             # priority = priority * (1 - player_hp_ratio) - 10
             priority = priority - 15
@@ -635,8 +592,6 @@ def force_bolt_actions(agent, monsters):
         if dist == 0 or dist > FORCE_BOLT_RANGE or not (dy == 0 or dx == 0 or abs(dy) == abs(dx)):
             continue
         if mon.mname in EXPLODING_MONSTERS and dist == 1:
-            continue
-        if mon.mname == 'gas spore' and spore_blast_hits_friend(agent, y, x):
             continue
         sy, sx = int(np.sign(dy)), int(np.sign(dx))
         cy, cx, clear = y0, x0, True
