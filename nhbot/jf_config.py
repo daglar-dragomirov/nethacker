@@ -644,7 +644,7 @@ FEYE_FIX = False
 DEMON_NO_REDIP = True
 # the last resort (unknown wands/potions/scrolls) yields to the Elbereth rest while everything close respects
 # Elbereth and we are on one or can engrave (a zap erased it, a bounced ray / potion of sickness killed at 2-3 HP)
-LR_ELBERETH = True
+LR_ELBERETH = False
 # weak-role lane (DT6A's Tourist leader, GRIND_DESPERATE_PRAYER_GAP 200; 0: off): the tour's own desperate prayer --
 # critically low HP, a hostile adjacent, no prayer yet failed and at least this many turns since the last one ->
 # pray before the unknown-item gambles (and before LR_ELBERETH). The dive has DESPERATE_PRAYER_GAP (depth >= 5, only

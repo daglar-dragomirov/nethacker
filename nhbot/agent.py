@@ -3497,6 +3497,18 @@ class Agent:
                 self._pray_reason = 'wr-grind-desperate'
                 self.pray()
                 return
+            # LR_ELBERETH: with every monster close by respecting Elbereth, the Elbereth rest (below us) is the
+            # safer answer: a scared monster doesn't melee, while a zap from the square erases it ('You feel
+            # like a hypocrite') and an unknown ray can bounce back (base2-jf25 s1: a wand of cold at an adjacent
+            # jackal at 2 HP; base2-public s3: zapped from a fresh Elbereth, then a potion of sickness killed
+            # at 3 HP)
+            if adjacent and jf_config.LR_ELBERETH and self.current_level().dungeon_number != 1:  # not Gehennom
+                dive = self.global_logic.dive
+                close = dive._near_hostiles(radius=3)
+                engraving = (self.inventory.engraving_below_me or '').lower()
+                if not any(dive._ignores_elbereth(m[3]) for m in close) and not self.character.prop.blind and \
+                        (engraving == 'elbereth' or self.can_engrave()):
+                    adjacent = []
             if adjacent:
                 level = self.current_level()
                 here = level.objects[y, x]
@@ -3571,18 +3583,6 @@ class Agent:
                     gap = None if self.last_prayer_turn is None else self.blstats.time - self.last_prayer_turn
                     self.log(f'LAST RESORT: desperate prayer (gap {gap})')
                     self.pray()
-                    return
-                # Preserve known escapes above. Hand off only when the actual
-                # rest strategy admits shelter; take one action, then reassess.
-                if jf_config.LR_ELBERETH and dive._emergency_shelter_ready():
-                    yield True
-                    dive._elbereth_resting = True
-                    dive._hold_squares.add((level.key(), y, x))
-                    self.log('LAST RESORT: admitted Elbereth shelter')
-                    if (self.inventory.engraving_below_me or '').lower() != 'elbereth':
-                        self.engrave('Elbereth')
-                    else:
-                        self.search()
                     return
                 # top-level items only: a wand inside a bag has no inventory letter, and zapping one left the
                 # 'What do you want to zap?' prompt looping at 9 HP until a goblin finished the XL6

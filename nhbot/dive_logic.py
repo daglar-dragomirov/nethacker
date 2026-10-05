@@ -889,6 +889,7 @@ class DiveLogic:
         self._last_task = None
         self.mines_done = False        # reached the bottom of the Mines, or gave the route up
         self._elbereth_resting = False
+        self._burst_rest_square = None    # reactive rest owns only its actual recovery square
         self.diving = False
         self.dive_start_turn = None     # DIVE_TOOL_HUNGER_GAP: the turn the dive phase began (None: set by a scenario)
         self.rescue = False                # the dive began as a rescue from a failed Dlvl 1 grind
@@ -2075,25 +2076,6 @@ class DiveLogic:
         self._max_wet_cache = (turn, key, max_wet)
         return max_wet
 
-    def _emergency_shelter_ready(self):
-        """Use the actual rest admission before displacing unknown-item gambles.
-
-        A single action lets healing/prayer/known exits preempt again next turn.
-        Ground reachability is required for a new engraving; an existing one
-        can still protect a levitating hero. Swallowed heroes cannot shelter.
-        """
-        agent = self.agent
-        if utils.any_in(agent.glyphs, G.SWALLOW):
-            return False
-        engraving = (agent.inventory.engraving_below_me or '').lower()
-        if engraving != 'elbereth' and self.levitating():
-            return False
-        close = self._near_hostiles(radius=3)
-        if not close or any(self._ignores_elbereth(m[3]) or
-                            (jf_config.LMINION_ELBERETH and self._lawful_minion(m[3])) for m in close):
-            return False
-        return self.elbereth_rest().check_condition()
-
     def _near_hostiles(self, radius=2):
         agent = self.agent
         y0, x0 = agent.blstats.y, agent.blstats.x
@@ -2148,8 +2130,11 @@ class DiveLogic:
         bl = agent.blstats
         if self.shot_recently():
             self._elbereth_resting = False
+            self._burst_rest_square = None
             yield False
         resting = self._elbereth_resting
+        here = (agent.current_level().key(), bl.y, bl.x)
+        retained_burst = resting and self._burst_rest_square == here
         threshold = ELBERETH_REST_UNTIL if resting else ELBERETH_REST_BELOW
         # a fast hitter (a leocrotta took a dive from 100 to 14 HP in 6 turns) can't be outrun: hide
         # behind Elbereth as soon as HP falls fast, not only below 40%
@@ -2157,17 +2142,22 @@ class DiveLogic:
         if (bl.hitpoints >= threshold * bl.max_hitpoints and not falling) or \
                 agent.current_level().dungeon_number == GEHENNOM:
             self._elbereth_resting = False
+            self._burst_rest_square = None
             yield False
         if DIG_ESCAPE and self._dig_escape_action() is not None:
             # a digger digs on its Elbereth instead of resting on it: the hole leaves this level's monsters
             # behind (base-public s0 rested among Medusa-4's snakes, then fought them from the square)
             self._elbereth_resting = False
+            self._burst_rest_square = None
             yield False
         near = self._near_hostiles()
-        # a lone weak monster is better killed than hidden from (engraving gives it a free hit)
+        # DT6A1327713 burst admission, with explicit same-square recovery ownership.
+        # Once admitted after a burst, do not cancel the hold just because resting
+        # turns off the initial fast-loss detector. Keep normal weak fights otherwise.
         if len(near) == 1 and getattr(near[0][3], 'mlevel', 99) <= 2 and bl.hitpoints >= 6 and \
-                not self._lone_weak_deadly(near[0]):
+                not self._lone_weak_deadly(near[0]) and not (falling or retained_burst):
             self._elbereth_resting = False
+            self._burst_rest_square = None
             yield False
         # REST_FIGHT_WEAK: ... at any HP when one blow kills it (makemon difficulty <= 2, not faster than us): the
         # engraving is a sure free attack and a dust typo (1 in 25 letters, 28% per word) another; our swing kills
@@ -2177,20 +2167,42 @@ class DiveLogic:
                 getattr(near[0][3], 'mmove', 99) <= 12 and \
                 getattr(near[0][3], 'mname', '') not in _only_ranged_monsters():
             self._elbereth_resting = False
+            self._burst_rest_square = None
             yield False
         if not near or any(self._ignores_elbereth(m[3]) or
                            (jf_config.LMINION_ELBERETH and self._lawful_minion(m[3])) for m in near) or \
                 agent.character.prop.blind or agent.character.prop.polymorph:
             self._elbereth_resting = False
+            self._burst_rest_square = None
+            yield False
+        # Reactive recovery does not hand an attack to an impossible engraving.
+        # Preserve the inherited strong/dig/ranged/weak-threat policies above.
+        if utils.any_in(agent.glyphs, G.SWALLOW):
+            self._elbereth_resting = False
+            self._burst_rest_square = None
+            yield False
+        burst = falling or retained_burst
+        if burst and any(self._ignores_elbereth(m[3]) or
+                         (jf_config.LMINION_ELBERETH and self._lawful_minion(m[3]))
+                         for m in self._near_hostiles(radius=3)):
+            self._elbereth_resting = False
+            self._burst_rest_square = None
             yield False
         engraving = (agent.inventory.engraving_below_me or '').lower()
+        if engraving != 'elbereth' and self.levitating():
+            self._elbereth_resting = False
+            self._burst_rest_square = None
+            yield False
         if engraving != 'elbereth' and not agent.can_engrave():
             self._elbereth_resting = False
+            self._burst_rest_square = None
             yield False
         yield True
         if not self._elbereth_resting:
             agent.log(f'ELBERETH rest start: {[m[3].mname for m in near]}')
         self._elbereth_resting = True
+        # Set ownership only in the body, never from a successful admission probe.
+        self._burst_rest_square = here if burst else None
         self._hold_squares.add((agent.current_level().key(), bl.y, bl.x))
         if engraving != 'elbereth':
             agent.engrave('Elbereth')
