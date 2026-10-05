@@ -2739,6 +2739,10 @@ class Agent:
                 yield True
                 self.character.parse_enhance_view()
                 self.character.parse_spellcast_view()
+            elif getattr(self.character, '_spell_menu_retry', False) and self.spell_action_capacity():
+                # A transient refusal on fight entry must not remove spells
+                # for the remainder of the encounter after capacity recovers.
+                self.character.parse_spellcast_view()
 
             move_priority_heatmap, actions = combat.fight_heur.get_priorities(self)
             actions.extend(combat.fight_heur.get_move_actions(self, dis, move_priority_heatmap))
@@ -2872,6 +2876,7 @@ class Agent:
                     wait_counter = self._fight2_perform_action(best_action, wait_counter)
             if self._fight_stall_turns():
                 self._note_fight_stall(best_action, monsters)
+
 
     _GAS_SPORE = None
 
@@ -3315,8 +3320,7 @@ class Agent:
 
     def should_cast_heal(self):
         # any role that knows healing (a Monk's starting book is healing one time in three)
-        # spell.c: Stressed or worse, "Your concentration falters while carrying so much stuff" (a lost turn)
-        if self.blstats.carrying_capacity >= 2:
+        if not self.spell_action_capacity():
             return False
         if 'healing' not in self.character.known_spells:
             return False
@@ -3330,9 +3334,9 @@ class Agent:
         low_hp = hp_ratio < 0.5 or (self.blstats.hitpoints < 10 and self.blstats.max_hitpoints > 10)
         return self.blstats.energy >= 5 and low_hp
 
+
     def should_cast_extra_heal(self):
-        # spell.c: Stressed or worse, "Your concentration falters while carrying so much stuff" (a lost turn)
-        if self.blstats.carrying_capacity >= 2:
+        if not self.spell_action_capacity():
             return False
         if 'extra healing' not in self.character.known_spells:
             return False
@@ -3345,6 +3349,7 @@ class Agent:
         hp_ratio = self.blstats.hitpoints / self.blstats.max_hitpoints
         low_hp = hp_ratio < 0.5 and (self.blstats.max_hitpoints - self.blstats.hitpoints > 25)
         return self.blstats.energy >= 15 and low_hp
+
 
     @utils.debug_log('emergency_strategy')
     @Strategy.wrap
@@ -4070,3 +4075,16 @@ class Agent:
                     self.handle_exception(e)
         except AgentFinished:
             pass
+
+    def spell_action_capacity(self):
+        """Physical/cognitive admissibility; spell-specific guards remain.
+
+        NetHack3.6.6 spell.c calls check_capacity, which rejects Overtaxed4.
+        Stunned casting is refused; confusion guarantees failure. A recent
+        observed refusal can include welded arms, form or forgotten spells.
+        """
+        bl, prop = self.blstats, self.character.prop
+        return bl.carrying_capacity < 4 and bl.strength >= 4 and \
+            not prop.stun and not prop.confusion and \
+            bl.time >= getattr(self, '_cast_refused_until', -1)
+
