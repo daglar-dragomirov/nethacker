@@ -1854,8 +1854,12 @@ class Agent:
         dy, dx = y - self.blstats.y, x - self.blstats.x
         if not self.character.prop.polymorph and self.inventory.get_best_ranged_set()[1] is not None:
             monsters = self.get_visible_monsters()
-            if combat.fight_heur.ranged_priority(self, dy, dx, monsters) is not None:
-                _, ammo = self.inventory.get_best_ranged_set()
+            choice = combat.fight_heur.ranged_choice(self, dy, dx, monsters)
+            if choice is not None:
+                launcher, ammo = choice[-2:]
+                if launcher is not None and not launcher.equipped:
+                    self.inventory.wield(launcher)
+                    return True
                 self.log(f'FEYE throwing {ammo.text!r} at the floating eye instead of hitting it')
                 return self.fire(ammo, self.calc_direction(self.blstats.y, self.blstats.x, y, x))
         return False
@@ -2735,10 +2739,6 @@ class Agent:
                 yield True
                 self.character.parse_enhance_view()
                 self.character.parse_spellcast_view()
-            elif getattr(self.character, '_spell_menu_retry', False) and self.spell_action_capacity():
-                # A transient refusal on fight entry must not remove spells
-                # for the remainder of the encounter after capacity recovers.
-                self.character.parse_spellcast_view()
 
             move_priority_heatmap, actions = combat.fight_heur.get_priorities(self)
             actions.extend(combat.fight_heur.get_move_actions(self, dis, move_priority_heatmap))
@@ -2993,14 +2993,15 @@ class Agent:
             return wait_counter
 
         elif best_action[0] == 'ranged':
-            _, dy, dx = best_action
+            _, dy, dx, launcher, ammo = best_action
+            if not combat.fight_heur.ranged_selected_pair_valid(
+                    self, dy, dx, launcher, ammo, self.get_visible_monsters()):
+                return wait_counter
             target_y = self.blstats.y + dy
             target_x = self.blstats.x + dx
-            launcher, ammo = self.inventory.get_best_ranged_set()
-            assert ammo is not None
             if launcher is not None and not launcher.equipped:
-                if self.inventory.wield(launcher):
-                    return wait_counter
+                self.inventory.wield(launcher)
+                return wait_counter  # decide again after the wield attempt
             with self.env.debug_tiles([[target_y, target_x]], (0, 0, 255, 255), mode='frame'):
                 dir = self.calc_direction(self.blstats.y, self.blstats.x, target_y, target_x,
                                           allow_nonunit_distance=True)
@@ -3312,21 +3313,10 @@ class Agent:
         if not yielded:
             yield False
 
-    def spell_action_capacity(self):
-        """Physical/cognitive admissibility; spell-specific guards remain.
-
-        NetHack3.6.6 spell.c calls check_capacity, which rejects Overtaxed4.
-        Stunned casting is refused; confusion guarantees failure. A recent
-        observed refusal can include welded arms, form or forgotten spells.
-        """
-        bl, prop = self.blstats, self.character.prop
-        return bl.carrying_capacity < 4 and bl.strength >= 4 and \
-            not prop.stun and not prop.confusion and \
-            bl.time >= getattr(self, '_cast_refused_until', -1)
-
     def should_cast_heal(self):
         # any role that knows healing (a Monk's starting book is healing one time in three)
-        if not self.spell_action_capacity():
+        # spell.c: Stressed or worse, "Your concentration falters while carrying so much stuff" (a lost turn)
+        if self.blstats.carrying_capacity >= 2:
             return False
         if 'healing' not in self.character.known_spells:
             return False
@@ -3341,7 +3331,8 @@ class Agent:
         return self.blstats.energy >= 5 and low_hp
 
     def should_cast_extra_heal(self):
-        if not self.spell_action_capacity():
+        # spell.c: Stressed or worse, "Your concentration falters while carrying so much stuff" (a lost turn)
+        if self.blstats.carrying_capacity >= 2:
             return False
         if 'extra healing' not in self.character.known_spells:
             return False
