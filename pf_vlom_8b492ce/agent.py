@@ -2544,14 +2544,8 @@ class Agent:
         if not yielded:
             yield False
 
-    def astra_has_action_capacity(self):
-        """Spells and wand zaps require less than Overtaxed (NetHack EXT_ENCUMBER)."""
-        return self.blstats.carrying_capacity < 4
-
     def should_cast_heal(self):
         # TODO: consider casting for other classes
-        if not self.astra_has_action_capacity():
-            return False
         if self.character.role != self.character.HEALER:
             return False
         if 'healing' not in self.character.known_spells:
@@ -2567,8 +2561,6 @@ class Agent:
         return self.blstats.energy >= 5 and low_hp
 
     def should_cast_extra_heal(self):
-        if not self.astra_has_action_capacity():
-            return False
         if 'extra healing' not in self.character.known_spells:
             return False
         if self.blstats.hunger_state >= Hunger.FAINTING:
@@ -2583,8 +2575,6 @@ class Agent:
 
     def astra_sleep_target(self):
         """Use the starting sleep wand against a close threat, checking reflected rays."""
-        if not self.astra_has_action_capacity():
-            return None
         if self.character.role != Character.HEALER or self.character.prop.blind or self.character.prop.hallu:
             return None
         if self.blstats.time - getattr(self, '_astra_sleep_turn', -100) < 12:
@@ -2680,8 +2670,6 @@ class Agent:
             self.log('HUNGER eating freshly created boulder meat')
             self.inventory.eat(chunks[0])
             return
-        if not self.astra_has_action_capacity():
-            yield False
         spell = 'stone to flesh'
         if spell not in self.character.known_spells or \
                 bl.energy < 15 or \
@@ -2770,8 +2758,6 @@ class Agent:
 
     def astra_deep_blind_cure_due(self):
         """Restore sight before raven blindness disables guarded digging."""
-        if not self.astra_has_action_capacity():
-            return False
         prop = self.character.prop
         return self.character.role == Character.HEALER and self.global_logic.dive.diving and \
             self.blstats.depth >= 10 and prop.blind and not (prop.polymorph or prop.confusion or prop.stun) and \
