@@ -1,6 +1,6 @@
 {
   "schema": "nethackers.solution/v1",
-  "name": "daglar-zSpellRecognition",
+  "name": "daglar-zRayProbability",
   "root": ".",
   "parents": [
     "github.com/zarutskiysy/nethack@9c1cc902b6d9d88e6a14e0c9e5dc7494d9882bcd",
@@ -17,8 +17,7 @@
     "github.com/daglar-dragomirov/nethacker@d8da1f72c197a54ac66d69466eee32f7bc4e72d9",
     "github.com/DT6A/nethacker@ad7a864d9385f84c9b4f9865bb68141c90ca5e1b",
     "github.com/zarutskiysy/nethack@96ef3261bd61e151858b181be95b066bbde9d6f4",
-    "github.com/daglar-dragomirov/nethacker@0f440af6655ce126183a753ec6ff0f2aa1e68daf",
-    "github.com/daglar-dragomirov/nethacker@be6d24aa8ca7a1b8ad4131c8485f6ca15fa9aac6"
+    "github.com/daglar-dragomirov/nethacker@0f440af6655ce126183a753ec6ff0f2aa1e68daf"
   ],
   "influences": [
     "github.com/CleverShovel/nethacker@0d1fb22498024cdcac06be9d15d0f70e8cae803c",
@@ -57,8 +56,7 @@
     "github.com/vlomshakov/nethacker@21db872529ff794a3daf14174f20fe92b2a2b2cf",
     "github.com/vlomshakov/nethacker@3488fcf091486bd983eec338c4cfefd395f1d496",
     "github.com/vlomshakov/nethacker@8b492ce95e6988b0eae2de84aef1379f885a1306",
-    "github.com/vlomshakov/nethacker@9ef4063cf36fa1d26416d11e83ef7fb1575e9ada",
-    "github.com/DT6A/nethacker@7a58db921ee9939548885025a5238d885824e11a"
+    "github.com/vlomshakov/nethacker@9ef4063cf36fa1d26416d11e83ef7fb1575e9ada"
   ],
   "entrypoint": "bot.py"
 }
