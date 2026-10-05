@@ -59,6 +59,37 @@ def _spore_blast_hits_people(agent, y, x):
     return False
 
 
+
+def select_fight_action(agent, actions, monsters):
+    """Keep action priorities and safety filters; rank only pure top melee ties.
+
+    OlegPapulov8592's difficulty/speed proxy is a target-order hypothesis,
+    not an estimate of damage. It must not promote melee over safer actions.
+    """
+    best = max(actions, key=lambda a: a[0])
+    top = [a for a in actions if a[0] == best[0]]
+    if len(top) < 2 or any(a[1][0] != 'melee' for a in top):
+        return best
+    prop = agent.character.prop
+    if prop.hallu or prop.blind or prop.confusion or prop.stun:
+        return best
+    by_square = {(m[1], m[2]): m[3] for m in monsters}
+    ranked = []
+    for a in top:
+        _, dy, dx = a[1]
+        mon = by_square.get((agent.blstats.y + dy, agent.blstats.x + dx))
+        name = getattr(mon, 'mname', 'unknown')
+        difficulty = getattr(mon, 'difficulty', None)
+        speed = getattr(mon, 'mmove', None)
+        # Missing observations and special contact/passive hazards keep parent order.
+        if name == 'unknown' or name in ONLY_RANGED_SLOW_MONSTERS or name in EXPLODING_MONSTERS or                 not isinstance(difficulty, int) or not isinstance(speed, int) or difficulty < 0 or speed < 0:
+            return best
+        tempo = 2.0 if speed > 18 else 1.5 if speed > 12 else 1.0
+        ranked.append(((1.0 + 0.4 * difficulty) * tempo, a))
+    # max is stable: equal proxies retain the inherited first action.
+    return max(ranked, key=lambda x: x[0])[1]
+
+
 def melee_monster_priority(agent, monsters, monster):
     _, y, x, mon, _ = monster
     ret = 1

@@ -2860,7 +2860,7 @@ class Agent:
                 self.search()
                 continue
 
-            priority, best_action = max(actions, key=lambda x: x[0]) if actions else None
+            priority, best_action = combat.fight_heur.select_fight_action(self, actions, monsters)
 
             with self.env.debug_tiles(move_priority_heatmap, color='turbo', is_heatmap=True):
                 actions_str = '|'.join([combat.utils.action_str(self, a) for a in sorted(actions, key=lambda x: x[0])])
