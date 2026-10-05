@@ -13,6 +13,7 @@ from nhbot.character import Character
 from nhbot.exceptions import AgentPanic
 from nhbot.glyph import G, MON, Hunger
 from nhbot import jf_config
+from nhbot.weapon_tools import tool_can_be_selected
 from nhbot.item import ItemManager, Item, ContainerContent, check_if_triggered_container_trap, \
     find_equivalent_item, flatten_items
 from nhbot.item.inventory_items import InventoryItems
@@ -921,7 +922,7 @@ class Inventory:
             # kept them out of the throwing set (eL1fe f68e24e)
             if item.is_weapon() and item.is_unambiguous() and item.object.name in MELEE_BASHING:
                 continue
-            if item.is_weapon() and \
+            if (item.is_weapon() or tool_can_be_selected(item, self.items.off_hand)) and \
                     (item.status in [Item.UNCURSED, Item.BLESSED] or
                      (allow_unknown_status and item.status == Item.UNKNOWN)):
                 to_hit, dmg = self.agent.character.get_melee_bonus(item, large_monster=False)
