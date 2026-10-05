@@ -1010,12 +1010,6 @@ class GlobalLogic:
                            self.agent.blstats.hunger_state >= Hunger.NOT_HUNGRY),
                 self.agent.eat_corpses_from_ground(only_below_me=not jf_config.EAT_NEARBY_CORPSES).every(5)
                 .condition(lambda: self.agent.blstats.hunger_state >= Hunger.NOT_HUNGRY),
-                # zWizardForage: DT6A@f6a924b Wizard nutrition, before failed prayer.
-                # Real path distance, corpse edibility/freshness, shop and pet guards
-                # remain in eat_corpses_from_ground; outer combat preempts first.
-                self.agent.eat_corpses_from_ground(only_below_me=False, max_dist=jf_config.HUNGRY_CORPSE_DIST).every(3)
-                .condition(lambda: jf_config.HUNGRY_CORPSE_DIST and not self.dive.diving and
-                           self.agent.blstats.hunger_state >= Hunger.HUNGRY),
                 # after a failed prayer corpses are the only food left: walk to the ones nearby
                 self.agent.eat_corpses_from_ground(only_below_me=False).every(3)
                 .condition(lambda: self.agent.prayer_failed and self.agent.blstats.hunger_state >= Hunger.HUNGRY),
