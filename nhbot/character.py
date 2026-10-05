@@ -5,9 +5,6 @@ import numpy as np
 from nle.nethack import actions as A
 
 from . import jf_config
-from .melee_valuation import ordinary_melee_bonus
-from .projectile_valuation import ordinary_projectile_bonus
-from .volley_valuation import conservative_volley
 from . import objects as O
 
 ALL_SPELL_NAMES = [
@@ -627,22 +624,6 @@ class Character:
             return self.weapon_bonus[self.skill_levels[sub]]
 
     def get_ranged_bonus(self, launcher, ammo, monster=None, large_monster=False):
-        parent = self._parent_ranged_bonus(launcher, ammo, monster, large_monster)
-        if monster is not None:
-            return parent
-        try:
-            calibrated = ordinary_projectile_bonus(self, launcher, ammo, large_monster)
-        except (AttributeError, IndexError, KeyError, TypeError, ValueError):
-            calibrated = None
-        if calibrated is None:
-            return parent
-        try:
-            volley = conservative_volley(self, launcher, ammo)
-        except (AttributeError, IndexError, KeyError, TypeError, ValueError):
-            volley = 1.0
-        return calibrated[0], calibrated[1] * volley
-
-    def _parent_ranged_bonus(self, launcher, ammo, monster=None, large_monster=False):
         # TODO: check code/wiki
 
         if launcher is not None:
@@ -669,14 +650,6 @@ class Character:
         return 7
 
     def get_melee_bonus(self, item, monster=None, large_monster=False):
-        parent = self._parent_melee_bonus(item, monster, large_monster)
-        try:
-            calibrated = ordinary_melee_bonus(self, item, large_monster, parent)
-        except (AttributeError, IndexError, KeyError, TypeError, ValueError):
-            calibrated = None
-        return parent if calibrated is None else calibrated
-
-    def _parent_melee_bonus(self, item, monster=None, large_monster=False):
         """ Returns a pair (to_hit, damaga)
         https://github.com/facebookresearch/nle/blob/master/src/uhitm.c : find_roll_to_hit
          """

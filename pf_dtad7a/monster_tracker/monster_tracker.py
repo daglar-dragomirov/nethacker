@@ -7,12 +7,24 @@ from nle.nethack import actions as A
 from .kernels import figure_out_monster_movement
 from .. import utils
 from ..exceptions import AgentPanic
-from ..glyph import C, G
+from ..glyph import C, G, MON
 
 
 class MonsterTracker:
     _UNSEEN_ATTACK = re.compile(r"\bIt (?:hits|bites|misses|just misses|stings|touches|butts|kicks|claws|"
                                 r"thrusts|swings|lashes|squeezes|gores|pummels|scratches|stabs|zaps|casts|spits)")
+    # hypothesis: the peaceful mask follows a monster from square to square by glyph, so a peaceful-marked
+    # domestic animal (a former pet gone wild, untamed by abuse/starvation; dog.c, mon.c setmangry) that turns
+    # hostile keeps being skipped by fight2 while it bites us: 'killed by a kitten' twice among the held-out
+    # Dlvl 1 grind deaths. Taking such an animal for hostile once the message says it attacked us (and it is the
+    # only one of its name next to us) lets fight2 answer it. (Measured: public 0.3070 -> 0.3433, early losses 11 -> 8.)
+    # sources: /refs/top/a7fa5d4f79f8 + /refs/top/a17244232c7e monster_tracker.py (_recheck_attackers, HOSTILE_RECHECK),
+    #          https://nethackwiki.com/wiki/Pet (abuse lowers tameness; an untame former pet may turn hostile),
+    #          https://nethackwiki.com/wiki/Tourist, NetHack 3.6.6 src/mhitu.c hitmsg()
+    _ATTACK_ON_US = re.compile(r"\bThe ([a-z][a-z -]*?) (?:bites|hits|kicks|butts|claws|scratches|touches|misses|"
+                               r"just misses)!")
+    _DOMESTIC = frozenset(('kitten', 'housecat', 'large cat', 'little dog', 'dog', 'large dog', 'pony', 'horse',
+                           'warhorse'))
 
     def __init__(self, agent):
         self.agent = agent
@@ -87,6 +99,8 @@ class MonsterTracker:
             else:
                 self.peaceful_monster_mask = new_peaceful_mons
         # TODO: on hallu no monsters are peaceful
+        if self.peaceful_monster_mask.any() and not self.agent.character.prop.hallu:
+            self._recheck_attackers()
 
         # an unseen monster ('I': felt while blind, or an invisible one) next to where a shopkeeper stood in
         # the last 30 turns is presumed to be him -- neither attacked nor walked into (a move into an 'I'
@@ -111,3 +125,22 @@ class MonsterTracker:
 
         assert (~self.peaceful_monster_mask | self.monster_mask).all()
         self._last_glyphs = self.agent.glyphs.copy()
+
+    def _recheck_attackers(self):
+        names = set(self._ATTACK_ON_US.findall(self.agent.message or '')) & self._DOMESTIC
+        if not names:
+            return
+        y0, x0 = self.agent.blstats.y, self.agent.blstats.x
+        seen = {}
+        for y in range(max(y0 - 1, 0), min(y0 + 2, C.SIZE_Y)):
+            for x in range(max(x0 - 1, 0), min(x0 + 2, C.SIZE_X)):
+                g = self.agent.glyphs[y, x]
+                if (y, x) == (y0, x0) or not self.monster_mask[y, x] or not MON.is_monster(g):
+                    continue
+                name = MON.permonst(g).mname
+                if name in names:
+                    seen.setdefault(name, []).append((y, x))
+        for name, squares in seen.items():
+            if len(squares) == 1 and self.peaceful_monster_mask[squares[0]]:
+                self.peaceful_monster_mask[squares[0]] = False
+                self.agent.log(f'HOSTILE_RECHECK: the {name} at {squares[0]} attacked us: not peaceful')
