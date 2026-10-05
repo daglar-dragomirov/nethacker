@@ -3634,47 +3634,6 @@ class Agent:
 
         yield False
 
-
-    @Strategy.wrap
-    def emergency_meal(self):
-        """Eat ready, ordinary food at Weak+ before a passive-only stalled fight.
-
-        Hungry timing and every existing emergency prayer/escape retain priority.
-        This is a meal opportunity guard, not an unseen-threat guarantee.
-        """
-        bl = self.blstats
-        if bl.hunger_state < Hunger.WEAK or bl.carrying_capacity >= 4 or bl.prop_mask or \
-                self.character.prop.polymorph or self.global_logic.dive.levitating() or \
-                self.glyphs[bl.y, bl.x] in G.SWALLOW or self._hurt_recently(6):
-            yield False
-        # These five are immobile and their attacks are AT_NONE passive contact
-        # in NetHack3.6.6 monst.c. Reject any other visible monster, even far away.
-        stationary = {'blue jelly', 'brown mold', 'yellow mold', 'green mold', 'red mold'}
-        for _, y, x, mon, _ in self.get_visible_monsters():
-            if mon.mname not in stationary or getattr(mon, 'mmove', None) != 0 or \
-                    max(abs(y - bl.y), abs(x - bl.x)) <= 1:
-                yield False
-        ordinary = {'apple', 'orange', 'pear', 'melon', 'banana', 'carrot',
-                    'candy bar', 'fortune cookie', 'pancake', 'lembas wafer',
-                    'cram ration', 'food ration'}
-        food = []
-        for item in self.edible_carried_food():
-            # No bag retrieval, tin opening, corpse risk, special cure or dog food.
-            if item not in self.inventory.items.all_items or not item.is_unambiguous() or \
-                    item.is_corpse() or item.status not in (Item.UNCURSED, Item.BLESSED):
-                continue
-            obj = item.object
-            if obj.name in ordinary and 0 < obj.delay <= 5 and obj.nutrition > 0:
-                food.append(item)
-        if not food:
-            yield False
-        # Restore useful nutrition with fewer meals; at equal nutrition prefer
-        # the shorter occupation. This never chooses a food for a close fight.
-        item = max(food, key=lambda i: (i.object.nutrition, -i.object.delay))
-        yield True
-        self.log(f'EMERGENCY_MEAL eating {item.text!r} (hunger {bl.hunger_state})')
-        self.inventory.eat(item, smart=False)
-
     @utils.debug_log('eat_from_inventory')
     @Strategy.wrap
     def eat_from_inventory(self):
