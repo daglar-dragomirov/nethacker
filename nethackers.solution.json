@@ -1,6 +1,6 @@
 {
   "schema": "nethackers.solution/v1",
-  "name": "daglar-zTouristRecognition",
+  "name": "daglar-zSpellCapacity",
   "root": ".",
   "parents": [
     "github.com/zarutskiysy/nethack@9c1cc902b6d9d88e6a14e0c9e5dc7494d9882bcd",
@@ -55,8 +55,7 @@
     "github.com/vlomshakov/nethacker@21db872529ff794a3daf14174f20fe92b2a2b2cf",
     "github.com/vlomshakov/nethacker@3488fcf091486bd983eec338c4cfefd395f1d496",
     "github.com/vlomshakov/nethacker@8b492ce95e6988b0eae2de84aef1379f885a1306",
-    "github.com/vlomshakov/nethacker@9ef4063cf36fa1d26416d11e83ef7fb1575e9ada",
-    "github.com/DT6A/nethacker@7a58db921ee9939548885025a5238d885824e11a"
+    "github.com/vlomshakov/nethacker@9ef4063cf36fa1d26416d11e83ef7fb1575e9ada"
   ],
   "entrypoint": "bot.py"
 }

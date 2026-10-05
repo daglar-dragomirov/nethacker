@@ -3308,10 +3308,21 @@ class Agent:
         if not yielded:
             yield False
 
+    def spell_action_capacity(self):
+        """Physical/cognitive admissibility; spell-specific guards remain.
+
+        NetHack3.6.6 spell.c calls check_capacity, which rejects Overtaxed4.
+        Stunned casting is refused; confusion guarantees failure. A recent
+        observed refusal can include welded arms, form or forgotten spells.
+        """
+        bl, prop = self.blstats, self.character.prop
+        return bl.carrying_capacity < 4 and bl.strength >= 4 and \
+            not prop.stun and not prop.confusion and \
+            bl.time >= getattr(self, '_cast_refused_until', -1)
+
     def should_cast_heal(self):
         # any role that knows healing (a Monk's starting book is healing one time in three)
-        # spell.c: Stressed or worse, "Your concentration falters while carrying so much stuff" (a lost turn)
-        if self.blstats.carrying_capacity >= 2:
+        if not self.spell_action_capacity():
             return False
         if 'healing' not in self.character.known_spells:
             return False
@@ -3326,8 +3337,7 @@ class Agent:
         return self.blstats.energy >= 5 and low_hp
 
     def should_cast_extra_heal(self):
-        # spell.c: Stressed or worse, "Your concentration falters while carrying so much stuff" (a lost turn)
-        if self.blstats.carrying_capacity >= 2:
+        if not self.spell_action_capacity():
             return False
         if 'extra healing' not in self.character.known_spells:
             return False
