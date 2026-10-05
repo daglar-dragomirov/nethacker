@@ -5,6 +5,7 @@ import numpy as np
 from nle.nethack import actions as A
 
 from . import jf_config
+from .melee_valuation import ordinary_melee_bonus
 from . import objects as O
 
 ALL_SPELL_NAMES = [
@@ -650,6 +651,14 @@ class Character:
         return 7
 
     def get_melee_bonus(self, item, monster=None, large_monster=False):
+        parent = self._parent_melee_bonus(item, monster, large_monster)
+        try:
+            calibrated = ordinary_melee_bonus(self, item, large_monster, parent)
+        except (AttributeError, IndexError, KeyError, TypeError, ValueError):
+            calibrated = None
+        return parent if calibrated is None else calibrated
+
+    def _parent_melee_bonus(self, item, monster=None, large_monster=False):
         """ Returns a pair (to_hit, damaga)
         https://github.com/facebookresearch/nle/blob/master/src/uhitm.c : find_roll_to_hit
          """
