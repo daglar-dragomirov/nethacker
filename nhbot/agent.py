@@ -2735,6 +2735,10 @@ class Agent:
                 yield True
                 self.character.parse_enhance_view()
                 self.character.parse_spellcast_view()
+            elif getattr(self.character, '_spell_menu_retry', False) and self.spell_action_capacity():
+                # A transient refusal on fight entry must not remove spells
+                # for the remainder of the encounter after capacity recovers.
+                self.character.parse_spellcast_view()
 
             move_priority_heatmap, actions = combat.fight_heur.get_priorities(self)
             actions.extend(combat.fight_heur.get_move_actions(self, dis, move_priority_heatmap))

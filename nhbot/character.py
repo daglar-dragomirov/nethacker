@@ -5,6 +5,7 @@ import numpy as np
 from nle.nethack import actions as A
 
 from . import jf_config
+from .melee_valuation import ordinary_melee_bonus
 from . import objects as O
 
 ALL_SPELL_NAMES = [
@@ -449,21 +450,40 @@ class Character:
         self.gender = self.name_to_gender[gender]
 
     def parse_spellcast_view(self):
-        self.known_spells = dict()
-        self.spell_fail_chance = dict()
-
-        # Healers heal themselves, Wizards cast force bolt (see fight_heur.force_bolt_actions)
+        # Keep valid knowledge through a temporary pre-menu refusal. A complete
+        # observed menu, including forgotten spells, is the source of truth.
         if self.role not in (self.HEALER, self.WIZARD, self.MONK, self.PRIEST):
-            return
-
+            self.known_spells = {}
+            self.spell_fail_chance = {}
+            self._spell_menu_retry = False
+            return False
+        if not hasattr(self, 'known_spells'):
+            self.known_spells = {}
+        if not hasattr(self, 'spell_fail_chance'):
+            self.spell_fail_chance = {}
+        if not self.agent.spell_action_capacity():
+            self._spell_menu_retry = True
+            return False
         with self.agent.atom_operation():
             self.agent.step(A.Command.CAST)
             if not self.agent.popup:
-                self.known_spells[self.agent.message] = None
-                return
-            if self.agent.popup[0] not in ('Choose which spell to cast') or \
+                if "You don't know any spells" in self.agent.message:
+                    self.known_spells = {}
+                    self.spell_fail_chance = {}
+                    self._spell_menu_retry = False
+                else:
+                    self._spell_menu_retry = True
+                    # Reuse the existing refusal interval; do not retry a
+                    # rejected zero-turn menu command on every combat action.
+                    self.agent._cast_refused_until = max(
+                        getattr(self.agent, '_cast_refused_until', -1),
+                        self.agent.blstats.time + jf_config.FB_REFUSE_TURNS)
+                return False
+            if len(self.agent.popup) < 2 or \
+                    self.agent.popup[0] != 'Choose which spell to cast' or \
                     not self.agent.popup[1].startswith('Name'):
                 raise ValueError(f'Invalid cast popup text format: {self.agent.popup}')
+            known, failure = {}, {}
             for line in self.agent.popup[2:]:
                 matches = re.findall(r'^([a-zA-Z]) - *' +
                                      r'(' + '|'.join(ALL_SPELL_NAMES) + ') *' +
@@ -474,13 +494,15 @@ class Character:
                 assert len(matches) == 1, (matches, line)
                 letter, spell_name, level, category, fail, retention = matches[0]
                 assert len(letter) == 1, letter
-                # FB_SANITY: a spell whose memory has run out (spell.c: KEEN = 20000 turns after it was learnt -- every
-                # starting spell at T20000) only backfires: 'Your knowledge of this spell is twisted.'
                 if jf_config.FB_SANITY and retention == '(gone)':
                     continue
-                self.known_spells[spell_name] = letter
-                self.spell_fail_chance[spell_name] = int(fail) / 100
+                known[spell_name] = letter
+                failure[spell_name] = int(fail) / 100
+            self.known_spells, self.spell_fail_chance = known, failure
         self.agent.step(A.Command.ESC)
+        self._spell_menu_retry = False
+        return True
+
 
     def parse_enhance_view(self):
         with self.agent.atom_operation():
@@ -650,6 +672,14 @@ class Character:
         return 7
 
     def get_melee_bonus(self, item, monster=None, large_monster=False):
+        parent = self._parent_melee_bonus(item, monster, large_monster)
+        try:
+            calibrated = ordinary_melee_bonus(self, item, large_monster, parent)
+        except (AttributeError, IndexError, KeyError, TypeError, ValueError):
+            calibrated = None
+        return parent if calibrated is None else calibrated
+
+    def _parent_melee_bonus(self, item, monster=None, large_monster=False):
         """ Returns a pair (to_hit, damaga)
         https://github.com/facebookresearch/nle/blob/master/src/uhitm.c : find_roll_to_hit
          """
