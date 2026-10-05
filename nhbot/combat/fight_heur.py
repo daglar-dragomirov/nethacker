@@ -14,7 +14,46 @@ from .movement_priority import draw_monster_priority_positive, draw_monster_prio
 from .utils import wielding_ranged_weapon, line_dis_from, inside
 
 
+_GAS_SPORE_GLYPH = None
+
+
+def _spore_chain_positions(agent, y, x):
+    """Conservative connected visible blast component, radius one in both axes.
+
+    Adapted from DT6A/nethacker@a687804a2de754dd23c05e4fbe17d6f792977c8b.
+    Visibility, intervening barriers and actual monster HP can reduce the chain.
+    """
+    global _GAS_SPORE_GLYPH
+    if _GAS_SPORE_GLYPH is None:
+        _GAS_SPORE_GLYPH = MON.from_name('gas spore')
+    spores = set(zip(*np.nonzero(agent.glyphs == _GAS_SPORE_GLYPH)))
+    spores.add((y, x))
+    component, todo = {(y, x)}, [(y, x)]
+    while todo:
+        cy, cx = todo.pop()
+        for sy, sx in spores:
+            if (sy, sx) not in component and max(abs(sy-cy), abs(sx-cx)) <= 1:
+                component.add((sy, sx))
+                todo.append((sy, sx))
+    return component
+
+
 def spore_blast_hits_friend(agent, y, x):
+    """Veto a potentially lethal multiple blast or any chained protected exposure.
+
+    Keep lone-spore hero handling unchanged. The 24-per-blast bound follows the
+    NetHack3.6.6 gas-spore AT_BOOM 4d6 entry; this is not expected damage.
+    """
+    component = _spore_chain_positions(agent, y, x)
+    y0, x0 = agent.blstats.y, agent.blstats.x
+    hits = sum(max(abs(sy-y0), abs(sx-x0)) <= 1 for sy, sx in component)
+    if hits > 1 and agent.blstats.hitpoints <= 24 * hits:
+        return True
+    return any(_single_spore_blast_hits_friend(agent, sy, sx)
+               for sy, sx in sorted(component))
+
+
+def _single_spore_blast_hits_friend(agent, y, x):
     """A gas spore killed at (y, x) explodes over its 3x3 square: a pet or peaceful there gets hurt and
     the hero gets the blame (a shopkeeper next to a spore turned hostile and killed an XL8 Valkyrie)."""
     sl = np.s_[max(y - 1, 0):y + 2, max(x - 1, 0):x + 2]
@@ -184,34 +223,7 @@ def unseen_pet_may_be_at(agent, y, x):
     return False
 
 
-def ranged_choice(agent, dy, dx, monsters):
-    if dy not in (-1, 0, 1) or dx not in (-1, 0, 1) or (dy == 0 and dx == 0):
-        return None
-    best = None
-    best_key = None
-    for launcher, ammo in agent.inventory.ranged_combinations_for_action():
-        result = _ranged_priority_for_pair(agent, dy, dx, monsters, launcher, ammo)
-        if result is None:
-            continue
-        hit, damage = agent.character.get_ranged_bonus(launcher, ammo)
-        key = (result[0], utils.calc_dps(hit, damage))
-        if best is None or key > best_key:
-            best = result + (launcher, ammo)
-            best_key = key
-    return best
-
-
 def ranged_priority(agent, dy, dx, monsters):
-    choice = ranged_choice(agent, dy, dx, monsters)
-    return None if choice is None else choice[:4]
-
-
-def ranged_selected_pair_valid(agent, dy, dx, launcher, ammo, monsters):
-    return ((launcher, ammo) in agent.inventory.ranged_combinations_for_action()
-            and _ranged_priority_for_pair(agent, dy, dx, monsters, launcher, ammo) is not None)
-
-
-def _ranged_priority_for_pair(agent, dy, dx, monsters, launcher, ammo):
     if missiles_risk_the_watch(agent):
         return None
     ret = 11
@@ -226,6 +238,7 @@ def _ranged_priority_for_pair(agent, dy, dx, monsters, launcher, ammo):
     if closest_mon_dis == 1:
         ret -= 11
 
+    launcher, ammo = agent.inventory.get_best_ranged_set()
     if ammo is None:
         return None
 
@@ -346,7 +359,6 @@ def _simulate_wand_path(agent, wand, monsters, y, x, dy, dx, range_left, hit_tar
         _simulate_wand_path(agent, wand, monsters, y, x, dy, dx, branch_range - 1, hit_targets, probability * next_prob)
 
 
-
 def simulate_wand_path(agent, wand, monsters, dy, dx):
     """ Returns list of tuples (y, x, hit_object, expected_hit_count).
     """
@@ -425,6 +437,10 @@ def get_potential_wand_usages(agent, monsters, dy, dx):
             # SHOP_SAFETY: SPORE_SAFE kept fight2's melee and throws off a gas spore whose blast reaches a peaceful, a
             # shop square or the pet, but not its wand plans: wz0 wiz-elf-cha-mal s631 zapped lightning at a spore in a
             # shop -- 'You kill the gas spore! Changdu is caught in the gas spore's explosion! Changdu gets angry!'
+            continue
+        if any(getattr(m[3], 'mname', '') == 'gas spore' and
+               spore_blast_hits_friend(agent, ty, tx)
+               for ty, tx, m in targeted_monsters):
             continue
         if targeted_monsters:
             # priority = priority * (1 - player_hp_ratio) - 10
@@ -562,13 +578,13 @@ def get_available_actions(agent, monsters):
     # ranged attack actions
     for dy, dx in product([-1, 0, 1], [-1, 0, 1]):
         if dy != 0 or dx != 0:
-            ranged_pr = ranged_choice(agent, dy, dx, monsters)
+            ranged_pr = ranged_priority(agent, dy, dx, monsters)
             if ranged_pr is not None:
-                pri, y, x, monster, launcher, ammo = ranged_pr
+                pri, y, x, monster = ranged_pr
                 pri += elbereth_attack_penalty(agent, monsters, monster)
                 if all(monster[3].mname in ONLY_RANGED_SLOW_MONSTERS for monster in monsters):
                     pri += 10
-                actions.append((pri, ('ranged', dy, dx, launcher, ammo)))
+                actions.append((pri, ('ranged', dy, dx)))
 
             actions.extend(get_potential_wand_usages(agent, monsters, dy, dx))
 
@@ -626,7 +642,6 @@ def _fb_castable(agent):
                     not (jf_config.FB_SANITY and _fb_cannot_cast(agent)))
     except Exception:
         return False
-
 
 
 def _fb_cannot_cast(agent):
@@ -733,6 +748,8 @@ def force_bolt_actions(agent, monsters):
             continue
         if mon.mname in EXPLODING_MONSTERS and dist == 1:
             continue
+        if mon.mname == 'gas spore' and spore_blast_hits_friend(agent, y, x):
+            continue
         sy, sx = int(np.sign(dy)), int(np.sign(dx))
         cy, cx, clear = y0, x0, True
         for _ in range(dist - 1):
@@ -755,7 +772,6 @@ def force_bolt_actions(agent, monsters):
         if best is None or priority > best[0]:
             best = (priority, ('force_bolt', sy, sx))
     return [best] if best is not None else []
-
 
 
 def decide_what_to_pickup(agent):
