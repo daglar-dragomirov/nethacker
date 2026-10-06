@@ -260,8 +260,23 @@ def ranged_priority(agent, dy, dx, monsters):
 
 
 def get_next_states(agent, wand, y, x, dy, dx):
-    if not inside(agent, y, x) or not agent.current_level().walkable[y, x]:
-        can_bounce = wand.is_ray_wand()
+    # NLE 1.3.0 zap_over_floor absorbs a regular closed-door ray;
+    # ZAP_POS permits iron bars. Hero navigation blocks both terrain types.
+    level = agent.current_level()
+    ray = wand.is_ray_wand()
+
+    def path_open(yy, xx):
+        if not inside(agent, yy, xx):
+            return False
+        if level.walkable[yy, xx]:
+            return True
+        return ray and level.objects[yy, xx] in G.BARS
+
+    if (ray and inside(agent, y, x) and not level.walkable[y, x]
+            and level.objects[y, x] in G.DOOR_CLOSED):
+        return []
+    if not path_open(y, x):
+        can_bounce = ray
         if not can_bounce:
             return []
         if dy == 0 or dx == 0:
@@ -269,8 +284,8 @@ def get_next_states(agent, wand, y, x, dy, dx):
         # TODO: diagonal
         side1 = (y, x - dx)
         side2 = (y - dy, x)
-        side1_wall = not inside(agent, *side1) or not agent.current_level().walkable[side1]
-        side2_wall = not inside(agent, *side2) or not agent.current_level().walkable[side2]
+        side1_wall = not path_open(*side1)
+        side2_wall = not path_open(*side2)
         dy1, dx1 = side2[0] - side1[0], side2[1] - side1[1]
         dy2, dx2 = side1[0] - side2[0], side1[1] - side2[1]
         if side1_wall and side2_wall:
@@ -321,23 +336,13 @@ def _simulate_wand_path(agent, wand, monsters, y, x, dy, dx, range_left, hit_tar
 
 
 def simulate_wand_path(agent, wand, monsters, dy, dx):
-    """Yield expected visits over the source-defined random ray horizon."""
+    """ Returns list of tuples (y, x, hit_object, expected_hit_count).
+    """
     y, x = agent.blstats.y, agent.blstats.x
+
+    # TODO: random range left from 6 or 7 to 13
     hit_targets = defaultdict(int)
-    if wand.is_ray_wand():
-        # NLE 1.3.0 zap.c:buzz chooses rn1(7, 7), uniformly 7..13.
-        # The recursive model advances even at budget zero, hence length-1.
-        # This averages its inherited bounce/hit model; it does not model
-        # unobserved reflection, misses or terrain-specific floor effects.
-        for length in range(7, 14):
-            _simulate_wand_path(agent, wand, monsters, y, x, dy, dx,
-                                length - 1, hit_targets, 1 / 7)
-    else:
-        # Offensive admission currently excludes immediate and digging wands.
-        # Keep the old fallback for any other caller rather than applying
-        # buzz's distribution to a different effect family.
-        _simulate_wand_path(agent, wand, monsters, y, x, dy, dx,
-                            13, hit_targets, 1.0)
+    _simulate_wand_path(agent, wand, monsters, y, x, dy, dx, 13, hit_targets, 1.0)
     for (y, x, hit_object), expected_hit_count in hit_targets.items():
         yield y, x, hit_object, expected_hit_count
 
