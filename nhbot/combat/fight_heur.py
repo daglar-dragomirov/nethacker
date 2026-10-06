@@ -594,7 +594,7 @@ def _fb_castable(agent):
     try:
         return bool(jf_config.FORCE_BOLT and 'force bolt' in getattr(character, 'known_spells', {}) and
                     agent.blstats.energy >= 5 and agent.blstats.hunger_state < Hunger.WEAK and
-                    not character.prop.polymorph and agent.spell_action_capacity() and
+                    not character.prop.polymorph and agent.blstats.carrying_capacity < 2 and
                     character.spell_fail_chance.get('force bolt', 1) <= 0.3 and
                     not (jf_config.FB_SANITY and _fb_cannot_cast(agent)))
     except Exception:
@@ -675,7 +675,7 @@ def force_bolt_actions(agent, monsters):
         return []
     if agent.blstats.hunger_state >= Hunger.WEAK or character.prop.polymorph:  # "too hungry to cast"
         return []
-    if not agent.spell_action_capacity():
+    if agent.blstats.carrying_capacity >= 2:  # Stressed: "Your concentration falters"
         return []
     if character.spell_fail_chance.get('force bolt', 1) > 0.3:
         return []

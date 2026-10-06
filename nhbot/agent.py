@@ -2194,48 +2194,6 @@ class Agent:
     # ~1 time in 13-26 (wipe_engr_at), where a dust Elbereth garbles 28% of writes and smudges every ~85 turns
     _DURABLE_PROMPT = re.compile(r'What do you want to (engrave|add to the engraving)')
 
-    def hold_fire_wand(self):
-        """Known paid fire wand; one charge for a hold leaves at least two for combat."""
-        choices = []
-        for item in self.inventory.items:
-            if item.category != nh.WAND_CLASS or not item.is_unambiguous() or item.object.name != 'fire' or \
-                    item.status not in (Item.UNCURSED, Item.BLESSED) or item.shop_status != Item.NOT_SHOP or \
-                    item.count != 1:
-                continue
-            match = re.fullmatch(r'\d+:(\d+)', item.uses or '')
-            if match and int(match[1]) >= 3:
-                choices.append((int(match[1]), self.inventory.items.get_letter(item), item))
-        return min(choices, key=lambda x: x[:2])[2] if choices else None
-
-    def engrave_fire_hold(self, item):
-        """Single fire inscription with checked prompts and observed final text."""
-        letter = self.inventory.items.get_letter(item)
-        entered = False
-
-        def gen():
-            nonlocal entered
-            if 'What do you want to write with?' not in self.single_message:
-                yield A.Command.ESC
-                return
-            yield letter
-            if 'Do you want to add to the current engraving?' in self.single_message:
-                yield 'n'
-            while self._observation['misc'][2]:
-                yield ' '
-            if 'What do you want to burn into the floor here?' not in self.single_message:
-                yield A.Command.ESC
-                return
-            yield from 'Elbereth'
-            yield '\r'
-            entered = True
-
-        with self.atom_operation():
-            self.step(A.Command.ENGRAVE, gen())
-            self.inventory.get_items_below_me()
-        verified = entered and (self.inventory.engraving_below_me or '').lower() == 'elbereth'
-        self.log(f'BURNED hold inscription: verified={verified}')
-        return verified
-
     def durable_engrave_tool(self):
         """DURABLE_ELBERETH: the item to engrave a lasting Elbereth with, or None: an athame (not known cursed: one
         piece, no dulling), else an unwielded blade (dagger to saber skill, not a mattock) known to be +0 or better,
@@ -3350,21 +3308,10 @@ class Agent:
         if not yielded:
             yield False
 
-    def spell_action_capacity(self):
-        """Physical/cognitive admissibility; spell-specific guards remain.
-
-        NetHack3.6.6 spell.c calls check_capacity, which rejects Overtaxed4.
-        Stunned casting is refused; confusion guarantees failure. A recent
-        observed refusal can include welded arms, form or forgotten spells.
-        """
-        bl, prop = self.blstats, self.character.prop
-        return bl.carrying_capacity < 4 and bl.strength >= 4 and \
-            not prop.stun and not prop.confusion and \
-            bl.time >= getattr(self, '_cast_refused_until', -1)
-
     def should_cast_heal(self):
         # any role that knows healing (a Monk's starting book is healing one time in three)
-        if not self.spell_action_capacity():
+        # spell.c: Stressed or worse, "Your concentration falters while carrying so much stuff" (a lost turn)
+        if self.blstats.carrying_capacity >= 2:
             return False
         if 'healing' not in self.character.known_spells:
             return False
@@ -3379,7 +3326,8 @@ class Agent:
         return self.blstats.energy >= 5 and low_hp
 
     def should_cast_extra_heal(self):
-        if not self.spell_action_capacity():
+        # spell.c: Stressed or worse, "Your concentration falters while carrying so much stuff" (a lost turn)
+        if self.blstats.carrying_capacity >= 2:
             return False
         if 'extra healing' not in self.character.known_spells:
             return False

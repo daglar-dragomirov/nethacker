@@ -911,8 +911,6 @@ class DiveLogic:
         self._hold_squares = set()         # (level key, y, x) where a hold (faint guard, Elbereth rest) stood
         self._durable_sq = {}              # DURABLE_ELBERETH: level key -> (y, x) of our engraved Elbereth there
         self._durable_walk_blocked_until = -1
-        self._burned_hold_attempted = set()
-        self._burned_hold_squares = set()
         self._last_update_turn = 0
         self.pet_seen = {}                 # level key -> last turn a pet glyph was in view
         self._last_pos = None              # (level key, (y, x)) at the previous update
@@ -2167,8 +2165,6 @@ class DiveLogic:
             self._elbereth_resting = False
             yield False
         engraving = (agent.inventory.engraving_below_me or '').lower()
-        if self._burned_hold_partial_here(engraving):
-            yield False
         if engraving != 'elbereth' and not agent.can_engrave():
             self._elbereth_resting = False
             yield False
@@ -2178,7 +2174,7 @@ class DiveLogic:
         self._elbereth_resting = True
         self._hold_squares.add((agent.current_level().key(), bl.y, bl.x))
         if engraving != 'elbereth':
-            self._write_hold_elbereth()
+            agent.engrave('Elbereth')
             return
         agent.search()
 
@@ -2419,8 +2415,6 @@ class DiveLogic:
         if not threat:
             yield False
         engraving = (agent.inventory.engraving_below_me or '').lower()
-        if self._burned_hold_partial_here(engraving):
-            yield False
         if engraving != 'elbereth' and not agent.can_engrave():
             yield False
         yield True
@@ -2453,59 +2447,11 @@ class DiveLogic:
                     return
             agent.log(f'FAINT guard ({"Fainting" if fainting else "Weak"}{", idle" if idle else ""}): Elbereth vs '
                       f'{[m[3].mname for m in near]} hp={bl.hitpoints}/{bl.max_hitpoints}')
-            self._write_hold_elbereth()
+            agent.engrave('Elbereth')
             return
         # one turn at a time while Fainting: a faint interrupting a counted search is read as a longer faint by
         # the faint-length hunger estimate (dive.update), ~30 nutrition too low at XL 7 (grind-food)
         agent.search(1 if near or fainting else 3)
-
-    def _burned_hold_eligible(self):
-        agent = self.agent
-        bl = agent.blstats
-        level = agent.current_level()
-        prop = agent.character.prop
-        if not jf_config.BURNED_HOLD or level.key() in self._burned_hold_attempted or \
-                prop.blind or prop.hallu or prop.confusion or prop.stun or prop.polymorph or \
-                self.levitating() or not agent.can_engrave() or agent.in_pit() or \
-                utils.any_in(agent.glyphs, G.SWALLOW) or bl.carrying_capacity >= 2 or \
-                level.dungeon_number == GEHENNOM or agent.inventory.engraving_below_me:
-            return False
-        here = (int(bl.y), int(bl.x))
-        return level.objects[here] in G.FLOOR and here not in level.stair_destination and not level.shop[here]
-
-    def _burned_hold_partial_here(self, engraving):
-        bl = self.agent.blstats
-        here = (self.agent.current_level().key(), bl.y, bl.x)
-        return jf_config.BURNED_HOLD and here in self._burned_hold_squares and bool(engraving) and engraving != 'elbereth'
-
-    def _write_hold_elbereth(self):
-        """The caller has already chosen this hold; preserve its admission/priority."""
-        agent = self.agent
-        tool = agent.hold_fire_wand() if self._burned_hold_eligible() else None
-        if tool is None:
-            agent.engrave('Elbereth')
-            return
-        bl = agent.blstats
-        key = agent.current_level().key()
-        self._burned_hold_attempted.add(key)  # Cancellation still consumes the per-level attempt.
-        agent.engrave_fire_hold(tool)
-        if agent.current_level().key() == key and (agent.blstats.y, agent.blstats.x) == (bl.y, bl.x) and \
-                agent.inventory.engraving_below_me:
-            self._burned_hold_squares.add((key, bl.y, bl.x))
-        # No second action in this hold iteration, including failed text/readback.
-
-    def _burned_hold_exit(self, here):
-        """Leave a finished burn instead of repeatedly trying to finger-wipe it."""
-        agent = self.agent
-        level = agent.current_level()
-        for y, x in agent.neighbors(int(here[1]), int(here[2]), shuffle=False):
-            square = (y, x)
-            if level.walkable[square] and level.objects[square] in G.FLOOR and \
-                    not agent.monster_tracker.monster_mask[square] and not level.shop[square] and \
-                    not level.forbidden[square] and level.forbidden_until[square] <= agent.blstats.time and \
-                    level.petrify_until[square] <= agent.blstats.time and square not in level.stair_destination:
-                return square
-        return None
 
     def _durable_target(self):
         """DURABLE_ELBERETH: this level's engraved Elbereth (y, x) when it is within DURABLE_WALK steps and nothing is
@@ -2561,8 +2507,7 @@ class DiveLogic:
         here = (agent.current_level().key(), bl.y, bl.x)
         if here not in self._hold_squares:
             yield False
-        burned = jf_config.BURNED_HOLD and here in self._burned_hold_squares
-        durable = burned or (jf_config.DURABLE_ELBERETH and self._durable_sq.get(here[0]) == (int(bl.y), int(bl.x)))
+        durable = jf_config.DURABLE_ELBERETH and self._durable_sq.get(here[0]) == (int(bl.y), int(bl.x))
         engraving = (agent.inventory.engraving_below_me or '').lower()
         if engraving != 'elbereth':
             self._hold_squares.discard(here)
@@ -2571,16 +2516,7 @@ class DiveLogic:
         if bl.hunger_state >= Hunger.WEAK or bl.hitpoints < ELBERETH_REST_UNTIL * bl.max_hitpoints or \
                 agent.character.prop.blind or (not durable and not agent.can_engrave()):
             yield False
-        target = self._burned_hold_exit(here) if burned else None
-        if burned and target is None:
-            yield False
         yield True
-        if burned:
-            try:
-                agent.move(*target)
-            except AgentPanic:
-                agent.search(1)
-            return
         if durable:
             # DURABLE_ELBERETH: dust can't wipe engraved text ('You cannot wipe out the message ...'), and the square
             # is kept for the next hold: step off it (it stays a hold square, so this runs whenever we stop on it)
