@@ -321,13 +321,23 @@ def _simulate_wand_path(agent, wand, monsters, y, x, dy, dx, range_left, hit_tar
 
 
 def simulate_wand_path(agent, wand, monsters, dy, dx):
-    """ Returns list of tuples (y, x, hit_object, expected_hit_count).
-    """
+    """Yield expected visits over the source-defined random ray horizon."""
     y, x = agent.blstats.y, agent.blstats.x
-
-    # TODO: random range left from 6 or 7 to 13
     hit_targets = defaultdict(int)
-    _simulate_wand_path(agent, wand, monsters, y, x, dy, dx, 13, hit_targets, 1.0)
+    if wand.is_ray_wand():
+        # NLE 1.3.0 zap.c:buzz chooses rn1(7, 7), uniformly 7..13.
+        # The recursive model advances even at budget zero, hence length-1.
+        # This averages its inherited bounce/hit model; it does not model
+        # unobserved reflection, misses or terrain-specific floor effects.
+        for length in range(7, 14):
+            _simulate_wand_path(agent, wand, monsters, y, x, dy, dx,
+                                length - 1, hit_targets, 1 / 7)
+    else:
+        # Offensive admission currently excludes immediate and digging wands.
+        # Keep the old fallback for any other caller rather than applying
+        # buzz's distribution to a different effect family.
+        _simulate_wand_path(agent, wand, monsters, y, x, dy, dx,
+                            13, hit_targets, 1.0)
     for (y, x, hit_object), expected_hit_count in hit_targets.items():
         yield y, x, hit_object, expected_hit_count
 
@@ -594,7 +604,7 @@ def _fb_castable(agent):
     try:
         return bool(jf_config.FORCE_BOLT and 'force bolt' in getattr(character, 'known_spells', {}) and
                     agent.blstats.energy >= 5 and agent.blstats.hunger_state < Hunger.WEAK and
-                    not character.prop.polymorph and agent.blstats.carrying_capacity < 2 and
+                    not character.prop.polymorph and agent.spell_action_capacity() and
                     character.spell_fail_chance.get('force bolt', 1) <= 0.3 and
                     not (jf_config.FB_SANITY and _fb_cannot_cast(agent)))
     except Exception:
@@ -675,7 +685,7 @@ def force_bolt_actions(agent, monsters):
         return []
     if agent.blstats.hunger_state >= Hunger.WEAK or character.prop.polymorph:  # "too hungry to cast"
         return []
-    if agent.blstats.carrying_capacity >= 2:  # Stressed: "Your concentration falters"
+    if not agent.spell_action_capacity():
         return []
     if character.spell_fail_chance.get('force bolt', 1) > 0.3:
         return []
