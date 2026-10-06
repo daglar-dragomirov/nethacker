@@ -2194,49 +2194,47 @@ class Agent:
     # ~1 time in 13-26 (wipe_engr_at), where a dust Elbereth garbles 28% of writes and smudges every ~85 turns
     _DURABLE_PROMPT = re.compile(r'What do you want to (engrave|add to the engraving)')
 
-    def prepared_engrave_tool(self):
-        """A paid, known noncursed athame or an expendable singleton dagger/knife."""
-        best_weapon = self.inventory.get_best_melee_weapon()
-        chosen = []
-        bad = getattr(self, '_durable_bad_letters', set())
-        names = ('athame', 'dagger', 'elven dagger', 'orcish dagger', 'knife')
+    def hold_fire_wand(self):
+        """Known paid fire wand; one charge for a hold leaves at least two for combat."""
+        choices = []
         for item in self.inventory.items:
-            if not item.is_unambiguous() or not isinstance(item.object, O.Weapon):
+            if item.category != nh.WAND_CLASS or not item.is_unambiguous() or item.object.name != 'fire' or \
+                    item.status not in (Item.UNCURSED, Item.BLESSED) or item.shop_status != Item.NOT_SHOP or \
+                    item.count != 1:
                 continue
-            obj = item.object
-            letter = self.inventory.items.get_letter(item)
-            if (obj.name not in names or item.status not in (Item.UNCURSED, Item.BLESSED)
-                    or item.equipped or item.at_ready or item.count != 1 or letter in bad
-                    or item.shop_status != Item.NOT_SHOP or item.naming
-                    or any(s in (item.text or '').lower() for s in ('alternate weapon', 'named ', 'unpaid'))):
-                continue
-            athame = obj == O.from_name('athame')
-            if not athame and (item is best_weapon or self.inventory.items.main_hand is None
-                               or item.modifier not in (None, 0)):
-                continue
-            chosen.append((not athame, letter, item))
-        return min(chosen, key=lambda x: x[:2])[2] if chosen else None
+            match = re.fullmatch(r'\d+:(\d+)', item.uses or '')
+            if match and int(match[1]) >= 3:
+                choices.append((int(match[1]), self.inventory.items.get_letter(item), item))
+        return min(choices, key=lambda x: x[:2])[2] if choices else None
 
-    def engrave_prepared_hold(self, item, safe):
-        """Recheck observed safety between blade pieces; verify text after every attempt."""
+    def engrave_fire_hold(self, item):
+        """Single fire inscription with checked prompts and observed final text."""
         letter = self.inventory.items.get_letter(item)
-        athame = item.object == O.from_name('athame') and item.status in (Item.UNCURSED, Item.BLESSED)
-        pieces = ('Elbereth',) if athame else ('Elb', 'ere', 'th')
-        complete = False
+        entered = False
+
+        def gen():
+            nonlocal entered
+            if 'What do you want to write with?' not in self.single_message:
+                yield A.Command.ESC
+                return
+            yield letter
+            if 'Do you want to add to the current engraving?' in self.single_message:
+                yield 'n'
+            while self._observation['misc'][2]:
+                yield ' '
+            if 'What do you want to burn into the floor here?' not in self.single_message:
+                yield A.Command.ESC
+                return
+            yield from 'Elbereth'
+            yield '\r'
+            entered = True
+
         with self.atom_operation():
-            for index, piece in enumerate(pieces):
-                if not safe():
-                    break
-                # This identity's letter may be reused later; conservative retention avoids repeat dulling.
-                self._durable_bad_letters = getattr(self, '_durable_bad_letters', set()) | {letter}
-                if self._engrave_piece(letter, piece, 'n' if index == 0 else 'y') != 'ok':
-                    break
-            else:
-                complete = True
+            self.step(A.Command.ENGRAVE, gen())
             self.inventory.get_items_below_me()
-        text = self.inventory.engraving_below_me or ''
-        self.log(f'PREPARED hold readback {text!r}, complete={complete}')
-        return complete and text.lower() == 'elbereth'
+        verified = entered and (self.inventory.engraving_below_me or '').lower() == 'elbereth'
+        self.log(f'BURNED hold inscription: verified={verified}')
+        return verified
 
     def durable_engrave_tool(self):
         """DURABLE_ELBERETH: the item to engrave a lasting Elbereth with, or None: an athame (not known cursed: one

@@ -1691,8 +1691,8 @@ ROLE_GRIND_LEVELS = {'Rogue': {}, 'Knight': {}, 'Tourist': {}, 'Priest': {}}
 # garbled or smudged Elbereth and many more killed while fainted. ENGRAVE text has no typos and loses a letter to a
 # wipe only ~1 time in 13-26 (wipe_engr_at). Off pending an A/B.
 DURABLE_ELBERETH = False
-# Fed preparation, verified durable reuse and partial-inscription recovery only.
-PREPARED_HOLD = True
+# Single charged fire inscription at an already admitted hold, with burn cleanup.
+BURNED_HOLD = True
 DURABLE_CLEAR = 5                   # no hostile within this many squares when an engraving starts
 DURABLE_WALK = 15                   # BFS steps a hold walks to the level's engraved Elbereth
 

@@ -998,9 +998,6 @@ class GlobalLogic:
                 self.agent.align_prayer().every(25),
             ])
             .preempt(self.agent, [
-                self.dive.prepare_hold().every(25).condition(lambda: jf_config.PREPARED_HOLD),
-            ])
-            .preempt(self.agent, [
                 # LIZARD_KEEP: the stoning cure, before the eaters look at the corpse
                 self.agent.keep_lizard().condition(lambda: jf_config.LIZARD_KEEP),
                 self.agent.eat_corpses_from_ground(only_below_me=True).condition(lambda: self.agent.blstats.hunger_state >= Hunger.NOT_HUNGRY),
@@ -1184,9 +1181,6 @@ class GlobalLogic:
             # above dig_first, the Elbereth rest and fight2
             .preempt(self.agent, [
                 self.dive.deep_items_strategy().condition(lambda: jf_config.DEEP_ITEMS),
-            ])
-            .preempt(self.agent, [
-                self.dive.leave_partial_hold().condition(lambda: jf_config.PREPARED_HOLD),
             ])
             .preempt(self.agent, [
                 self.agent.emergency_strategy(),
