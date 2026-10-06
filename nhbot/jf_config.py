@@ -367,8 +367,6 @@ LIZARD_KEEP = True
 #    unread by 5 of the 123 arrivals).
 # (Excalibur: fight2's melee already wields the best known weapon -- Excalibur over the pick-axe -- in fights.)
 ARMOR_UP = False
-# Quiet dive-only maintenance, from completed open DEV and exact Public code.
-QUIET_ARMOR_DIVE = True
 # eat poisonous corpses (not only when Weak) at HP >= max(POISON_EATS_MIN_HP, 60%) during the tour
 POISON_EATS = False
 POISON_EATS_MIN_HP = 40
@@ -1693,6 +1691,8 @@ ROLE_GRIND_LEVELS = {'Rogue': {}, 'Knight': {}, 'Tourist': {}, 'Priest': {}}
 # garbled or smudged Elbereth and many more killed while fainted. ENGRAVE text has no typos and loses a letter to a
 # wipe only ~1 time in 13-26 (wipe_engr_at). Off pending an A/B.
 DURABLE_ELBERETH = False
+# Fed preparation, verified durable reuse and partial-inscription recovery only.
+PREPARED_HOLD = True
 DURABLE_CLEAR = 5                   # no hostile within this many squares when an engraving starts
 DURABLE_WALK = 15                   # BFS steps a hold walks to the level's engraved Elbereth
 

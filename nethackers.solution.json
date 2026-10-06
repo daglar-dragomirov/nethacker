@@ -1,6 +1,6 @@
 {
   "schema": "nethackers.solution/v1",
-  "name": "daglar-zQuietArmor",
+  "name": "daglar-zPreparedHold",
   "root": ".",
   "parents": [
     "github.com/zarutskiysy/nethack@9c1cc902b6d9d88e6a14e0c9e5dc7494d9882bcd",

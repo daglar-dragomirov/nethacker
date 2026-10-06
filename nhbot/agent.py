@@ -2194,6 +2194,50 @@ class Agent:
     # ~1 time in 13-26 (wipe_engr_at), where a dust Elbereth garbles 28% of writes and smudges every ~85 turns
     _DURABLE_PROMPT = re.compile(r'What do you want to (engrave|add to the engraving)')
 
+    def prepared_engrave_tool(self):
+        """A paid, known noncursed athame or an expendable singleton dagger/knife."""
+        best_weapon = self.inventory.get_best_melee_weapon()
+        chosen = []
+        bad = getattr(self, '_durable_bad_letters', set())
+        names = ('athame', 'dagger', 'elven dagger', 'orcish dagger', 'knife')
+        for item in self.inventory.items:
+            if not item.is_unambiguous() or not isinstance(item.object, O.Weapon):
+                continue
+            obj = item.object
+            letter = self.inventory.items.get_letter(item)
+            if (obj.name not in names or item.status not in (Item.UNCURSED, Item.BLESSED)
+                    or item.equipped or item.at_ready or item.count != 1 or letter in bad
+                    or item.shop_status != Item.NOT_SHOP or item.naming
+                    or any(s in (item.text or '').lower() for s in ('alternate weapon', 'named ', 'unpaid'))):
+                continue
+            athame = obj == O.from_name('athame')
+            if not athame and (item is best_weapon or self.inventory.items.main_hand is None
+                               or item.modifier not in (None, 0)):
+                continue
+            chosen.append((not athame, letter, item))
+        return min(chosen, key=lambda x: x[:2])[2] if chosen else None
+
+    def engrave_prepared_hold(self, item, safe):
+        """Recheck observed safety between blade pieces; verify text after every attempt."""
+        letter = self.inventory.items.get_letter(item)
+        athame = item.object == O.from_name('athame') and item.status in (Item.UNCURSED, Item.BLESSED)
+        pieces = ('Elbereth',) if athame else ('Elb', 'ere', 'th')
+        complete = False
+        with self.atom_operation():
+            for index, piece in enumerate(pieces):
+                if not safe():
+                    break
+                # This identity's letter may be reused later; conservative retention avoids repeat dulling.
+                self._durable_bad_letters = getattr(self, '_durable_bad_letters', set()) | {letter}
+                if self._engrave_piece(letter, piece, 'n' if index == 0 else 'y') != 'ok':
+                    break
+            else:
+                complete = True
+            self.inventory.get_items_below_me()
+        text = self.inventory.engraving_below_me or ''
+        self.log(f'PREPARED hold readback {text!r}, complete={complete}')
+        return complete and text.lower() == 'elbereth'
+
     def durable_engrave_tool(self):
         """DURABLE_ELBERETH: the item to engrave a lasting Elbereth with, or None: an athame (not known cursed: one
         piece, no dulling), else an unwielded blade (dagger to saber skill, not a mattock) known to be +0 or better,

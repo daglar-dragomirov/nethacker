@@ -998,6 +998,9 @@ class GlobalLogic:
                 self.agent.align_prayer().every(25),
             ])
             .preempt(self.agent, [
+                self.dive.prepare_hold().every(25).condition(lambda: jf_config.PREPARED_HOLD),
+            ])
+            .preempt(self.agent, [
                 # LIZARD_KEEP: the stoning cure, before the eaters look at the corpse
                 self.agent.keep_lizard().condition(lambda: jf_config.LIZARD_KEEP),
                 self.agent.eat_corpses_from_ground(only_below_me=True).condition(lambda: self.agent.blstats.hunger_state >= Hunger.NOT_HUNGRY),
@@ -1028,12 +1031,10 @@ class GlobalLogic:
                 # ARMOR_UP: the dig-dive never explores, so gather_items' wear_best_stuff never runs there (castle
                 # arrivals carried unworn mithril coats, iron shoes, iron helms); and known enchant armor gets read
                 self.agent.inventory.wear_best_stuff().every(25)
-                .condition(lambda: (jf_config.ARMOR_UP and self.dive.diving and not self.dive.levitating() and
-                                    not self.dive._near_hostiles(radius=6)) or
-                           (jf_config.QUIET_ARMOR_DIVE and self.agent.inventory._quiet_armor_safe())),
+                .condition(lambda: jf_config.ARMOR_UP and self.dive.diving and not self.dive.levitating() and
+                           not self.dive._near_hostiles(radius=6)),
                 self.agent.inventory.read_enchant_armor().every(10)
-                .condition(lambda: (jf_config.ARMOR_UP and not self.dive._near_hostiles(radius=6)) or
-                           (jf_config.QUIET_ARMOR_DIVE and self.agent.inventory._quiet_armor_safe())),
+                .condition(lambda: jf_config.ARMOR_UP and not self.dive._near_hostiles(radius=6)),
                 # opp-items (GENOCIDE_POLICY): a known scroll of genocide proven not cursed is read at once
                 opp_items.read_strategy(self.agent),
             ])
@@ -1183,6 +1184,9 @@ class GlobalLogic:
             # above dig_first, the Elbereth rest and fight2
             .preempt(self.agent, [
                 self.dive.deep_items_strategy().condition(lambda: jf_config.DEEP_ITEMS),
+            ])
+            .preempt(self.agent, [
+                self.dive.leave_partial_hold().condition(lambda: jf_config.PREPARED_HOLD),
             ])
             .preempt(self.agent, [
                 self.agent.emergency_strategy(),
