@@ -662,10 +662,6 @@ REST_FIGHT_WEAK = False
 # exemption applies only while that monster can't kill us within LONE_WEAK_TURNS turns with P >= LONE_WEAK_PDIE (a rothe
 # at 19 HP: ~0.24; a giant bat at 16: ~0.66; a jackal or newt: ~0). Off pending an A/B (research/shallow_deaths.md)
 LONE_WEAK_THREAT = False
-# Crowd-cover model ported from DT6A@736cae369fdbf3da9a45730ec18b65afb37f5b3e; inherited numeric controls.
-GROUP_THREAT_ELB = True
-GROUP_THREAT_TURNS = 3
-GROUP_THREAT_PDIE = 0.1
 LONE_WEAK_TURNS = 3
 LONE_WEAK_PDIE = 0.1
 # never kill a gas spore whose blast reaches any @, a shop's squares (its shopkeeper may be out of view) or anything in

@@ -27,6 +27,7 @@ from .item.inventory import Inventory
 from .level import Level
 from .monster_tracker import MonsterTracker, disappearance_mask
 from .nhmodel.prayer import PrayerModel, rnz_cdf
+from .nhmodel.faint_clock import FaintClock
 from .stats_logger import StatsLogger
 from .strategy import Strategy
 
@@ -60,6 +61,7 @@ class Agent:
         self._pet_starving_until = -1  # PET_HUNGER_FIX: turn until which corpses on the floor are left to the pet
         self._corpse_debug_pos = None
         self._faint_msg_turn = None    # FAINT_MEASURE_FIX: turn of the screen that first showed a faint
+        self._faint_clock = FaintClock()
         self._paralysis_end_turn = -10 ** 9   # STARVE_UNMEASURED_GAP: turn of the last 'You can move again'
         self._attack_ctx = None       # (turn, melee target, throw direction, origin, glyphs before) CORPSE_TRACK
 
@@ -425,6 +427,11 @@ class Agent:
                 self._faint_msg_turn = int(obs['blstats'][nh.NLE_BL_TIME])
             except Exception:
                 self._faint_msg_turn = None
+        # Keep the two observation timestamps, independent of delayed atom updates.
+        try:
+            self._faint_clock.note(self.single_message, int(obs['blstats'][nh.NLE_BL_TIME]))
+        except (KeyError, ValueError, TypeError, IndexError):
+            self._faint_clock.reset()
         return done
 
     def _note_poly_control(self):
