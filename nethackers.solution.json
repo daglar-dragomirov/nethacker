@@ -1,10 +1,8 @@
 {
   "schema": "nethackers.solution/v1",
-  "name": "daglar-zRayHealingBUC",
+  "name": "daglar-zV10cHealingBUC",
   "root": ".",
   "parents": [
-    "github.com/zarutskiysy/nethack@9c1cc902b6d9d88e6a14e0c9e5dc7494d9882bcd",
-    "github.com/zarutskiysy/nethack@00cf417f05ec9c20846b848cd70243af67695c54",
     "github.com/zarutskiysy/nethack@14a3bbd871061d63bda57da6c82af91f46959d21",
     "github.com/zarutskiysy/nethack@94c4c1cd21c51f9feec0eaabd9c63831a8ee3316",
     "github.com/zarutskiysy/nethack@bb7def3548dcb618066c2c92b8bc3335631aaee1",
@@ -16,9 +14,7 @@
     "github.com/daglar-dragomirov/nethacker@e29eb8281b13784716d9121e4f01ec60c2bb2165",
     "github.com/daglar-dragomirov/nethacker@d8da1f72c197a54ac66d69466eee32f7bc4e72d9",
     "github.com/DT6A/nethacker@ad7a864d9385f84c9b4f9865bb68141c90ca5e1b",
-    "github.com/zarutskiysy/nethack@96ef3261bd61e151858b181be95b066bbde9d6f4",
-    "github.com/daglar-dragomirov/nethacker@0f440af6655ce126183a753ec6ff0f2aa1e68daf",
-    "github.com/daglar-dragomirov/nethacker@cc23cb3c053e5424e674067b868f86b90ab8a2a8"
+    "github.com/zarutskiysy/nethack@f3a2a428f4180dd02520b858fbd6feba035a792b"
   ],
   "influences": [
     "github.com/CleverShovel/nethacker@0d1fb22498024cdcac06be9d15d0f70e8cae803c",

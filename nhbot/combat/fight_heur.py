@@ -293,31 +293,31 @@ def _simulate_wand_path(agent, wand, monsters, y, x, dy, dx, range_left, hit_tar
         return
 
     for y, x, dy, dx, next_prob, range_penalty in get_next_states(agent, wand, y, x, dy, dx):
-        branch_range = range_left - range_penalty
+        range_left -= range_penalty
         monster = [m for m in monsters if m[1] == y and m[2] == x]
         if monster:
             assert len(monster) == 1
             monster = monster[0]
             # For each monster hit, range decreases by 2.
-            branch_range -= 2
+            range_left -= 2
         elif inside(agent, y, x) and agent.glyphs[y, x] in G.PETS:
             monster = 'pet'
             # For each monster hit, range decreases by 2.
-            branch_range -= 2
+            range_left -= 2
         elif inside(agent, y, x) and agent.glyphs[y, x] in G.MONS and (y, x) != (agent.blstats.y, agent.blstats.x):
             # a monster that isn't a known hostile: a peaceful (a lightning bolt at a wraith hit a watch
             # captain and the Watch killed the XL10)
             monster = 'peaceful'
-            branch_range -= 2
+            range_left -= 2
         elif agent.blstats.y == y and agent.blstats.x == x:
             monster = 'self'
-            branch_range -= 2
+            range_left -= 2
         else:
             monster = None
 
         hit_targets[(y, x, monster)] += probability * next_prob
 
-        _simulate_wand_path(agent, wand, monsters, y, x, dy, dx, branch_range - 1, hit_targets, probability * next_prob)
+        _simulate_wand_path(agent, wand, monsters, y, x, dy, dx, range_left - 1, hit_targets, 1.0)
 
 
 def simulate_wand_path(agent, wand, monsters, dy, dx):
@@ -594,7 +594,7 @@ def _fb_castable(agent):
     try:
         return bool(jf_config.FORCE_BOLT and 'force bolt' in getattr(character, 'known_spells', {}) and
                     agent.blstats.energy >= 5 and agent.blstats.hunger_state < Hunger.WEAK and
-                    not character.prop.polymorph and agent.spell_action_capacity() and
+                    not character.prop.polymorph and agent.blstats.carrying_capacity < 2 and
                     character.spell_fail_chance.get('force bolt', 1) <= 0.3 and
                     not (jf_config.FB_SANITY and _fb_cannot_cast(agent)))
     except Exception:
@@ -675,7 +675,7 @@ def force_bolt_actions(agent, monsters):
         return []
     if agent.blstats.hunger_state >= Hunger.WEAK or character.prop.polymorph:  # "too hungry to cast"
         return []
-    if not agent.spell_action_capacity():
+    if agent.blstats.carrying_capacity >= 2:  # Stressed: "Your concentration falters"
         return []
     if character.spell_fail_chance.get('force bolt', 1) > 0.3:
         return []
