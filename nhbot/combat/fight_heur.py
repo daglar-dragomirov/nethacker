@@ -1,3 +1,4 @@
+from .ray_immunity import innate_ray_hp_immunity
 from collections import defaultdict
 from itertools import product
 
@@ -352,19 +353,7 @@ def _simulate_wand_path(agent, wand, monsters, y, x, dy, dx, range_left, hit_tar
         else:
             monster = None
 
-        reflected = False
-        if monster is not None and monster != 'self' and wand.is_ray_wand():
-            # NLE 1.3.0 mon_reflects: adult silver and Chromatic dragons
-            # reflect intrinsically. Do not infer hidden worn equipment.
-            name = (MON.permonst(agent.glyphs[y, x]).mname
-                    if monster in ('pet', 'peaceful') else monster[3].mname)
-            reflected = name in ('silver dragon', 'Chromatic Dragon')
-        # A reflected ray gives no hostile damage credit. Keep the inherited
-        # conservative pet/peaceful penalties even though the ray reflects.
-        credited = None if reflected and monster not in ('pet', 'peaceful') else monster
-        hit_targets[(y, x, credited)] += probability * next_prob
-        if reflected:
-            dy, dx = -dy, -dx
+        hit_targets[(y, x, monster)] += probability * next_prob
 
         _simulate_wand_path(agent, wand, monsters, y, x, dy, dx, branch_range - 1, hit_targets, probability * next_prob)
 
@@ -434,6 +423,8 @@ def get_potential_wand_usages(agent, monsters, dy, dx):
                     priority -= p * 30
             elif monster is not None:
                 _, y, x, mon, _ = monster
+                if innate_ray_hp_immunity(item, mon):
+                    continue
                 if mon.mname in WEAK_MONSTERS:
                     priority += min(p, 1) * 1
                 elif is_dangerous_monster(monster):
