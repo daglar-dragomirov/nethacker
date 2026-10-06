@@ -4,7 +4,7 @@ from itertools import product
 import numpy as np
 from scipy import signal
 
-from ..glyph import G, MON, Hunger, SS
+from ..glyph import G, MON, Hunger
 from .. import jf_config, utils
 from ..item import Item
 from ..utils import adjacent
@@ -260,69 +260,32 @@ def ranged_priority(agent, dy, dx, monsters):
 
 
 def get_next_states(agent, wand, y, x, dy, dx):
-    if not wand.is_ray_wand():
-        if not inside(agent, y, x) or not agent.current_level().walkable[y, x]:
+    if not inside(agent, y, x) or not agent.current_level().walkable[y, x]:
+        can_bounce = wand.is_ray_wand()
+        if not can_bounce:
             return []
-        return [(y + dy, x + dx, dy, dx, 1.0, 0)]
-
-    level = agent.current_level()
-
-    def glyph_at(yy, xx):
-        return level.objects[yy, xx] if inside(agent, yy, xx) else -1
-
-    def ray_open(yy, xx):
-        if not inside(agent, yy, xx):
-            return False
-        if level.walkable[yy, xx]:
-            return True
-        # ZAP_POS allows iron bars, pools, water and lava. Their
-        # type-specific floor effects remain outside this path model.
-        return glyph_at(yy, xx) in (G.BARS | {SS.S_pool, SS.S_water, SS.S_lava})
-
-    def side_eligible(yy, xx, ay, ax):
-        if not ray_open(yy, xx):
-            return False
-        g = glyph_at(yy, xx)
-        if g in (G.STAIR_UP | G.STAIR_DOWN | G.ALTAR | G.FOUNTAIN
-                 | {SS.S_room, SS.S_darkroom, SS.S_ice, SS.S_grave,
-                    SS.S_throne, SS.S_sink, SS.S_air, SS.S_cloud}):
-            return True  # IS_ROOM includes stairs and furniture.
-        if g in (G.DOOR_OPENED | G.BARS
-                 | {SS.S_ndoor, SS.S_corr, SS.S_litcorr,
-                    SS.S_pool, SS.S_water, SS.S_lava}):
-            return ray_open(ay, ax)
-        # Items, traps and unknown remembered glyphs do not reveal whether
-        # their underlying square is ROOM or CORR. Retain parent eligibility.
-        return True
-
-    g = glyph_at(y, x)
-    if inside(agent, y, x) and not level.walkable[y, x] and g in G.DOOR_CLOSED:
-        return []  # zap_over_floor absorbs the admitted regular rays.
-    if ray_open(y, x):
-        return [(y + dy, x + dx, dy, dx, 1.0, 0)]
-    reverse = (y - dy, x - dx, -dy, -dx, 1.0, 1)
-    if dy == 0 or dx == 0:
-        return [reverse]
-
-    # NLE 1.3.0 buzz: stone 10, mines walls 20, other obstacles 75.
-    # Unknown obstacles retain the inherited 20 rather than invent terrain.
-    chance = (10 if g in G.STONE else
-              (20 if level.dungeon_number == 2 else 75) if g in G.WALL else
-              75 if g in G.TREE else 20)
-    # C's (sx, lsy) flips dy; (lsx, sy) flips dx. The obstacle cursor
-    # remains in place until the next advance for regular (nonfireball) rays.
-    first = side_eligible(y - dy, x, y - dy, x + dx)
-    second = side_eligible(y, x - dx, y + dy, x - dx)
-    if not first and not second:
-        return [reverse]
-    p = 1 / chance
-    ret = [(y - dy, x - dx, -dy, -dx, p, 1)]
-    weight = (1 - p) / (int(first) + int(second))
-    if first:
-        ret.append((y - dy, x + dx, -dy, dx, weight, 1))
-    if second:
-        ret.append((y + dy, x - dx, dy, -dx, weight, 1))
-    return ret
+        if dy == 0 or dx == 0:
+            return [(y - dy, x - dx, -dy, -dx, 1.0, 1)]
+        # TODO: diagonal
+        side1 = (y, x - dx)
+        side2 = (y - dy, x)
+        side1_wall = not inside(agent, *side1) or not agent.current_level().walkable[side1]
+        side2_wall = not inside(agent, *side2) or not agent.current_level().walkable[side2]
+        dy1, dx1 = side2[0] - side1[0], side2[1] - side1[1]
+        dy2, dx2 = side1[0] - side2[0], side1[1] - side2[1]
+        if side1_wall and side2_wall:
+            return [(y - dy, x - dx, -dy, -dx, 1.0, 1)]
+        elif not side1_wall and not side2_wall:
+            return [(y - dy, x - dx, -dy, -dx, 1 / 20, 1),
+                    (y + dy1, x + dx1, dy1, dx1, 19 / 40, 1),
+                    (y + dy2, x + dx2, dy2, dx2, 19 / 40, 1)]
+        elif side1_wall:
+            return [(y + dy1, x + dx1, dy1, dx1, 1.0, 1)]
+        elif side2_wall:
+            return [(y + dy2, x + dx2, dy2, dx2, 1.0, 1)]
+        else:
+            assert 0
+    return [(y + dy, x + dx, dy, dx, 1.0, 0)]
 
 
 def _simulate_wand_path(agent, wand, monsters, y, x, dy, dx, range_left, hit_targets, probability):
@@ -631,7 +594,7 @@ def _fb_castable(agent):
     try:
         return bool(jf_config.FORCE_BOLT and 'force bolt' in getattr(character, 'known_spells', {}) and
                     agent.blstats.energy >= 5 and agent.blstats.hunger_state < Hunger.WEAK and
-                    not character.prop.polymorph and agent.blstats.carrying_capacity < 2 and
+                    not character.prop.polymorph and agent.spell_action_capacity() and
                     character.spell_fail_chance.get('force bolt', 1) <= 0.3 and
                     not (jf_config.FB_SANITY and _fb_cannot_cast(agent)))
     except Exception:
@@ -712,7 +675,7 @@ def force_bolt_actions(agent, monsters):
         return []
     if agent.blstats.hunger_state >= Hunger.WEAK or character.prop.polymorph:  # "too hungry to cast"
         return []
-    if agent.blstats.carrying_capacity >= 2:  # Stressed: "Your concentration falters"
+    if not agent.spell_action_capacity():
         return []
     if character.spell_fail_chance.get('force bolt', 1) > 0.3:
         return []
