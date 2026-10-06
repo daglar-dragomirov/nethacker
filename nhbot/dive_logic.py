@@ -2093,6 +2093,32 @@ class DiveLogic:
         return jf_config.RANGED_ON_ELB and \
             self.agent.blstats.time - self._ranged_hit_turn <= jf_config.RANGED_BREAK_TURNS
 
+    def _group_threat_deadly(self):
+        """GROUP_THREAT_ELB: two or more hostiles within 2 squares whose summed melee (monster_turn_damage, as in
+        _lone_weak_deadly) deals >= our HP within GROUP_THREAT_TURNS turns with P >= GROUP_THREAT_PDIE."""
+        try:
+            import math
+            from .nhmodel.prayer import _phi, monster_turn_damage
+            near = self._near_hostiles()
+            if len(near) < 2:
+                return False
+            bl = self.agent.blstats
+            turns = jf_config.GROUP_THREAT_TURNS
+            mean = var = 0.0
+            for m in near:
+                name = getattr(m[3], 'mname', 'unknown')
+                m1, v1, spd = monster_turn_damage(name, int(bl.armor_class), int(bl.depth),
+                                                  int(bl.experience_level))
+                mean += m1 * spd * turns
+                var += v1 * spd * turns
+            if mean <= 0:
+                return False
+            p_die = 1.0 - _phi((bl.hitpoints - 0.5 - mean) / math.sqrt(max(var, 1.0)))
+            return p_die >= jf_config.GROUP_THREAT_PDIE
+        except Exception:
+            return False
+
+
     def _lone_weak_deadly(self, monster):
         """LONE_WEAK_THREAT: the lone-weak exemption above keys on the base level (mlevel <= 2), which takes in the
         grind's worst killers -- rothes (3 attacks, 1d3/1d3/1d8), giant bats (speed 22), giant ants (speed 18),
@@ -2135,6 +2161,16 @@ class DiveLogic:
         # a fast hitter (a leocrotta took a dive from 100 to 14 HP in 6 turns) can't be outrun: hide
         # behind Elbereth as soon as HP falls fast, not only below 40%
         falling = not resting and self._fast_hp_loss()
+        # hypothesis: the grind's Dlvl 1-3 losses (rothe packs 34, foxes/jackals/coyotes/rats 37, hill orcs, giant
+        # ants of 317 early losses) come from groups that strip a full HP bar in 2-3 turns: the 40% trigger fires
+        # with one turn left (XL6 58 -> 33 -> 18 -> dead against two rothes). Rest on Elbereth as soon as the
+        # combined melee of two or more nearby monsters could kill us within GROUP_THREAT_TURNS turns.
+        # sources: https://nethackwiki.com/wiki/Rothe (packs of 2-4, up to 14 a turn each, respect Elbereth);
+        #          https://www.melankolia.net/nethack/nethack.guide.html and rec.games.roguelike.nethack "Wizard,
+        #          Early Game Strategy" (swarms of rothes/ants kill; take a breather on Elbereth before it is late)
+        if not resting and not falling and jf_config.GROUP_THREAT_ELB and \
+                bl.hitpoints < ELBERETH_REST_UNTIL * bl.max_hitpoints and self._group_threat_deadly():
+            falling = True
         if (bl.hitpoints >= threshold * bl.max_hitpoints and not falling) or \
                 agent.current_level().dungeon_number == GEHENNOM:
             self._elbereth_resting = False

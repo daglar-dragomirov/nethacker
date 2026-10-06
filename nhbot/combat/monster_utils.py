@@ -16,21 +16,11 @@ WEIRD_MONSTERS = ['leprechaun', 'nymph']
 
 
 def is_monster_faster(agent, monster):
-    """Species tempo against the inherited standard12 movement budget.
-
-    NLE's permonst.mmove is the static species speed. It does not expose an
-    individual monster's haste/slow state or the hero's current movement pool.
-    This shared tactical approximation feeds melee, point-blank and engraving
-    priorities. Unknown metadata keeps the parent's name heuristic.
-    """
     _, y, x, mon, _ = monster
-    speed = getattr(mon, 'mmove', None)
-    if type(speed) is int and speed >= 0:
-        return speed > 12
+    # TOOD: implement properly
     return 'bat' in mon.mname or 'dog' in mon.mname or 'cat' in mon.mname \
            or 'kitten' in mon.mname or 'pony' in mon.mname or 'horse' in mon.mname \
            or 'bee' in mon.mname or 'fox' in mon.mname
-
 
 
 def imminent_death_on_melee(agent, monster):
