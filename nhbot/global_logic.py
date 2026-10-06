@@ -1028,10 +1028,12 @@ class GlobalLogic:
                 # ARMOR_UP: the dig-dive never explores, so gather_items' wear_best_stuff never runs there (castle
                 # arrivals carried unworn mithril coats, iron shoes, iron helms); and known enchant armor gets read
                 self.agent.inventory.wear_best_stuff().every(25)
-                .condition(lambda: jf_config.ARMOR_UP and self.dive.diving and not self.dive.levitating() and
-                           not self.dive._near_hostiles(radius=6)),
+                .condition(lambda: (jf_config.ARMOR_UP and self.dive.diving and not self.dive.levitating() and
+                                    not self.dive._near_hostiles(radius=6)) or
+                           (jf_config.QUIET_ARMOR_DIVE and self.agent.inventory._quiet_armor_safe())),
                 self.agent.inventory.read_enchant_armor().every(10)
-                .condition(lambda: jf_config.ARMOR_UP and not self.dive._near_hostiles(radius=6)),
+                .condition(lambda: (jf_config.ARMOR_UP and not self.dive._near_hostiles(radius=6)) or
+                           (jf_config.QUIET_ARMOR_DIVE and self.agent.inventory._quiet_armor_safe())),
                 # opp-items (GENOCIDE_POLICY): a known scroll of genocide proven not cursed is read at once
                 opp_items.read_strategy(self.agent),
             ])

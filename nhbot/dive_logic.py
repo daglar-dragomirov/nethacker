@@ -1163,11 +1163,33 @@ class DiveLogic:
                 self._pet_hunger_turn = turn
         except Exception:
             pass
-        # Faint-clock timestamps come from the actual start/end observation screens.
-        # Negative multi is counted in game turns, irrespective of XL or hero speed.
-        measured = agent._faint_clock.consume(turn)
-        if measured is not None:
-            agent._faint_measure = measured
+        uncertain = False
+        if 'You faint from lack of food' in msg and self._faint_start is None:
+            self._faint_start = self._last_update_turn
+            if jf_config.FAINT_MEASURE_FIX:
+                # the faint's own --More-- screen (agent._faint_msg_turn) marks its start; else the start is the
+                # last update -- unknown if a counted search/occupation ran since ('You stop searching.  You faint':
+                # the measured length then includes the search). t31-jf16 s5: start taken 5 turns early -> est
+                # -207 instead of ~-140, a deadline prayer at gap 924 failed; t31-jf14 s8: a deadline prayer at
+                # gap 124 after 'You stop searching.  You faint'.
+                seen = getattr(agent, '_faint_msg_turn', None)
+                if seen is not None and self._last_update_turn < seen < turn:
+                    self._faint_start = seen
+                elif 'You stop ' in msg:
+                    uncertain = True
+        if 'You regain consciousness' in msg and self._faint_start is not None:
+            # moves per turn: a Valkyrie is intrinsically Fast from XL 7 (16 speed on average, 4/3), not before
+            # (counting 4/3 at XL 1-6 read hunger 1.3x too low and fired deadline prayers ~800 turns early)
+            speed = 4 / 3 if agent.blstats.experience_level >= 7 else 1
+            moves = (turn - self._faint_start) * speed
+            if not uncertain:
+                agent._faint_measure = (turn, (10 - moves) * 10)
+            elif agent._fainting_since == turn:
+                # the spell's first faint: eat.c faints at once on the Weak->Fainting transition, at uhunger ~0
+                # (a Weak hold's 3-turn search made its start uncertain; without a value the unmeasured-spell
+                # rule prayed at the start of every such spell)
+                agent._faint_measure = (turn, 0.0)
+            self._faint_start = None
         self._last_update_turn = turn
         if turn // 500 != self._status_logged:
             # a heartbeat for stall diagnoses (a jf8 game idled 4850 turns on Dlvl 2 after its grind)

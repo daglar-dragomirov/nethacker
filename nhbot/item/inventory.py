@@ -1620,6 +1620,18 @@ class Inventory:
 
         return possible_wand_types
 
+    def _quiet_armor_safe(self):
+        """Observe a quiet recovery window; never start a gear swap in a crisis."""
+        agent = self.agent
+        dive = agent.global_logic.dive
+        bl, prop = agent.blstats, agent.character.prop
+        return (dive.diving and not dive.levitating() and not agent.hands_welded()
+                and bl.max_hitpoints > 0 and bl.hitpoints >= 0.85 * bl.max_hitpoints
+                and bl.hunger_state < Hunger.WEAK and bl.carrying_capacity < 2
+                and not (prop.blind or prop.confusion or prop.stun or prop.hallu or prop.polymorph)
+                and not agent._hurt_recently(3) and not dive.shot_recently()
+                and not dive._near_hostiles(radius=6))
+
     @utils.debug_log('inventory.read_enchant_armor')
     @Strategy.wrap
     def read_enchant_armor(self):
@@ -1629,15 +1641,22 @@ class Inventory:
         known ones unread (5 of 123). One try per 20 turns."""
         agent = self.agent
         prop = agent.character.prop
-        if not jf_config.ARMOR_UP or prop.blind or prop.confusion or prop.stun or prop.hallu or prop.polymorph or \
+        quiet = jf_config.QUIET_ARMOR_DIVE and agent.global_logic.dive.diving
+        if quiet and not self._quiet_armor_safe():
+            yield False
+            return
+        if not (jf_config.ARMOR_UP or quiet) or prop.blind or prop.confusion or prop.stun or prop.hallu or prop.polymorph or \
                 agent.blstats.time < getattr(self, '_enchant_read_until', -1):
             yield False
         scrolls = [i for i in self.items if i.category == nh.SCROLL_CLASS and i.is_unambiguous() and
-                   i.object.name == 'enchant armor' and i.status != Item.CURSED and 'unpaid' not in (i.text or '')]
+                   i.object.name == 'enchant armor' and i.status != Item.CURSED and
+                   (not quiet or i.status in (Item.UNCURSED, Item.BLESSED)) and 'unpaid' not in (i.text or '')]
         worn = [i for i in self.items if i.is_armor() and i.equipped]
         if not scrolls or not worn or any((i.modifier or 0) > 3 for i in worn):
             yield False
         yield True
+        if quiet and not self._quiet_armor_safe():
+            return
         self._enchant_read_until = agent.blstats.time + 20
         letter = self.items.get_letter(scrolls[0])
         agent.log(f'ARMOR_UP reading {scrolls[0].text!r} (worn: {[i.text for i in worn]})')
@@ -1655,9 +1674,14 @@ class Inventory:
         if self.agent.hands_welded():
             yield False   # armor can't come off (or go on over it) with the hands welded
             return
+        quiet = jf_config.QUIET_ARMOR_DIVE and self.agent.global_logic.dive.diving
         yielded = False
         while 1:
-            best_armorset = self.get_best_armorset(armor_up=jf_config.ARMOR_UP)
+            if quiet and not self._quiet_armor_safe():
+                if not yielded:
+                    yield False
+                return
+            best_armorset = self.get_best_armorset(armor_up=jf_config.ARMOR_UP or quiet)
 
             # TODO: twoweapon
             for slot, name in [(O.ARM_SHIELD, 'off_hand'), (O.ARM_HELM, 'helm'), (O.ARM_GLOVES, 'gloves'),
@@ -1684,6 +1708,8 @@ class Inventory:
                     if not yielded:
                         yielded = True
                         yield True
+                    if quiet and not self._quiet_armor_safe():
+                        return
                     if (slot == O.ARM_SHIRT or slot == O.ARM_SUIT) and self.items.cloak is not None:
                         done = self.takeoff(self.items.cloak)
                     elif slot == O.ARM_SHIRT and self.items.suit is not None:
