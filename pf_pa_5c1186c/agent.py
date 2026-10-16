@@ -3068,6 +3068,59 @@ class Agent:
                 total += getattr(item.object, 'nutrition', 0) * item.count
         return total
 
+    @Strategy.wrap
+    def emergency_meal(self):
+        """Weak or worse with nothing but passive molds/jellies in view: eat ready, ordinary carried food now instead
+        of waiting (and fainting) for a hunger prayer. eat_from_inventory sits low in the preempt chain and, while a
+        hunger prayer is safe, leaves the food in the pack and spends the prayer on hunger."""
+        # hypothesis: the long Dlvl 1-3 grind is where these engines lose early (parent, public+dev: rog-hum 10/20,
+        # rog-orc 10/20, kni 7-8/20 die there at XL 3-8 after 4k-27k turns), and a hero who waits Weak/Fainting for
+        # a hunger prayer with food in the pack is helpless for turns and then has no prayer left for the low-HP
+        # emergency, its only escape at low XL (rnz(350) timeout: players report prayers "too soon" 1000+ turns
+        # later). Eating ordinary safe food at Weak keeps the hero fighting and the prayer free. Known-cursed food
+        # is skipped (eat.c: always rotten); a Knight's apples/carrots stay the pony's while it is around
+        # (kni_steed: 5x the nutrition for the pony, and a hungry pony kicks the Knight).
+        # sources: past run 20261005-085854 #13 (kept: held-out +0.026, early losses 55 -> 50 of 235), past run
+        #          20261013-125203 #3 (overall +0.0067); /refs/top/74cf6b61c783, /refs/top/035e12f00029
+        #          (agent.emergency_meal); https://nethackwiki.com/wiki/Nutrition (Weak: -Str; Fainting: helpless);
+        #          https://nethackwiki.com/wiki/Prayer and /Prayer_timeout (keep prayer for HP emergencies);
+        #          https://groups.google.com/g/rec.games.roguelike.nethack/c/4VA8WK5e_fM (rgrn "Eating": eat
+        #          when Hungry, pray only when Weak with no food); https://gamefaqs.gamespot.com/boards/582497-nethack-1987/41120461
+        #          and https://en.wikibooks.org/wiki/NetHack/Staying_Alive (pray for food only with no other food);
+        #          https://nethackwiki.com/wiki/Rotten_food; https://nethackwiki.com/wiki/Knight (produce is the pony's)
+        bl = self.blstats
+        if bl.hunger_state < Hunger.WEAK or bl.carrying_capacity >= 4 or bl.prop_mask or \
+                self.character.prop.polymorph or self.global_logic.dive.levitating() or \
+                self.glyphs[bl.y, bl.x] in G.SWALLOW or self._hurt_recently(6):
+            yield False
+        # immobile, passive-only (monst.c AT_NONE): any other visible monster, even far away, rejects the meal
+        stationary = {'blue jelly', 'brown mold', 'yellow mold', 'green mold', 'red mold'}
+        for _, y, x, mon, _ in self.get_visible_monsters():
+            if mon.mname not in stationary or getattr(mon, 'mmove', None) != 0 or \
+                    max(abs(y - bl.y), abs(x - bl.x)) <= 1:
+                yield False
+        ordinary = {'apple', 'orange', 'pear', 'melon', 'banana', 'carrot',
+                    'candy bar', 'fortune cookie', 'pancake', 'lembas wafer',
+                    'cram ration', 'food ration'}
+        pony_food = self.character.role == Character.KNIGHT and bl.time - self._last_pet_seen <= 1000
+        food = []
+        for item in self.edible_carried_food():
+            # no bag retrieval, tin opening, corpse risk, special cure or dog food
+            if item not in self.inventory.items.all_items or not item.is_unambiguous() or \
+                    item.is_corpse() or item.status == Item.CURSED:
+                continue
+            obj = item.object
+            if pony_food and obj.name in ('apple', 'carrot'):
+                continue
+            if obj.name in ordinary and 0 < obj.delay <= 5 and obj.nutrition > 0:
+                food.append(item)
+        if not food:
+            yield False
+        item = max(food, key=lambda i: (i.status != Item.UNKNOWN, i.object.nutrition, -i.object.delay))
+        yield True
+        self.log(f'EMERGENCY_MEAL eating {item.text!r} (hunger {bl.hunger_state})')
+        self.inventory.eat(item, smart=False)
+
     def edible_carried_food(self):
         """What eat_from_inventory eats: food, but not wolfsbane or corpses other than lizard/lichen."""
         return [item for item in flatten_items(self.inventory.items)

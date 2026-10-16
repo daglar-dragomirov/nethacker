@@ -438,3 +438,10 @@ if TOUR_FIXES is not None:
     EARLY_FIXES = LATE_FIXES = bool(TOUR_FIXES)
 if LATE_FIXES:
     HAZARD_FIXES = True
+# SELF_ZAP_FIX (combat/fight_heur.get_potential_wand_usages): fight2's wand plans charge SELF_ZAP_PENALTY (not 30) per
+# expected pass of our own ray through us (Valkyries' cold excepted) -- ported from nhbot, where 10 shallow and 10 deep
+# deaths of 1023 games came right after our own ray hit us. RAY_BOUNCE_FIX (known_items, where the engine has it):
+# known cold/fire wands need KNOWN_ITEMS_RAY_RUN free squares behind the target, like the other rays.
+SELF_ZAP_FIX = True
+SELF_ZAP_PENALTY = 300
+RAY_BOUNCE_FIX = True

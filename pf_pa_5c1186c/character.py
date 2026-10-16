@@ -221,9 +221,13 @@ class Character:
     SKILL_LEVEL_MASTER = 5
     SKILL_LEVEL_GRAND_MASTER = 6
 
+    # hypothesis: Unskilled/Restricted weapons were credited +2 damage, so weapon choice preferred them over Basic
+    # ones. weapon.c weapon_dam_bonus gives -2 there (to-hit -4 is right), and every melee/ranged DPS comparison
+    # relies on this table.
+    # sources: NetHack 3.6.6 src/weapon.c weapon_dam_bonus (P_ISRESTRICTED/P_UNSKILLED: bonus = -2), weapon_hit_bonus
     weapon_bonus = {
-        SKILL_LEVEL_RESTRICTED: (-4, 2),
-        SKILL_LEVEL_UNSKILLED: (-4, 2),
+        SKILL_LEVEL_RESTRICTED: (-4, -2),
+        SKILL_LEVEL_UNSKILLED: (-4, -2),
         SKILL_LEVEL_BASIC: (0, 0),
         SKILL_LEVEL_SKILLED: (2, 1),
         SKILL_LEVEL_EXPERT: (3, 2),

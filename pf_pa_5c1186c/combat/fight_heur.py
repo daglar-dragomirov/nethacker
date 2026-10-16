@@ -6,6 +6,7 @@ from scipy import signal
 
 from ..glyph import G, MON
 from .. import jf_config, utils
+from .. import objects as O
 from ..item import Item
 from ..utils import adjacent
 from .monster_utils import is_monster_faster, is_dangerous_monster, \
@@ -102,6 +103,102 @@ def missiles_risk_the_watch(agent):
     return utils.any_in(agent.glyphs, WATCH_GLYPHS)
 
 
+# hypothesis: a Rogue that throws its daggers at an adjacent monster, instead of swinging its short sword, kills
+# the Dlvl 1-3 rothes, giant ants and hill orcs that end most rog-hum and rog-orc games (XL5-7) in fewer turns.
+# Those monsters then get fewer free bites, and every throw trains dagger toward Expert (multishot rnd(4), +2 dmg).
+#  - dothrow.c throw_obj: a Rogue gets +1 multishot with any dagger, +1 at Skilled (not when Dex <= 6) and
+#    +1 more at Expert. It throws rnd(multishot) daggers, capped at the stack, and only one while confused/stunned.
+#  - dothrow.c thitmonst: to-hit is -1 + dex + level, then +2 for a throwing weapon and +(3 - distance), so +2
+#    adjacent, plus hitval and weapon_hit_bonus. Melee's find_roll_to_hit is 1 + abon + level.
+#  - uhitm.c hmon_hitmon: every dagger that hits adds weapon_dam_bonus (and dbon, as melee does).
+# Taken only when the expected volley beats one swing of the weapon the melee action would wield, and never at
+# weak / ranged-only / exploding monsters. It uses the Ranger shot's priority (one above melee's). Since 3.6.0 a
+# backstab (+d(level) against a fleeing monster) counts only in melee, so only in that one case does melee lose
+# a bonus that this estimate leaves out.
+# sources: NetHack 3.6.6 src/dothrow.c (throw_obj multishot, thitmonst), src/weapon.c (weapon_hit_bonus,
+# weapon_dam_bonus), src/uhitm.c; nethackwiki.com/wiki/Rogue (Rogue +1 dagger multishot, "up to 2 at once
+# immediately", backstab melee-only since 3.6.0), nethackwiki.com/wiki/Multishot, nethackwiki.com/wiki/Dagger
+ROGUE_POINT_BLANK = True
+
+
+def _strength_damage_bonus(strength):
+    """NetHack dbon(): damage adjustment from encoded strength."""
+    if strength < 6:
+        return -1
+    if strength < 16:
+        return 0
+    if strength < 18:
+        return 1
+    if strength == 18:
+        return 2
+    if strength <= 18 + 75:
+        return 3
+    if strength <= 18 + 90:
+        return 4
+    if strength < 18 + 100:
+        return 5
+    return 6
+
+
+def rogue_volley_beats_melee(agent, launcher, ammo):
+    """A Rogue (not polymorphed) whose best ranged set is a thrown, not-cursed dagger stack, and whose expected
+    point-blank volley out-damages one melee swing."""
+    try:
+        ch = agent.character
+        if not ROGUE_POINT_BLANK or ch.role != ch.ROGUE or ch.prop.polymorph or launcher is not None or \
+                ammo is None or ammo.status == Item.CURSED or not ammo.is_weapon() or \
+                any(abs(obj.sub) != O.P_DAGGER for obj in ammo.objs):
+            return False
+        skill = ch.skill_levels[O.P_DAGGER]
+        dex = agent.blstats.dexterity
+        multishot = 1
+        if not (ch.prop.confusion or ch.prop.stun):
+            multishot += 1   # Rogue throwing a dagger
+            if skill >= ch.SKILL_LEVEL_EXPERT:
+                multishot += 1
+            if skill >= ch.SKILL_LEVEL_SKILLED and dex > 6:
+                multishot += 1
+        count = max(1, ammo.count)
+        volley = sum(min(k, count) for k in range(1, multishot + 1)) / multishot
+
+        dex_bonus = -3 if dex < 4 else -2 if dex < 6 else -1 if dex < 8 else max(0, dex - 14)
+        skill_hit, skill_dmg = ch._get_weapon_skill_bonus(ammo)
+        item_hit, item_dmg = ammo.get_weapon_bonus(False)
+        throw_hit = -1 + dex_bonus + agent.blstats.experience_level + 2 + 2 + skill_hit + item_hit
+        # NLE exposes both ACURRSTR (displayed 3..25) and ACURR(A_STR)
+        # (encoded 3..125).  NetHack dbon() compares the encoded value.
+        strength_dmg = _strength_damage_bonus(agent.blstats.strength_percentage)
+        throw_dps = volley * utils.calc_dps(throw_hit, max(0, item_dmg + skill_dmg + strength_dmg))
+
+        melee, _ = agent.inventory.get_best_melee_weapon(return_dps=True)
+        main = agent.inventory.items.main_hand
+        if main is not None and main.status == Item.CURSED and main.is_weapon():
+            melee = main   # welded: no swap
+        melee_hit, melee_dmg = ch.get_melee_bonus(melee, large_monster=False)
+        melee_dps = utils.calc_dps(melee_hit, max(0, melee_dmg + strength_dmg))
+        return throw_dps > melee_dps
+    except Exception:
+        return False
+
+
+def rogue_point_blank_priority(agent, monster, default):
+    """The volley's priority: one above what melee_monster_priority gives with a melee weapon in hand (16 when
+    HP > 8 or the monster is faster), so it wins over the swing."""
+    try:
+        _, _, _, mon, _ = monster
+        if mon.mname in WEAK_MONSTERS or mon.mname in ONLY_RANGED_SLOW_MONSTERS or \
+                mon.mname in EXPLODING_MONSTERS:
+            return default
+        ret = 2
+        if agent.blstats.hitpoints > 8 or is_monster_faster(agent, monster):
+            ret += 15
+        if 'were' in mon.mname:
+            ret += 1
+        return ret
+    except Exception:
+        return default
+
+
 def ranged_priority(agent, dy, dx, monsters):
     if missiles_risk_the_watch(agent):
         return None
@@ -167,6 +264,8 @@ def ranged_priority(agent, dy, dx, monsters):
                 if agent.glyphs[by, bx] in G.PETS or \
                         (agent.glyphs[by, bx] in G.MONS and not any(m[1] == by and m[2] == bx for m in monsters)):
                     return None
+            if dis == 1 and rogue_volley_beats_melee(agent, launcher, ammo):
+                ret = rogue_point_blank_priority(agent, monster[0], ret)
             return ret, y, x, monster[0]
 
 
@@ -243,6 +342,19 @@ def simulate_wand_path(agent, wand, monsters, dy, dx):
         yield y, x, hit_object, expected_hit_count
 
 
+_WAN_COLD = None
+
+
+def _wan_cold():
+    """The wand of cold object (SELF_ZAP_FIX: a Valkyrie resists her own cold bounce)."""
+    global _WAN_COLD
+    if _WAN_COLD is None:
+        from .. import objects as O
+        import nle.nethack as nh
+        _WAN_COLD = O.from_name('cold', nh.WAND_CLASS)
+    return _WAN_COLD
+
+
 def get_potential_wand_usages(agent, monsters, dy, dx):
     ret = []
     if missiles_risk_the_watch(agent):
@@ -262,7 +374,22 @@ def get_potential_wand_usages(agent, monsters, dy, dx):
             elif monster == 'peaceful':
                 priority -= p * 200
             elif monster == 'self':
-                priority -= p * 30
+                # hypothesis: SELF_ZAP_FIX (ported from nhbot, where it is on for every identity): our own ray's
+                # bounce costs what the ray does to us -- 6d6 fire/cold/lightning (lightning also blinds), 2d6 magic
+                # missile, death -- not a flat 30 per expected pass. With +25 per pass through a 'dangerous' target
+                # (giant ant, kitten, pony: out and back = +50) a wall right behind it made the zap win at any HP,
+                # and the early 'killed by a bolt of fire / bolt of lightning / magic missile' losses of the grind
+                # (kni s0/s11, rog-hum s7/s13, rog-orc s4, dev kni/rog-orc/tou) fit our own bolt coming back.
+                # sources: nhbot/combat/fight_heur.py + nhbot/jf_config.py SELF_ZAP_FIX (10 shallow + 10 deep deaths
+                # of 1023 games came right after our own ray hit us); NetHack 3.6.6 src/zap.c buzz() (rays bounce,
+                # range rn1(7,7), zhitu d(6,6) for wand fire/cold/lightning, d(2,6) magic missile);
+                # https://nethackwiki.com/wiki/Ray (bounces, 'be careful zapping rays near walls');
+                # https://nethackwiki.com/wiki/Wand_of_lightning
+                if jf_config.SELF_ZAP_FIX and not (item.objs[0] == _wan_cold() and
+                                                   agent.character.role == agent.character.VALKYRIE):
+                    priority -= p * jf_config.SELF_ZAP_PENALTY
+                else:
+                    priority -= p * 30
             elif monster is not None:
                 _, y, x, mon, _ = monster
                 if mon.mname in WEAK_MONSTERS:

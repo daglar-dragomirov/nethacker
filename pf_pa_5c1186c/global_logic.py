@@ -922,6 +922,10 @@ class GlobalLogic:
             .preempt(self.agent, [
                 self.agent.fight2(),
             ])
+            .preempt(self.agent, [
+                # Weak/Fainting: ready food before waiting on a hunger prayer (agent.emergency_meal)
+                self.agent.emergency_meal(),
+            ])
             # the Valley of the Dead only (GEHENNOM_DIVE): walk past the graveyards' sleeping undead
             .preempt(self.agent, [
                 self.dive.valley_sneak(),
