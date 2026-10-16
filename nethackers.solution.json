@@ -1,8 +1,10 @@
 {
   "schema": "nethackers.solution/v1",
-  "name": "daglar-zRayProbability",
+  "name": "daglar-zPublicOrcRogue800StrengthHit",
   "root": ".",
   "parents": [
+    "github.com/daglar-dragomirov/nethacker@cc23cb3c053e5424e674067b868f86b90ab8a2a8",
+    "github.com/tabt/nethacker@800e2ae438f6a64d17e1fe85dca172caab2a044d",
     "github.com/zarutskiysy/nethack@9c1cc902b6d9d88e6a14e0c9e5dc7494d9882bcd",
     "github.com/zarutskiysy/nethack@00cf417f05ec9c20846b848cd70243af67695c54",
     "github.com/zarutskiysy/nethack@14a3bbd871061d63bda57da6c82af91f46959d21",

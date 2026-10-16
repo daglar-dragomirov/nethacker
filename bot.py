@@ -86,8 +86,8 @@ SPECIALISTS = {
     "ran-orc-cha-mal": "",
     "rog-hum-cha-fem": "adapter_pf_pa_5c1186c",
     "rog-hum-cha-mal": "adapter_pf_pa_5c1186c",
-    "rog-orc-cha-fem": "",
-    "rog-orc-cha-mal": "",
+    "rog-orc-cha-fem": "adapter_orc_800e",
+    "rog-orc-cha-mal": "adapter_orc_800e",
     "sam-hum-law-fem": "adapter_pf_v37",
     "sam-hum-law-mal": "adapter_pf_vk_s25",
     "tou-hum-neu-fem": "adapter_pf_dtad7a",
@@ -210,6 +210,9 @@ class Bot:
                 roles.apply(ident)
             except Exception:  # noqa: BLE001 -- a bad override must never cost the episode
                 pass
+        if module_name == "adapter_orc_800e":
+            # Exact registered donor profile, isolated from the other engines.
+            importlib.import_module("roles_orc_800e").apply(ident)
         self._driver = self._get(module_name)
         self._driver.reset(initial_observation)
 
