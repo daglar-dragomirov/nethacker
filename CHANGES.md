@@ -90,3 +90,8 @@ Experimental complete zRayProbability on exact current completed Public leader d
 Experimental Public Orc Rogue800 strength-hit derivative. Exact whole cc23 Public router and71other routes retained. Both orc Rogues use the complete registered tabt800e main engine, adapter and exact role profile in a separate namespace, including its thrown-item weapon-skill bonus. One behavioral correction: Character._get_str_dex_to_hit_bonus reads encoded STR125 (BLStats.strength_percentage) for NetHack abon thresholds, instead of displayed STR25. All other donor gameplay retained. Provenance/licenses retained. Source readiness only; no confirmed gain.
 
 The unfrozen source review also corrects the restricted/unskilled weapon damage table from +2 to -2, matching NetHack weapon_dam_bonus(). Expert thrown-item skill logic remains exactly inherited from the registered source.
+
+
+Exact Public DT6A/nethacker@448d8d679f8eb194a26e984a85c0a81a7cf8c5d0 derivative on complete whole Public leader daglar-dragomirov/nethacker@5b1793db10cb88c1c2798663683641b8e78076d1.
+Three Cavemen and two Wizards use the complete registered main nhbot, arena adapter and exact role profiles. Elf female Ranger uses complete registered pf_s25p8/adapter without role application. All 67 other routes, all original whole-base router/probe behavior, dependencies, licenses and ancestry retained. Original donor archive and exact Git blob inventory retained in diagnostics/public-sources-oct16.
+Only donor gameplay changes: encoded STR125 input for abon; restricted/unskilled melee weapon damage -2 instead of +2. Package namespaces isolate engines. No individual Private selection/tuning. No efficacy claim. Existing exact-byte smoke73/native15 gates required; native imports pending, no seed reserved.
