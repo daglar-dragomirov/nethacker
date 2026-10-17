@@ -156,6 +156,11 @@ def _lookup(table, ident):
 
 def route(ident, pre_ident):
     """(engine module, apply roles config?) for the identity; pre_ident = the identity read before any ^X probe."""
+    # Registered 6ce Priest routes retain their distinct role/profile semantics.
+    if ident == "pri-elf-cha-fem" and not os.environ.get("NHBOT_ROUTE"):
+        return "adapter_priest6ce_main", False
+    if ident == "pri-elf-cha-mal" and not os.environ.get("NHBOT_ROUTE"):
+        return "adapter_priest6ce_v3", False
     src = LEGACY.get(ident) if ident and not os.environ.get("NHBOT_ROUTE") else None
     if src is not None:
         table, default = _LEGACY_TABLES[src]
@@ -213,6 +218,8 @@ class Bot:
         if module_name == "adapter_orc_800e":
             # Exact registered donor profile, isolated from the other engines.
             importlib.import_module("roles_orc_800e").apply(ident)
+        if module_name == "adapter_priest6ce_main":
+            importlib.import_module("roles_priest6ce").apply(ident)
         self._driver = self._get(module_name)
         self._driver.reset(initial_observation)
 
