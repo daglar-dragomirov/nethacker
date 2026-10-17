@@ -1,8 +1,10 @@
 {
   "schema": "nethackers.solution/v1",
-  "name": "daglar-zPublicOrcRogue800StrengthHit",
+  "name": "daglar-zPublicKnightC48Strength",
   "root": ".",
   "parents": [
+    "github.com/daglar-dragomirov/nethacker@5b1793db10cb88c1c2798663683641b8e78076d1",
+    "github.com/tabt/nethacker@c48cfb75ae898714a0a044a97be3e8189a316500",
     "github.com/daglar-dragomirov/nethacker@cc23cb3c053e5424e674067b868f86b90ab8a2a8",
     "github.com/tabt/nethacker@800e2ae438f6a64d17e1fe85dca172caab2a044d",
     "github.com/zarutskiysy/nethack@9c1cc902b6d9d88e6a14e0c9e5dc7494d9882bcd",
@@ -58,7 +60,8 @@
     "github.com/vlomshakov/nethacker@21db872529ff794a3daf14174f20fe92b2a2b2cf",
     "github.com/vlomshakov/nethacker@3488fcf091486bd983eec338c4cfefd395f1d496",
     "github.com/vlomshakov/nethacker@8b492ce95e6988b0eae2de84aef1379f885a1306",
-    "github.com/vlomshakov/nethacker@9ef4063cf36fa1d26416d11e83ef7fb1575e9ada"
+    "github.com/vlomshakov/nethacker@9ef4063cf36fa1d26416d11e83ef7fb1575e9ada",
+    "github.com/daglar-dragomirov/nethacker@e29eb8281b13784716d9121e4f01ec60c2bb2165"
   ],
   "entrypoint": "bot.py"
 }

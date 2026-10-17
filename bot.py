@@ -58,8 +58,8 @@ SPECIALISTS = {
     "hea-gno-neu-mal": "adapter_pf_vlom_9ef4063",
     "hea-hum-neu-fem": "adapter_pf_hh",
     "hea-hum-neu-mal": "adapter_pf_vlom_8b492ce",
-    "kni-hum-law-fem": "adapter_pf_s25p8",
-    "kni-hum-law-mal": "adapter_pf_s25p8",
+    "kni-hum-law-fem": "adapter_knight_c48",
+    "kni-hum-law-mal": "adapter_knight_c48",
     "mon-hum-cha-fem": "",
     "mon-hum-cha-mal": "",
     "mon-hum-law-fem": "adapter_nhbot_v2",
@@ -213,6 +213,8 @@ class Bot:
         if module_name == "adapter_orc_800e":
             # Exact registered donor profile, isolated from the other engines.
             importlib.import_module("roles_orc_800e").apply(ident)
+        if module_name == "adapter_knight_c48":
+            importlib.import_module("roles_knight_c48").apply(ident)
         self._driver = self._get(module_name)
         self._driver.reset(initial_observation)
 
