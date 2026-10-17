@@ -156,6 +156,12 @@ def _lookup(table, ident):
 
 def route(ident, pre_ident):
     """(engine module, apply roles config?) for the identity; pre_ident = the identity read before any ^X probe."""
+    if ident == 'val-dwa-law-fem' and not os.environ.get("NHBOT_ROUTE"):
+        return 'adapter_valk616_strength', False
+    if ident == 'val-hum-law-fem' and not os.environ.get("NHBOT_ROUTE"):
+        return 'adapter_valkeeffe_strength', False
+    if ident == 'val-hum-neu-fem' and not os.environ.get("NHBOT_ROUTE"):
+        return 'adapter_valk69e67_strength', False
     src = LEGACY.get(ident) if ident and not os.environ.get("NHBOT_ROUTE") else None
     if src is not None:
         table, default = _LEGACY_TABLES[src]
@@ -213,6 +219,8 @@ class Bot:
         if module_name == "adapter_orc_800e":
             # Exact registered donor profile, isolated from the other engines.
             importlib.import_module("roles_orc_800e").apply(ident)
+        if module_name == 'adapter_valkeeffe_strength':
+            importlib.import_module('roles_valkeeffe_strength').apply(ident)
         self._driver = self._get(module_name)
         self._driver.reset(initial_observation)
 
