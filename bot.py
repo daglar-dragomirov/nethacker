@@ -168,6 +168,10 @@ def route(ident, pre_ident):
         return "adapter_dt448_main", False
     if ident == "wiz-orc-cha-fem" and not os.environ.get("NHBOT_ROUTE"):
         return "adapter_dt448_main", False
+    if ident == 'mon-hum-law-fem' and not os.environ.get("NHBOT_ROUTE"):
+        return 'adapter_dt736_abi', False
+    if ident == 'ran-orc-cha-fem' and not os.environ.get("NHBOT_ROUTE"):
+        return 'adapter_dt736_abi', False
     src = LEGACY.get(ident) if ident and not os.environ.get("NHBOT_ROUTE") else None
     if src is not None:
         table, default = _LEGACY_TABLES[src]
@@ -227,6 +231,8 @@ class Bot:
             importlib.import_module("roles_orc_800e").apply(ident)
         if module_name == "adapter_dt448_main":
             importlib.import_module("roles_dt448").apply(ident)
+        if module_name == 'adapter_dt736_abi':
+            importlib.import_module('roles_dt736_abi').apply(ident)
         self._driver = self._get(module_name)
         self._driver.reset(initial_observation)
 
