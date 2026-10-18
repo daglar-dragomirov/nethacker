@@ -1,13 +1,14 @@
 {
   "schema": "nethackers.solution/v1",
-  "name": "daglar-zPublicKnightCurrentABIRepair",
+  "name": "daglar-zPublicValkCurrentMeleeStrengthDamage",
   "root": ".",
   "parents": [
+    "github.com/daglar-dragomirov/nethacker@4759120c5c40c2964c7f2e549e6c552cc1e907dc",
+    "github.com/tabt/nethacker@616e9c5b25683af6de9542a9d1dcb80dd8138e13",
+    "github.com/DT6A/nethacker@79297ad035c15971f74a4549e7c08f521253ee95",
     "github.com/daglar-dragomirov/nethacker@6a94f7a02507595cd58a3337c61414daa0d2970b",
     "github.com/tabt/nethacker@c48cfb75ae898714a0a044a97be3e8189a316500",
     "github.com/daglar-dragomirov/nethacker@52199e5e628bf0e71e49810fef8dd7f087523688",
-    "github.com/tabt/nethacker@616e9c5b25683af6de9542a9d1dcb80dd8138e13",
-    "github.com/DT6A/nethacker@79297ad035c15971f74a4549e7c08f521253ee95",
     "github.com/daglar-dragomirov/nethacker@53aab5dc02e4a0216542a39be7d5b6aa099f1d55",
     "github.com/DT6A/nethacker@736cae369fdbf3da9a45730ec18b65afb37f5b3e",
     "github.com/daglar-dragomirov/nethacker@5b1793db10cb88c1c2798663683641b8e78076d1",
