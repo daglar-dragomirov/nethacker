@@ -1,8 +1,10 @@
 {
   "schema": "nethackers.solution/v1",
-  "name": "daglar-zPublicDT448SixStrengthHit",
+  "name": "daglar-zPublicWizard16aABIRepair",
   "root": ".",
   "parents": [
+    "github.com/daglar-dragomirov/nethacker@53aab5dc02e4a0216542a39be7d5b6aa099f1d55",
+    "github.com/tabt/nethacker@16a066e5fa53836537979ed1ae0dc067b283ad1a",
     "github.com/daglar-dragomirov/nethacker@5b1793db10cb88c1c2798663683641b8e78076d1",
     "github.com/DT6A/nethacker@448d8d679f8eb194a26e984a85c0a81a7cf8c5d0",
     "github.com/daglar-dragomirov/nethacker@cc23cb3c053e5424e674067b868f86b90ab8a2a8",
