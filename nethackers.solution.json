@@ -1,8 +1,10 @@
 {
   "schema": "nethackers.solution/v1",
-  "name": "daglar-zPublicWizard16aABIRepair",
+  "name": "daglar-zPublicTourist63bABIRepair",
   "root": ".",
   "parents": [
+    "github.com/daglar-dragomirov/nethacker@4f824764091e26bf2f9aea1807493605f47d249d",
+    "github.com/Howuhh/nethacker@63bcebeef68359a38729760751a44caf135d59c8",
     "github.com/daglar-dragomirov/nethacker@53aab5dc02e4a0216542a39be7d5b6aa099f1d55",
     "github.com/tabt/nethacker@16a066e5fa53836537979ed1ae0dc067b283ad1a",
     "github.com/daglar-dragomirov/nethacker@5b1793db10cb88c1c2798663683641b8e78076d1",

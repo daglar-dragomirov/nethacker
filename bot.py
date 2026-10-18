@@ -170,6 +170,8 @@ def route(ident, pre_ident):
         return "adapter_dt448_main", False
     if ident == 'wiz-elf-cha-mal' and not os.environ.get("NHBOT_ROUTE"):
         return 'adapter_wizard16a_abi', False
+    if ident == 'tou-hum-neu-mal' and not os.environ.get("NHBOT_ROUTE"):
+        return 'adapter_tourist63b_abi', False
     src = LEGACY.get(ident) if ident and not os.environ.get("NHBOT_ROUTE") else None
     if src is not None:
         table, default = _LEGACY_TABLES[src]
