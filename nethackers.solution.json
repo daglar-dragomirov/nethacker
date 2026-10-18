@@ -1,8 +1,10 @@
 {
   "schema": "nethackers.solution/v1",
-  "name": "daglar-zPublicValkCurrentABIRepair",
+  "name": "daglar-zPublicElfPriest6ceABIRepair",
   "root": ".",
   "parents": [
+    "github.com/daglar-dragomirov/nethacker@6a94f7a02507595cd58a3337c61414daa0d2970b",
+    "github.com/tabt/nethacker@6ce02d551ef901e1541c1fb0c2717b18dcc6cd74",
     "github.com/daglar-dragomirov/nethacker@52199e5e628bf0e71e49810fef8dd7f087523688",
     "github.com/tabt/nethacker@616e9c5b25683af6de9542a9d1dcb80dd8138e13",
     "github.com/DT6A/nethacker@79297ad035c15971f74a4549e7c08f521253ee95",
