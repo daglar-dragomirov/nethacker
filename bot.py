@@ -182,6 +182,14 @@ def route(ident, pre_ident):
         return 'adapter_knight_c48_abi', False
     if ident == 'kni-hum-law-mal' and not os.environ.get("NHBOT_ROUTE"):
         return 'adapter_knight_c48_abi', False
+    if ident == "hea-gno-neu-fem" and not os.environ.get("NHBOT_ROUTE"):
+        return "adapter_heal_dbon_9ef_f", False
+    if ident == "hea-gno-neu-mal" and not os.environ.get("NHBOT_ROUTE"):
+        return "adapter_heal_dbon_b02_m", False
+    if ident == "hea-hum-neu-fem" and not os.environ.get("NHBOT_ROUTE"):
+        return "adapter_heal_dbon_8b4_f", False
+    if ident == "hea-hum-neu-mal" and not os.environ.get("NHBOT_ROUTE"):
+        return "adapter_heal_dbon_ca5_m", False
     src = LEGACY.get(ident) if ident and not os.environ.get("NHBOT_ROUTE") else None
     if src is not None:
         table, default = _LEGACY_TABLES[src]
