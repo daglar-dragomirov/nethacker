@@ -156,6 +156,14 @@ def _lookup(table, ident):
 
 def route(ident, pre_ident):
     """(engine module, apply roles config?) for the identity; pre_ident = the identity read before any ^X probe."""
+    if ident == 'cav-dwa-law-fem' and not os.environ.get("NHBOT_ROUTE"):
+        return 'adapter_dt448_enchant_main', False
+    if ident == 'cav-hum-neu-mal' and not os.environ.get("NHBOT_ROUTE"):
+        return 'adapter_dt448_enchant_main', False
+    if ident == 'ran-elf-cha-fem' and not os.environ.get("NHBOT_ROUTE"):
+        return 'adapter_dt448_enchant_s25', False
+    if ident == 'wiz-orc-cha-fem' and not os.environ.get("NHBOT_ROUTE"):
+        return 'adapter_dt448_enchant_main', False
     if ident == "cav-dwa-law-fem" and not os.environ.get("NHBOT_ROUTE"):
         return "adapter_dt448_main", False
     if ident == "cav-hum-neu-fem" and not os.environ.get("NHBOT_ROUTE"):
@@ -247,6 +255,8 @@ class Bot:
             importlib.import_module('roles_valk79297_abi').apply(ident)
         if module_name == 'adapter_knight_c48_abi':
             importlib.import_module('roles_knight_c48_abi').apply(ident)
+        if module_name == "adapter_dt448_enchant_main":
+            importlib.import_module("roles_dt448_enchant").apply(ident)
         self._driver = self._get(module_name)
         self._driver.reset(initial_observation)
 
