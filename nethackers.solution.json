@@ -1,8 +1,10 @@
 {
   "schema": "nethackers.solution/v1",
-  "name": "daglar-zPublicRangerA687SignedWeaponEnchantment",
+  "name": "daglar-zPublicElfPriest6ceSignedWeaponEnchantment",
   "root": ".",
   "parents": [
+    "github.com/daglar-dragomirov/nethacker@fe113de697444a78a9a753c13eb5b7b75d573d83",
+    "github.com/tabt/nethacker@6ce02d551ef901e1541c1fb0c2717b18dcc6cd74",
     "github.com/daglar-dragomirov/nethacker@4759120c5c40c2964c7f2e549e6c552cc1e907dc",
     "github.com/DT6A/nethacker@a687804a2de754dd23c05e4fbe17d6f792977c8b",
     "github.com/daglar-dragomirov/nethacker@6a94f7a02507595cd58a3337c61414daa0d2970b",

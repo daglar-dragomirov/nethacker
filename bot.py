@@ -186,6 +186,8 @@ def route(ident, pre_ident):
         return 'adapter_ranger_a687_enchant', False
     if ident == 'ran-hum-cha-mal' and not os.environ.get("NHBOT_ROUTE"):
         return 'adapter_ranger_a687_enchant', False
+    if ident == 'pri-elf-cha-mal' and not os.environ.get("NHBOT_ROUTE"):
+        return 'adapter_priest6ce_v3_enchant', False
     src = LEGACY.get(ident) if ident and not os.environ.get("NHBOT_ROUTE") else None
     if src is not None:
         table, default = _LEGACY_TABLES[src]
