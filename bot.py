@@ -182,6 +182,10 @@ def route(ident, pre_ident):
         return 'adapter_knight_c48_abi', False
     if ident == 'kni-hum-law-mal' and not os.environ.get("NHBOT_ROUTE"):
         return 'adapter_knight_c48_abi', False
+    if ident == 'ran-hum-cha-fem' and not os.environ.get("NHBOT_ROUTE"):
+        return 'adapter_ranger_a687_enchant', False
+    if ident == 'ran-hum-cha-mal' and not os.environ.get("NHBOT_ROUTE"):
+        return 'adapter_ranger_a687_enchant', False
     src = LEGACY.get(ident) if ident and not os.environ.get("NHBOT_ROUTE") else None
     if src is not None:
         table, default = _LEGACY_TABLES[src]
@@ -247,6 +251,8 @@ class Bot:
             importlib.import_module('roles_valk79297_abi').apply(ident)
         if module_name == 'adapter_knight_c48_abi':
             importlib.import_module('roles_knight_c48_abi').apply(ident)
+        if module_name == 'adapter_ranger_a687_enchant':
+            importlib.import_module('roles_ranger_a687_enchant').apply(ident)
         self._driver = self._get(module_name)
         self._driver.reset(initial_observation)
 
