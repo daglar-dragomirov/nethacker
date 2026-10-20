@@ -1,8 +1,11 @@
 {
   "schema": "nethackers.solution/v1",
-  "name": "daglar-zPublicElfPriest6ceSignedWeaponEnchantment",
+  "name": "daglar-zPublicValkCurrentObservedWeaponErosion",
   "root": ".",
   "parents": [
+    "github.com/daglar-dragomirov/nethacker@ffb38451e38b1a710b010f8968f669a9baab387b",
+    "github.com/DT6A/nethacker@37f9da35d0dbf98ed15bf89735bd601f0c0eac02",
+    "github.com/DT6A/nethacker@79297ad035c15971f74a4549e7c08f521253ee95",
     "github.com/daglar-dragomirov/nethacker@fe113de697444a78a9a753c13eb5b7b75d573d83",
     "github.com/tabt/nethacker@6ce02d551ef901e1541c1fb0c2717b18dcc6cd74",
     "github.com/daglar-dragomirov/nethacker@4759120c5c40c2964c7f2e549e6c552cc1e907dc",
@@ -11,7 +14,6 @@
     "github.com/tabt/nethacker@c48cfb75ae898714a0a044a97be3e8189a316500",
     "github.com/daglar-dragomirov/nethacker@52199e5e628bf0e71e49810fef8dd7f087523688",
     "github.com/tabt/nethacker@616e9c5b25683af6de9542a9d1dcb80dd8138e13",
-    "github.com/DT6A/nethacker@79297ad035c15971f74a4549e7c08f521253ee95",
     "github.com/daglar-dragomirov/nethacker@53aab5dc02e4a0216542a39be7d5b6aa099f1d55",
     "github.com/DT6A/nethacker@736cae369fdbf3da9a45730ec18b65afb37f5b3e",
     "github.com/daglar-dragomirov/nethacker@5b1793db10cb88c1c2798663683641b8e78076d1",
