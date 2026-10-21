@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import importlib
 import os
+import sys
 import tempfile
 from pathlib import Path
 
@@ -11,6 +12,24 @@ os.environ.setdefault("XDG_CACHE_HOME", str(_cache_root / "xdg"))
 os.environ.setdefault("NUMBA_CACHE_DIR", str(_cache_root / "numba"))
 
 import roles  # noqa: E402
+
+# ALIGN_PRAYER for the roles whose alignment record starts at 0 (role.c initrecord: Caveman, Priest, Tourist, Valkyrie,
+# Wizard). At record 0 pray.c pleased() fixes the worst trouble only half the time (action = !rnl(2) ? 1 : 0) yet still
+# restarts the prayer timeout, so a Weak/Fainting hunger prayer of the Dlvl-1 grind often fixes nothing ('You feel that
+# X is satisfied.') and the hero starves on Elbereth. agent.align_prayer (DT6A research/shallow_deaths.md) makes one
+# no-trouble prayer from turn 350 while the modelled record is still <= 0: +1 record (pray.c:941), so later prayers fix
+# the worst major trouble. It was shipped off "pending an A/B"; the role bundles in roles*.py set it per role together
+# with four other flags. Here it is switched on alone, for those five roles, in every loaded engine that implements it
+# (engines without the flag are untouched; the function itself does nothing once the record is above 0).
+ALIGN_PRAYER_ROLES = ("cav", "pri", "tou", "val", "wiz")
+
+
+def _align_prayer_on(ident):
+    if not ident or ident.split("-")[0] not in ALIGN_PRAYER_ROLES:
+        return
+    for name, module in list(sys.modules.items()):
+        if name.endswith(".jf_config") and hasattr(module, "ALIGN_PRAYER"):
+            module.ALIGN_PRAYER = True
 
 # identity prefix -> specialist engine adapter (from daglar-dragomirov/nethacker@e29eb82, chosen there on held-out
 # games): Healers on vlomshakov's engines, Samurai on daglar's v35. Every other identity plays the main engine, nhbot.
@@ -268,6 +287,7 @@ class Bot:
         if module_name == 'adapter_valk79297_armor':
             importlib.import_module('roles_valk79297_armor').apply(ident)
         self._driver = self._get(module_name)
+        _align_prayer_on(ident)
         self._driver.reset(initial_observation)
 
     def act(self, observation):
