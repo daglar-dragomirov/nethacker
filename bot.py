@@ -155,6 +155,8 @@ def _lookup(table, ident):
 
 
 def route(ident, pre_ident):
+    if ident == 'ran-elf-cha-fem' and not os.environ.get("NHBOT_ROUTE"):
+        return 'adapter_dt448_elf_ranger_armor', False
     if ident == 'val-dwa-law-fem' and not os.environ.get("NHBOT_ROUTE"):
         return 'adapter_valk37f_armor', False
     if ident == 'val-hum-law-fem' and not os.environ.get("NHBOT_ROUTE"):
