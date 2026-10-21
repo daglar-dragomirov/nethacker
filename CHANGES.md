@@ -1,3 +1,7 @@
+# ALIGN_PRAYER for record-0 roles (Claude, 2026-10-21)
+
+Parent: github.com/daglar-dragomirov/nethacker@a368786dc2650f8cd878b1226ac5815e719f164d, unchanged except `bot.py`. For Cavemen, Priests, Tourists, Valkyries and Wizards (role.c initrecord 0) `bot._align_prayer_on` switches on `jf_config.ALIGN_PRAYER` in every loaded engine that implements `agent.align_prayer` (DT6A's one early no-trouble prayer, shipped off pending an A/B). Motivation: diagnostic replays of the parent's public games -- 17 of 24 early deaths were Dlvl-1 grind starvation, several after a record-0 hunger prayer that fixed nothing ("You feel that X is satisfied."). No other policy change.
+
 # Changes over the parent engine (pf_s25p)
 
 - **v9p (private-safe router)**: v5 plus only the specialist routes that beat nhbot on the hub's VERIFIED (private-seed)
