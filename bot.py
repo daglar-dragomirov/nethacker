@@ -155,6 +155,12 @@ def _lookup(table, ident):
 
 
 def route(ident, pre_ident):
+    if ident == 'val-dwa-law-fem' and not os.environ.get("NHBOT_ROUTE"):
+        return 'adapter_valk37f_armor', False
+    if ident == 'val-hum-law-fem' and not os.environ.get("NHBOT_ROUTE"):
+        return 'adapter_valk79297_armor', False
+    if ident == 'val-hum-neu-fem' and not os.environ.get("NHBOT_ROUTE"):
+        return 'adapter_valk79297_v3_armor', False
     if ident == 'wiz-elf-cha-mal' and not os.environ.get("NHBOT_ROUTE"):
         return 'adapter_wizard16a_armor_erosion', False
     """(engine module, apply roles config?) for the identity; pre_ident = the identity read before any ^X probe."""
@@ -259,6 +265,8 @@ class Bot:
             importlib.import_module('roles_ranger_a687_enchant').apply(ident)
         if module_name == 'adapter_wizard16a_armor_erosion':
             importlib.import_module('roles_wizard16a_armor_erosion').apply(ident)
+        if module_name == 'adapter_valk79297_armor':
+            importlib.import_module('roles_valk79297_armor').apply(ident)
         self._driver = self._get(module_name)
         self._driver.reset(initial_observation)
 
