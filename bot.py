@@ -1,109 +1,94 @@
+"""Role router over two complete, unmodified programs.
+
+Each subdirectory is an exact registered program (its own bot.py, engines, licenses):
+  a368/  github.com/daglar-dragomirov/nethacker@a368786dc2650f8cd878b1226ac5815e719f164d  (default)
+  eab9/  github.com/daglar-dragomirov/nethacker@eab9a9c4f4e09bce096d5762e895fec51b63784d
+EAB9_ROLES lists the roles that play eab9; every other role -- and any game whose role can't be read -- plays a368.
+The roles were chosen on fresh held-out games only (daglar-heldout/v1, see CHANGES.md), never on the private tier.
+
+An arena episode is one process, so exactly one program is imported per game: its directory goes to the front of
+sys.path and its bot.py is loaded under a private module name, which keeps the two programs' same-named modules
+(roles, adapter, nhbot, ...) apart.
+"""
 from __future__ import annotations
 
-import importlib
-import os
-import tempfile
+import importlib.util
+import sys
 from pathlib import Path
 
-_cache_root = Path(tempfile.gettempdir()) / "nethack_arena_submission_cache"
-_cache_root.mkdir(parents=True, exist_ok=True)
-os.environ.setdefault("XDG_CACHE_HOME", str(_cache_root / "xdg"))
-os.environ.setdefault("NUMBA_CACHE_DIR", str(_cache_root / "numba"))
+_HERE = Path(__file__).resolve().parent
+EAB9_ROLES: frozenset[str] = frozenset({"arc", "cav"})
 
-import roles  # noqa: E402
-
-# identity prefix -> specialist engine adapter (from daglar-dragomirov/nethacker@e29eb82, chosen there on held-out
-# games): Healers on vlomshakov's engines, Samurai on daglar's v35. Every other identity plays the main engine, nhbot.
-# Human Priests left PetrAnokhin's pf_pa for nhbot (eL1fe's spell bundle casts their healing): +0.053 +- 0.022 per game
-# over 113 paired held-out games (ph0/ph1), in line with the hub's private seeds (dag25 0.260 vs pf_pa 0.228).
-# v9p (private-safe): only routes that beat nhbot on the hub's VERIFIED (private-seed) tier; the public-seed-selected
-# ports of v6/v7 overfit and are left out, and Tourists are back on nhbot (pf_dtad7a: 0.127 verified vs nhbot ~0.15).
-# v10a: Healers and Samurai back on nhbot -- every Healer/Samurai specialist lost to nhbot on 90 DEV held-out seeds
-# (hea-gno pf_hg -0.050, hea-hum pf_hh -0.024, sam pf_v35 -0.051, pf_v37 -0.111); pre-probe hub runs of hea-gno on nhbot
-# scored 0.24-0.27 verified vs pf_hg 0.160.
-SPECIALISTS = {
-    "arc-gno": "adapter_pf_v36",              # verified 0.405 vs nhbot 0.356
-    "ran-hum-neu": "adapter_pf_s25p8",        # verified 0.31 vs nhbot 0.21-0.25
-    "ran-elf-cha-fem": "adapter_pf_s25p8",    # verified 0.356 vs nhbot 0.325
-    "kni": "adapter_pf_s25p8",                # verified 0.209/0.247 vs nhbot 0.144/0.144
-    # v9p2: the e29-family engines beat four verified runs of nhbot here as well (one verified sample each)
-    "arc-hum-neu": "adapter_pf_s25p8",        # e29/pf_s25p 0.360/0.380 vs nhbot 0.31-0.33
-    "bar-orc": "adapter_pf_s25p8",            # e29/pf_s25p8 0.45-0.48 vs nhbot 0.36-0.41
-    "wiz-hum-neu": "adapter_pf_s25p8",        # dev 90 seeds: pf_s25p8 0.252 > nhbot 0.214 > pf_vk_s25 0.153; verified e29 ~0.25 vs pf_vk_s25 0.125
+_ROLE_WORDS = {
+    "archeologist": "arc", "barbarian": "bar", "caveman": "cav", "cavewoman": "cav", "healer": "hea", "knight": "kni",
+    "monk": "mon", "priest": "pri", "priestess": "pri", "ranger": "ran", "rogue": "rog", "samurai": "sam",
+    "tourist": "tou", "valkyrie": "val", "wizard": "wiz",
+}
+# rank titles at experience levels 1-2 (role.c), shown on the first status line as "Agent the <title>"
+_TITLES = {
+    "digger": "arc", "plunderer": "bar", "plunderess": "bar", "troglodyte": "cav", "rhizotomist": "hea",
+    "gallant": "kni", "candidate": "mon", "aspirant": "pri", "tenderfoot": "ran", "footpad": "rog",
+    "hatamoto": "sam", "rambler": "tou", "stripling": "val", "evoker": "wiz",
 }
 
 
-def _specialist(ident):
-    if not ident or os.environ.get("NHBOT_NO_SPECIALISTS"):
-        return None
-    table = dict(SPECIALISTS)
-    # dev runs: NHBOT_ROUTE='{"tou": "adapter_pf_v25"}' (an empty name routes to nhbot)
-    if os.environ.get("NHBOT_ROUTE"):
-        import json
-        table.update(json.loads(os.environ["NHBOT_ROUTE"]))
-    for prefix in sorted(table, key=len, reverse=True):
-        if ident == prefix or ident.startswith(prefix + "-"):
-            return table[prefix] or None
+def _text(rows) -> str:
+    try:
+        return bytes(rows).decode("latin-1")
+    except Exception:  # noqa: BLE001
+        return ""
+
+
+def role_of(observation) -> str | None:
+    message = _text(observation["message"]).lower() if "message" in observation else ""
+    if "welcome to nethack" in message:
+        words = message.replace(".", " ").split()
+        for word in reversed(words):
+            if word in _ROLE_WORDS:
+                return _ROLE_WORDS[word]
+    try:
+        for row in observation["tty_chars"][-3:]:
+            line = _text(row).lower()
+            if " the " in line:
+                title = line.split(" the ", 1)[1].split()[0] if line.split(" the ", 1)[1].split() else ""
+                if title in _TITLES:
+                    return _TITLES[title]
+    except Exception:  # noqa: BLE001
+        pass
     return None
 
 
+def _load(name: str):
+    root = _HERE / name
+    sys.path.insert(0, str(root))
+    spec = importlib.util.spec_from_file_location(f"_program_{name}_bot", root / "bot.py")
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[spec.name] = module
+    spec.loader.exec_module(module)
+    return module.make_agent()
+
+
 class Bot:
-    """Routes each identity to an engine: nhbot (an AutoAscend descendant) or a specialist."""
-
     def __init__(self) -> None:
-        self._drivers = {}
-        self._driver = None
+        self._agent = None
 
-    def _get(self, module_name):
-        if module_name not in self._drivers:
-            self._drivers[module_name] = importlib.import_module(module_name).AutoAscendDriver()
-        return self._drivers[module_name]
-
-    def reset(self, initial_observation):
-        ident = None
+    def reset(self, initial_observation) -> None:
+        role = None
         try:
-            ident = roles.identity(initial_observation)
+            role = role_of(initial_observation)
         except Exception:  # noqa: BLE001
             pass
-        # a role-only identity means the welcome line was not seen: ask ^X before choosing the engine
-        self._probe = 0 if ident is None or ident.count("-") != 3 else None
-        self._probe_ident = ident
-        if self._probe is None:
-            self._start(initial_observation, ident)
+        if self._agent is None:
+            self._agent = _load("eab9" if role in EAB9_ROLES else "a368")
+        self._agent.reset(initial_observation)
 
-    def _start(self, initial_observation, ident):
-        module_name = _specialist(ident) or "adapter"
-        if module_name == "adapter":
-            try:
-                roles.apply(ident)
-            except Exception:  # noqa: BLE001 -- a bad override must never cost the episode
-                pass
-        self._driver = self._get(module_name)
-        self._driver.reset(initial_observation)
+    def act(self, observation) -> int:
+        return self._agent.act(observation)
 
-    def act(self, observation):
-        if self._probe is not None:
-            import nle.nethack as nh
-            from nle.nethack import actions as A
-            actions = tuple(nh.ACTIONS)
-            if self._probe == 0:
-                self._probe = 1
-                return actions.index(A.Command.ATTRIBUTES)
-            if self._probe == 1:
-                try:
-                    self._probe_ident = roles.attributes_identity(observation) or self._probe_ident
-                except Exception:  # noqa: BLE001
-                    pass
-                self._probe = 2
-                return actions.index(A.Command.ESC)
-            self._probe = None
-            self._start(observation, self._probe_ident)
-        return self._driver.act(observation)
-
-    def close(self):
-        for driver in self._drivers.values():
-            driver.close()
+    def close(self) -> None:
+        if self._agent is not None and hasattr(self._agent, "close"):
+            self._agent.close()
 
 
-def make_agent():
+def make_agent() -> Bot:
     return Bot()
