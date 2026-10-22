@@ -1,8 +1,9 @@
 {
   "schema": "nethackers.solution/v1",
-  "name": "daglar-zMetaA368ArcCavEab9",
+  "name": "daglar-zMetaA368TourFaint1200",
   "root": ".",
   "parents": [
+    "github.com/daglar-dragomirov/nethacker@e23fac9e075351155316a73050b4297d072428fc",
     "github.com/daglar-dragomirov/nethacker@a368786dc2650f8cd878b1226ac5815e719f164d",
     "github.com/daglar-dragomirov/nethacker@eab9a9c4f4e09bce096d5762e895fec51b63784d",
     "github.com/zarutskiysy/nethack@14a3bbd871061d63bda57da6c82af91f46959d21",

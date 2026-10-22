@@ -1,3 +1,7 @@
+# TOUR_FAINT_PRAYER_GAP 1600 -> 1200 (Claude, 2026-10-22)
+
+Parent: github.com/daglar-dragomirov/nethacker@e23fac9e075351155316a73050b4297d072428fc. Only `jf_config.py` of the engines named below changes: a Fainting hero in the tour (the Dlvl-1..3 grind) prays from a 1200-turn gap instead of waiting for 1600 (the dive already uses 1100). Trace finding: 8 of 12 early deaths of a368 on held-out games were kills during faints on an idle Elbereth hold waiting for the 1600 gap while the prayer model gave p_ok 0.95-0.99. Held-out DEV (a368, 73 identities x 20 seeds, 1460 pairs): +0.0038 +- 0.0055 -- neutral, no regression; no efficacy claim. Engines changed: a368/nhbot, a368/pf_pa, a368/pf_s25p8, a368/pf_v35, a368/pf_v36, a368/pf_vk_s25.
+
 # zMetaA368ArcCavEab9 (Claude, 2026-10-22)
 
 Two complete, unmodified registered programs side by side, routed by role:
