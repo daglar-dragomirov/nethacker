@@ -1,3 +1,7 @@
+# TOUR_FAINT_PRAYER_GAP 1600 -> 1000 (Claude, 2026-10-23)
+
+Parent: github.com/daglar-dragomirov/nethacker@eab9a9c4f4e09bce096d5762e895fec51b63784d. Only `jf_config.py` changes in: nhbot, nhbot_dt448_main, nhbot_dt736_abi, nhbot_knight_c48_abi, nhbot_orc_800e, nhbot_priest6ce_v3_enchant, nhbot_ranger_a687_enchant, nhbot_v2, nhbot_v3, nhbot_valk79297_abi, nhbot_valk79297_armor, nhbot_valk79297_v3_abi, nhbot_valk79297_v3_armor, nhbot_wizard16a_armor_erosion, pf_dt448_s25, pf_pa, pf_pa_5c1186c, pf_s25p8, pf_v35, pf_v36, pf_v37, pf_valk37f_armor, pf_valk616_abi, pf_vk_s23, pf_vk_s25. A Fainting hero in the Dlvl-1..3 grind prays from a 1000-turn gap instead of holding Elbereth through faints (trace finding on held-out games: 8 of 12 early deaths were kills during such faints while the prayer model gave p_ok 0.95-0.99). Held-out DEV on the a368 engines: +0.0026 +- 0.0083 (neutral). Public preview of these exact bytes on the 15 published seeds: ran-hum-cha-fem 0.4247, ran-hum-cha-mal 0.4298, reproduced twice. No efficacy claim.
+
 # Changes over the parent engine (pf_s25p)
 
 - **v9p (private-safe router)**: v5 plus only the specialist routes that beat nhbot on the hub's VERIFIED (private-seed)
