@@ -93,7 +93,7 @@ DIVE_XL = 8
 # (d + 6) / 2 from Dlvl 2). A lower XL also lowers that cap at every depth (a digger with a pick skips the gate
 # and digs at once, as the arc-early-dig gene showed pick dives to be XL-insensitive).
 SAM_DIVE_XL = 6
-DIVE_TURN = 10 ** 9
+DIVE_TURN = 9000  # Claude DEV: the tour ends and the dive starts at this turn
 ELBERETH_REST_BELOW = 0.4
 ELBERETH_REST_UNTIL = 0.85
 # breathers, spitters and casters: Elbereth doesn't stop them hurting you from a distance
@@ -452,6 +452,11 @@ ARC_DIG_DIVE_XL = 5
 # abon(); Dex 16-18 gives abon +2..+4, weapon.c:911-919, where the Archeologist's intrinsic Fast gives 4/3 actions,
 # allmain.c:141-144, attrib.c:26-27) and has the same Stealth (attrib.c:68). None: DIG_DIVE_XL.
 ROG_DIG_DIVE_XL = 3
+# hea-early-dig (claude oct23): a Healer holding a digging tool leaves the tour for the dig-dive at XL 5 instead of
+# DIG_DIVE_XL 7. DEV held-out vs a368 (DIG_DIVE_XL 5 for everyone): Healers +0.031 (20 seeds), +0.014 (40 fresh),
+# +0.029 +- 0.013 (60 fresh, 240 pairs); Monks -0.020, Priests +0.001, all 73 identities +0.001 -- so Healer-gated.
+# None: DIG_DIVE_XL.
+HEA_DIG_DIVE_XL = 5
 DIG_REST_BELOW = 0.6
 DIG_MAX_TRIES = 20             # applies on one level without falling through: floor can't be holed
 # A cursed pick-axe digs like any other (dig.c: the curse only matters on the Plane of Earth); applied, it
@@ -5153,12 +5158,21 @@ class DiveLogic:
         except Exception:
             return False
 
+    def _hea_early_dig(self):
+        """HEA_DIG_DIVE_XL applies: the character is a Healer."""
+        try:
+            return HEA_DIG_DIVE_XL is not None and self.agent.character.role == Character.HEALER
+        except Exception:
+            return False
+
     def _dig_dive_xl(self):
         """The XL from which a digging-tool holder leaves the tour for the dig-dive."""
         if self._arc_early_dig():
             return min(ARC_DIG_DIVE_XL, self._min_xl(DIG_DIVE_XL))
         if self._rog_early_dig():
             return min(ROG_DIG_DIVE_XL, self._min_xl(DIG_DIVE_XL))
+        if self._hea_early_dig():
+            return self._min_xl(HEA_DIG_DIVE_XL)
         return self._min_xl(DIG_DIVE_XL)
 
     def _grind_hunting(self):

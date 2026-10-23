@@ -84,7 +84,7 @@ DIVE_XL = 8
 # (d + 6) / 2 from Dlvl 2). A lower XL also lowers that cap at every depth (a digger with a pick skips the gate
 # and digs at once, as the arc-early-dig gene showed pick dives to be XL-insensitive).
 SAM_DIVE_XL = 6
-DIVE_TURN = 10 ** 9
+DIVE_TURN = 9000  # Claude DEV: the tour ends and the dive starts at this turn
 ELBERETH_REST_BELOW = 0.4
 ELBERETH_REST_UNTIL = 0.85
 # breathers, spitters and casters: Elbereth doesn't stop them hurting you from a distance
