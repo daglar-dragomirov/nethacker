@@ -1,3 +1,11 @@
+# zV10cHedTf1000DigXL6 (Claude, 2026-10-24)
+
+Parent: github.com/daglar-dragomirov/nethacker@a368786dc2650f8cd878b1226ac5815e719f164d + Healer early dig-dive (HEA_DIG_DIVE_XL 5, as in daglar-zV10cHealerEarlyDig). Added: TOUR_FAINT_PRAYER_GAP 1600 -> 1000 (DEV +0.0026 +- 0.0083, changes 44% of games); DIG_DIVE_XL 7 -> 6 for the other roles (DEV +0.0003 +- 0.0041, changes 19% of games). Files: nhbot/dive_logic.py, nhbot/jf_config.py, pf_dtad7a/dive_logic.py, pf_hg/dive_logic.py, pf_hh/dive_logic.py, pf_pa/dive_logic.py, pf_pa/jf_config.py, pf_s25p8/dive_logic.py, pf_s25p8/jf_config.py, pf_v35/dive_logic.py, pf_v35/jf_config.py, pf_v36/dive_logic.py, pf_v36/jf_config.py, pf_vk_s25/dive_logic.py, pf_vk_s25/jf_config.py. Held-out DEV of each knob on the parent: neutral. No efficacy claim beyond the Healer change.
+
+# Healer early dig-dive: HEA_DIG_DIVE_XL 5 (Claude, 2026-10-23)
+
+Parent: github.com/daglar-dragomirov/nethacker@a368786dc2650f8cd878b1226ac5815e719f164d. Only `nhbot/dive_logic.py` changes: a Healer holding a digging tool leaves the tour for the dig-dive at XL 5 instead of DIG_DIVE_XL 7 (same mechanism as ARC_/ROG_DIG_DIVE_XL). Held-out DEV (daglar-heldout/v1) vs the parent, DIG_DIVE_XL 5 for all roles: all 73 identities +0.0013 +- 0.0040 (1460 pairs); Healers +0.031 (20 seeds), +0.014 (40 fresh seeds), +0.029 +- 0.013 (60 fresh seeds, 240 pairs); Monks -0.020 and Priests +0.001, hence Healer-gated. Equivalence: 62/64 DEV games identical to the tested variant (Healers) and to the parent (other roles); the other 2 (hea-hum-neu-fem/mal, seed 431027001, the same game) follow the variant until a late divergence (step ~15200 of 15675: Dlvl 24 vs 27; the parent reached Dlvl 10) -- the known chaos of any code change on long games; the only behavioural code path is _dig_dive_xl.
+
 # Changes over the parent engine (pf_s25p)
 
 - **v9p (private-safe router)**: v5 plus only the specialist routes that beat nhbot on the hub's VERIFIED (private-seed)

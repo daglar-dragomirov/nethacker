@@ -225,7 +225,7 @@ HUNT_MIN_XL = 8
 # With a digging tool the dive is a few turns per level and XL matters much less (s7 public seed 10:
 # Dlvl 4 -> 26 in ~200 turns of digging, past Medusa): dive as soon as one is in hand from this XL,
 # and keep one during the tour (it drops them for lighter loot).
-DIG_DIVE_XL = 8
+DIG_DIVE_XL = 6
 KEEP_TOOL_IN_TOUR = False
 # The portal sweep (Home 1 = 0.366) costs ~1500 turns of exploring the level; digging reaches
 # Dlvl 20+ (0.38+) within a few hundred turns, so no sweep while holding a digging tool.
