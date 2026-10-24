@@ -1,8 +1,9 @@
 {
   "schema": "nethackers.solution/v1",
-  "name": "daglar-zV10cUrgentInstrumentCare",
+  "name": "daglar-zV10cHedTourFaint1200",
   "root": ".",
   "parents": [
+    "github.com/daglar-dragomirov/nethacker@a368786dc2650f8cd878b1226ac5815e719f164d",
     "github.com/zarutskiysy/nethack@14a3bbd871061d63bda57da6c82af91f46959d21",
     "github.com/zarutskiysy/nethack@94c4c1cd21c51f9feec0eaabd9c63831a8ee3316",
     "github.com/zarutskiysy/nethack@bb7def3548dcb618066c2c92b8bc3335631aaee1",
