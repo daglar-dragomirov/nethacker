@@ -68,7 +68,7 @@ MINES_REQUIRED_XL = {}
 # astra: retreat onto Elbereth at 45-65% HP, rest there with searches, never attack from it
 # hand-over from AutoAscend's levelling tour to the dive
 DIVE_XL = 7
-DIVE_TURN = 10 ** 9
+DIVE_TURN = 9000  # Claude DEV: the tour ends and the dive starts at this turn
 ELBERETH_REST_BELOW = 0.4
 ELBERETH_REST_UNTIL = 0.85
 # breathers, spitters and casters: Elbereth doesn't stop them hurting you from a distance
