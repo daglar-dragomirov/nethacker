@@ -84,7 +84,7 @@ DIVE_XL = 8
 # (d + 6) / 2 from Dlvl 2). A lower XL also lowers that cap at every depth (a digger with a pick skips the gate
 # and digs at once, as the arc-early-dig gene showed pick dives to be XL-insensitive).
 SAM_DIVE_XL = 6
-DIVE_TURN = 10 ** 9
+DIVE_TURN = 9000  # Claude DEV: the tour ends and the dive starts at this turn
 ELBERETH_REST_BELOW = 0.4
 ELBERETH_REST_UNTIL = 0.85
 # breathers, spitters and casters: Elbereth doesn't stop them hurting you from a distance
@@ -451,7 +451,7 @@ HUNT_MIN_XL = 8
 # Dlvl 4 -> 26 in ~200 turns of digging, past Medusa): dive as soon as one is in hand from this XL,
 # and keep one during the tour (it drops them for lighter loot).
 # train 3 (early-game A027): a tool holder dives at XL 7 (public +0.056; 45 games neutral; grind losses 10 -> 5)
-DIG_DIVE_XL = 7
+DIG_DIVE_XL = 6
 KEEP_TOOL_IN_TOUR = False
 # A planned dive (the XL or tool trigger, never a rescue) waits until this many turns have passed since the last
 # prayer (0: off), so the emergency HP prayer is there on the way down: it needs the prayer timeout <= 200
