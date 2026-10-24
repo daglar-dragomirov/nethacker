@@ -247,7 +247,7 @@ DIVE_FED_MAX_WAIT = 2000
 # ON (train 3.2, grind-food A047/A058/t32): 90 games 0.4025 vs 0.3964; in-lane losses 6 vs 10, failed prayers 3 vs 7 (was: 0)
 TOUR_WEAK_PRAYER_GAP = 1700
 # ON (train 3.2, grind-food A047/A058/t32): 90 games 0.4025 vs 0.3964; in-lane losses 6 vs 10, failed prayers 3 vs 7 (was: 0)
-TOUR_FAINT_PRAYER_GAP = 1600
+TOUR_FAINT_PRAYER_GAP = 1000  # Claude DEV: tour Fainting prays from this gap
 # per-XL tour gaps [[min_xl, weak_gap, faint_gap], ...] (the highest min_xl <= XL wins; overrides TOUR_*)
 TOUR_GAPS_BY_XL = []
 # the low-HP prayer only at pray.c's critically_low_hp (EXACT_PRAYER's HP rule without its turn-100 first prayer)
