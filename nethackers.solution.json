@@ -1,8 +1,9 @@
 {
   "schema": "nethackers.solution/v1",
-  "name": "daglar-zPublicValkCurrentObservedArmorErosion",
+  "name": "daglar-zPublicValkCurrentChaos24",
   "root": ".",
   "parents": [
+    "github.com/daglar-dragomirov/nethacker@eab9a9c4f4e09bce096d5762e895fec51b63784d",
     "github.com/daglar-dragomirov/nethacker@ccfb1251179bad749ece88d384956363ffb2db56",
     "github.com/daglar-dragomirov/nethacker@44b29b9299c5dcfb76e3fc6081004727c58db19a",
     "github.com/DT6A/nethacker@37f9da35d0dbf98ed15bf89735bd601f0c0eac02",

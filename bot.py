@@ -154,6 +154,9 @@ def _lookup(table, ident):
     return None
 
 
+_CLAUDE_PAD = list(range(24 * 997))  # layout-only change (Claude chaos variant 24)
+
+
 def route(ident, pre_ident):
     if ident == 'val-dwa-law-fem' and not os.environ.get("NHBOT_ROUTE"):
         return 'adapter_valk37f_armor', False
