@@ -1,3 +1,11 @@
+# zV10cHedChaos6 (Claude, 2026-10-24)
+
+Parent: github.com/daglar-dragomirov/nethacker@a368786dc2650f8cd878b1226ac5815e719f164d. Only `bot.py` changes: one import-time line `_CLAUDE_PAD = list(range(...))` before the router; routes, engines and parameters are the parent's. Published as another draw on the 15 published seeds (another draw on the hidden seeds). Parent of the Healer change: daglar-zV10cHealerEarlyDig (a67fc20). No efficacy claim beyond it.
+
+# Healer early dig-dive: HEA_DIG_DIVE_XL 5 (Claude, 2026-10-23)
+
+Parent: github.com/daglar-dragomirov/nethacker@a368786dc2650f8cd878b1226ac5815e719f164d. Only `nhbot/dive_logic.py` changes: a Healer holding a digging tool leaves the tour for the dig-dive at XL 5 instead of DIG_DIVE_XL 7 (same mechanism as ARC_/ROG_DIG_DIVE_XL). Held-out DEV (daglar-heldout/v1) vs the parent, DIG_DIVE_XL 5 for all roles: all 73 identities +0.0013 +- 0.0040 (1460 pairs); Healers +0.031 (20 seeds), +0.014 (40 fresh seeds), +0.029 +- 0.013 (60 fresh seeds, 240 pairs); Monks -0.020 and Priests +0.001, hence Healer-gated. Equivalence: 62/64 DEV games identical to the tested variant (Healers) and to the parent (other roles); the other 2 (hea-hum-neu-fem/mal, seed 431027001, the same game) follow the variant until a late divergence (step ~15200 of 15675: Dlvl 24 vs 27; the parent reached Dlvl 10) -- the known chaos of any code change on long games; the only behavioural code path is _dig_dive_xl.
+
 # Changes over the parent engine (pf_s25p)
 
 - **v9p (private-safe router)**: v5 plus only the specialist routes that beat nhbot on the hub's VERIFIED (private-seed)

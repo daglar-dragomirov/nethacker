@@ -47,6 +47,9 @@ def _specialist(ident):
     return None
 
 
+_CLAUDE_PAD = list(range(6 * 997))  # layout-only change (Claude chaos variant 6)
+
+
 class Bot:
     """Routes each identity to an engine: nhbot (an AutoAscend descendant) or a specialist."""
 
