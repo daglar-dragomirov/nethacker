@@ -1,0 +1,10 @@
+{
+ "default": "dag25",
+ "roles": {
+  "Samurai": "jawfish",
+  "Tourist": "kefirski",
+  "Healer/gnome": "dagfc5",
+  "Healer": "vlom8b4",
+  "Wizard": "dage29"
+ }
+}
