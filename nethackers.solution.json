@@ -1,6 +1,6 @@
 {
   "schema": "nethackers.solution/v1",
-  "name": "daglar-zPublicValkCurrentObservedArmorErosion",
+  "name": "daglar-zLeadersEDt28000",
   "root": ".",
   "parents": [
     "github.com/daglar-dragomirov/nethacker@ccfb1251179bad749ece88d384956363ffb2db56",
@@ -42,7 +42,25 @@
     "github.com/daglar-dragomirov/nethacker@a4c2c2f5d4a2ca3da7091ba0e439959c23ee4e47",
     "github.com/DT6A/nethacker@cd7b27193f40efba24f74cc9125240a5c41ae50a",
     "github.com/daglar-dragomirov/nethacker@96597c11db0a602f3e12b2ee6d03275d9c4bcddd",
-    "github.com/daglar-dragomirov/nethacker@3cb890b9c29934f161cbabf68f60dc55422bdac0"
+    "github.com/daglar-dragomirov/nethacker@3cb890b9c29934f161cbabf68f60dc55422bdac0",
+    "github.com/AlexWortega/nethacker@cc24e8a74277afa3c6300b53955cdc8f93484785",
+    "github.com/CleverShovel/nethacker@0e6841c772e8e27a2825365bc807da0ab8e1389e",
+    "github.com/CleverShovel/nethacker@911c9493762a36cb20e806a132f351d290334644",
+    "github.com/CleverShovel/nethacker@f1e91538ee7f702a7f4618c9ea069f032880df2c",
+    "github.com/DT6A/nethacker@070aea3c878c9ff54c9c109520fb82ad3af47e63",
+    "github.com/DT6A/nethacker@3e64892a95c530d49010ffe4f7ed3a24bbbcae68",
+    "github.com/DT6A/nethacker@58f484cac15edc93b92170140bf04aeefb39fdd9",
+    "github.com/DT6A/nethacker@751f31dcff9ec937fd1659d5690c99661f233773",
+    "github.com/DT6A/nethacker@7a341b7450c004ddebee26e52364be552562eea4",
+    "github.com/DT6A/nethacker@e97fc7d62eca684a7820d20570937828d2539228",
+    "github.com/DT6A/nethacker@eeffe21ea6e69027423dbc155ae977811214be54",
+    "github.com/HalcyonForest/nethacker@6fa1dfd2afb35b6fa6299c5e5d7cc4d0c7d731f6",
+    "github.com/Luab/nethacker@a783b6dcd62efde66493eeef80faf855604c7566",
+    "github.com/alexeyshmelev/nethacker@1fc7508ac9c304d027bde9bd9a59c44ce3dc4826",
+    "github.com/artfawl/nethacker@9f41c5e6883c415ff0522b5635215363f52939c4",
+    "github.com/eL1fe/nethacker@012dce4eef00fb92e814e2aa5a405c1eed015e96",
+    "github.com/eL1fe/nethacker@bd8cb7c0ea025239949a13139a85087c356bc825",
+    "github.com/kefirski/nethacker@91cc604d54aec632e67f8f21680319ac7e77a2fd"
   ],
   "influences": [
     "github.com/CleverShovel/nethacker@0d1fb22498024cdcac06be9d15d0f70e8cae803c",
