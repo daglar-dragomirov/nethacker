@@ -112,3 +112,9 @@ OVERRIDES["ran"] = {"jf_config.UNSEEN_PET_GUARD": False}
 # gnomish Cavemen: the Dlvl-1 grind (an empty level map) instead of the deep grind, +0.073 +- 0.022 over 120 pairs
 # (v8ab +0.060); the other roles keep their default entries
 OVERRIDES["cav-gno"] = {"jf_config.ROLE_GRIND_LEVELS": {"Rogue": {}, "Knight": {}, "Tourist": {}, "Priest": {}, "Caveman": {}}}
+
+# v10d (Claude, 2026-10-29): Wizards and Rangers rest on Elbereth from a lone mlevel<=2 monster when its modelled
+# melee could kill us within LONE_WEAK_TURNS (rothe/giant ant/giant bat deaths at 7-11 HP). DEV held-out vs v10c:
+# wiz +0.026 (170 pairs) / +0.023 (100 fresh), ran +0.019 (180) / +0.016 (100 fresh); off for the other roles (cav -0.031, hea -0.029)
+for _p in ('wiz', 'ran'):
+    OVERRIDES.setdefault(_p, {}).update({'jf_config.LONE_WEAK_THREAT': True})
