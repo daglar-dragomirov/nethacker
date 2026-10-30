@@ -1,3 +1,7 @@
+# zPublicValkCurrentChaos42 (Claude, 2026-10-24)
+
+Parent: github.com/daglar-dragomirov/nethacker@eab9a9c4f4e09bce096d5762e895fec51b63784d. Only `bot.py` changes: one import-time line `_CLAUDE_PAD = list(range(...))` before the router; routes, engines and parameters are the parent's. Published as another draw on the 15 published seeds (the public evaluation varies run to run). No efficacy claim.
+
 # Changes over the parent engine (pf_s25p)
 
 - **v9p (private-safe router)**: v5 plus only the specialist routes that beat nhbot on the hub's VERIFIED (private-seed)
