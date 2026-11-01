@@ -1,0 +1,17 @@
+{
+  "schema": "nethackers.solution/v1",
+  "name": "jawfish",
+  "root": "autoascend",
+  "parents": [
+    "github.com/DT6A/nethacker@59ce30c509ef568366fe846afeba03dede939339",
+    "github.com/vkurenkov/nethacker@ef6acf87e265f74600b914060f620d06117070a3"
+  ],
+  "influences": [
+    "github.com/DT6A/nethacker@59ce30c509ef568366fe846afeba03dede939339",
+    "github.com/daglar-dragomirov/nethacker@cb527267cc6e3562ea8e02ccc09c90ff17fe8ccf",
+    "github.com/kenforthewin/nethack_astra@38b1a38b340d4cb154fe5e4411b2819dc407d5e3",
+    "github.com/vkurenkov/nethacker@ef6acf87e265f74600b914060f620d06117070a3",
+    "github.com/kefirski/nethacker@995d8f40b2d24ee09487b0e87e014ca2fcc10928"
+  ],
+  "entrypoint": "bot.py"
+}
