@@ -1,0 +1,139 @@
+# Changes over the parent engine (pf_s25p)
+
+- **castle-v2 (default off, replay A/B pending; research/castle_v2.md)**: `CASTLE_V2` turns on, as one switch applied
+  only once the dive reaches the castle zone (Dungeons of Doom, depth >= 25, below Medusa), the drawbridge-crusher
+  route ported from vk s26 (PASSTUNE_CRUSHER + CASTLE_INNER + the landing lane and wish-route fixes: the vkc1 arm, whose
+  val-hum-law-fem 31 took the tower-chest wand of wishing and levelported to Dlvl 47); `CASTLE_V2_PEACEFUL` (the castle
+  passage waits out a peaceful or tame blocker instead of fighting it); `CASTLE_V2_BURN` (a burned Elbereth on the
+  crusher square with a known wand of fire; burned engravings, read as 'Some text has been burned into the floor
+  here', are parsed while castle_v2 is active); `CASTLE_CENSUS_LOG` (logging only: one structured `CASTLE_V2 census`
+  line per recognised castle: kit, entry routes, switches, expected lane).
+- **v9p (private-safe router)**: v5 plus only the specialist routes that beat nhbot on the hub's VERIFIED (private-seed)
+  tier -- Gnomish Archeologists on pf_v36, neutral human Rangers and the female elven Ranger on pf_s25p8, Knights on
+  pf_s25p8 -- and no daglar profile for Rangers, Rogues and Tourists (every Ranger and Rogue identity scored lower with
+  it); Tourists back on nhbot. The public-seed-selected ports of v6/v7 overfit the 15 public seeds and are left out.
+- **pri-cav (default off, dev A/B pending)**: `PRIEST_BUC` -- a Priest's item lines carry no 'uncursed' (objnam.c),
+  so the power route took its uncursed items for unknown BUC (altar trips, no ring tests, wasted identify reads,
+  plain water as maybe-unholy, uncursed levitation boots rejected); `SPELL_KIT` -- the Priest's starting cure sickness,
+  dive-phase protection and earlier dive heals. Both act in the dive (cure sickness: only when food-poisoned/ill).
+- **v9p2**: v9p plus three routes with one verified sample each: neutral human Archeologists and orcish Barbarians on
+  pf_s25p8, neutral human Wizards on pf_vk_s25.
+
+- **v10a**: Healers and Samurai back on nhbot: every Healer and Samurai specialist lost to nhbot on 90 dev held-out
+  seeds (hea-gno pf_hg -0.050, hea-hum pf_hh -0.024, sam pf_v35 -0.051).
+- **v10b**: dev-confirmed config: Rangers on nhbot without UNSEEN_PET_GUARD (+0.022 +- 0.012, 420 pairs), gnomish
+  Cavemen on the Dlvl-1 grind (+0.073 +- 0.022, 120 pairs).
+- **v10c**: neutral human Wizards on pf_s25p8 instead of pf_vk_s25 (dev held-out: 0.252 vs 0.153 over 90 seeds; the
+  verified tier agrees).
+- **v10d**: integ (v10c + all flag branches, every flag off by default) with three Medusa flags on: ELBERETH_ATTACKED_REWRITE,
+  MEDUSA_REENTRY, MEDUSA_STANDOFF (vkurenkov's re-entry lane + our rewrite): +0.0074 +- 0.0023 over 419 paired Medusa replays.
+- **v10e**: Healers on the Dlvl-1 grind (dev +0.091 on human Healers; fresh-seed re-run +0.065 +- 0.026 on both
+  races).
+- **v10f**: Wizards on nhbot keep a 15 Pw force-bolt reserve (FB_RESERVE 15). Dev A/B wiz_fbres +0.033 +- 0.020 (181
+  clusters), fresh-seed re-run +0.039 +- 0.023 (137 clusters); with the 2026-10-02 test (+0.031 +- 0.015, 299 pairs)
+  pooled +0.034 +- 0.011 per Wizard game.
+- **eL1fe's fixes** (ported from eL1fe/nethacker@cfc3828, its `dag25` engine = this same base): the spell-direction fix
+  (`Agent.cast` sent the compass string as keys: every aimed cast was wasted), force bolt for Wizards (from
+  CleverShovel 0d1fb22: never into shops, never flying on into a pet), healing spells for any role that knows them,
+  stoning cures, a known teleport scroll as a last resort, no throwing where the pet may stand unseen, Wizards and
+  Healers keep off metal body armor/gloves/heavy shields (spell failure), Archeologists dig out of shops, magic
+  mapping from Dlvl 3, trees unwalkable, Sokoban/altar robustness. Wizards grind on Dlvl 1-3 as in eL1fe's engine;
+  Rogues, Knights, Tourists and Priests keep the Dlvl-1-only grind (`ROLE_GRIND_LEVELS`).
+  (I found the cast bug independently; eL1fe's version is used.)
+- **Identity router** as in daglar-dragomirov/nethacker@e29eb82 (the verified-tier leader): Healers (pf_hg, pf_hh)
+  and Samurai (pf_v35) play specialist engines; everyone else plays nhbot with DIVE_XL 8
+  (nhbot is then identical to e29eb82's pf_base apart from the changes listed here).
+- `roles.py`: per-identity overrides of engine settings (only for nhbot identities).
+- `MEDUSA_HOP` (off pending A/B): on Medusa's level with no dry square on our islet, step into a one-square moat
+  channel toward land that has one (trap.c drown(): the hero crawls out at once to a random free land square).
+- `MINES_TOOL_TRIP` (on; +0.018 +- 0.007 per game over 272 paired held-out games): a tool-less planned dive takes the Mines route for any race (it was for
+  dwarves and gnomes only), so humans, elves and orcs go and take a dwarf's pick-axe.
+- DT6A's two-page `#enhance` fix (DT6A/nethacker@c9a42ac): tty menus restart item letters on each page; the parser's
+  assert then fired on every fight start.
+- CleverShovel's ring/amulet/scroll module (CleverShovel/nethacker@9dc0822 V1, @29ab0a7 V2), Wizards only, behind
+  `RING_MODULE` (A/B pending): wears identified useful rings (slow digestion, free action, poison resistance...),
+  combat-only rings in fights, sheds rings when Hungry, reads scrolls at safe moments to identify rings/amulets.
+- Archeologists dig-dive from XL 5 instead of 3 (`ARC_DIG_DIVE_XL`): +0.024 +- 0.013 over 236 paired held-out games.
+- Small fixes found by log analysis: the panic-loop breaker now also forbids a square a monster keeps blocking
+  (`PANIC_TILE_FIX`; one grind sat 38k turns), divers keep fighting with the wielded pick-axe/mattock unless the best
+  weapon is clearly better (`DIG_TOOL_MELEE`), a timed-out pet ditch is retried (`DITCH_RETRY`), a trapping gas spore is
+  only hit when its blast can't kill (`SPORE_TRAP_FIX`).
+- Known cold/fire wands are zapped only with a free run of squares behind the target (`RAY_BOUNCE_FIX`): seven logged
+  deaths came from the bot's own bounced ray.
+- `AT_THREAT_AVOID` (off pending A/B): while an elf, soldier or other Elbereth-ignoring meleer comes for a pick-axe
+  digger above Medusa's level, no pit is started (every attack stops the dig; in the pit the fight is at -3 to-hit): a
+  known wand of digging holes the floor at once, else the @ is fought on level ground first.
+- **v3:** human Priests play nhbot instead of pf_pa (+0.053 +- 0.022 per game over 113 paired held-out games); bug fixes
+  from a log study of the games that end above Dlvl 10 (`research` notes in the workspace): a prayer interrupted by a
+  strategy switch is still recorded (`PRAYER_RECORD_FIX`), the prayer model's alignment record follows pray.c (+1 only
+  for prayers without major trouble, `RECORD_MODEL_FIX`), fight2 charges a ray's bounce through us its real cost
+  (`SELF_ZAP_FIX`), no pickup that leaves us Stressed and a lycanthrope's corpse weighs what its human form does
+  (`HEAVY_LIFT_GUARD`); a garbled Elbereth is rewritten after a mid-dig faint (`ELBERETH_REWRITE_FIX`).
+- Tried and left off (flags kept for reference): `AT_THREAT_AVOID` (no pit while an elf/soldier comes: -0.004 +- 0.003
+  over 235 deterministic pairs), `MEDUSA_HOLE_CYCLE` (skip Medusa's level through our own hole from above: the skip works
+  1 time in 4-6, but the extra landings cost more, -0.015 +- 0.005 per Medusa game), Wizards on the Dlvl-1 grind
+  (-0.058 +- 0.026 over 101 pairs).
+- **v4:** fixes from log studies of the deep game and of Wizards (`research` notes in the workspace). Deep game: lawful
+  minions (Aleax, couatl, ...) ignore Elbereth (`LMINION_ELBERETH`), a safe prayer before a heal at critical HP deep in the
+  dive (`DEEP_PRAY_FIRST`), no castle-only strategies on a deep Medusa level, Medusa-2 recognised by its titan's messages,
+  a stranded Medusa-3 '<' rerolls, minotaur guard fixes (`MINO_*`): +0.0021 +- 0.0012 over 512 deterministic held-out
+  pairs vs v3. Wizards: force bolt beats the melee bonus against Elbereth-ignorers and is cast from an Elbereth square at
+  what the engraving doesn't scare (`FB_FOCUS`; 52 of 412 Wizard games died meleeing with power left), no casting while
+  stunned/confused, no ray-wand zaps in the grind while the bolt is castable; a starving pet gets the corpses, a pet
+  turned hostile is fought, no Elbereth on altars. Knights stay on the Dlvl-1 grind (the deep grind: -0.020 +- 0.023 over
+  160 pairs); a durable (engraved) Elbereth for holds measured +0.000 over 512 pairs (flag off).
+
+- **v5:** merged daglar-dragomirov/nethacker@6c814836 (the generalist-board leader, mean 0.350) into this v4 tree, which
+  was already a strict superset of its engine-code changes (v4's deep-game and Wizard fixes are additive new flags;
+  daglar made no edits to those nhbot files). Adopted from daglar: the populated per-identity `OVERRIDES` in `roles.py`
+  (arc/cav/mon/pri/wiz play aggressive — `RING_MODULE` and `MEDUSA_HOP` on, the four safety flags off, `DIVE_XL` 8;
+  bar/kni/ran/rog/tou/val play safe — the opposite, `ran` `DIVE_XL` 7), the `^X` attributes-screen identity probe
+  (`roles.attributes_identity`, so the per-role config applies even when the welcome line is missed), and the Tourist
+  engine `pf_dtad7a` (DT6A/nethacker@ad7a864) routed for `tou`. The `RING_MODULE`/`MEDUSA_HOP` module code is
+  byte-identical to daglar's, so this reproduces the leader's behaviour exactly, with v4's extra fixes on top.
+- **v10g**: Wizards fight with their starting wand (WIZ_WAND_FIGHT) and get the shop mask fix (SHOP_MASK_FIX); orcish
+  Wizards drop the force-bolt reserve; Rangers on nhbot wield their bow and fire arrows (RAN_ARCHERY,
+  RAN_ENHANCE_LAUNCHER). Dev A/B on held-out seeds, pooled over arm64 and x86: Wizards +0.016 (z 3.4) and +0.013 (z
+  2.6), Rangers +0.020 (z 3.3).
+- **castle-wish (CASTLE_WISH_FIRST, off; `nhbot/castle_treasury.py`, workspace `research/castle_wish.md`):** the
+  castle's wand of wishing before the trap door for every bot inside the walls -- all four towers (nearest first; a
+  tower whose chest square was seen bare or with a soldier on it is ruled out; one showing an object goes first), a
+  hostile on the way fought instead of ending the detour, no HP floor on the chest square (the cursed scare monster
+  scroll on it is a melee refuge), the lock opened by key > blade > any forceable weapon (the pick-axe bashes) > a
+  kick from the tower floor, and a walk on foot to the chest when the xorn form runs out inside a tower; FRONT_V3's
+  chest step uses a key first. With the flag on (integ: was always-on in castle-wish; gated so flag-off = v10c): a wand taken from the chest is named (zapped) before the HP and
+  budget checks, which used to end the detour with it unnamed, out of WISH_TELEPORT_ROUTE's reach.
+  `tests/test_castle_wish.py` (fakes): `python tests/test_castle_wish.py`.
+- **strong-castle (CASTLE_BASECAMP / CASTLE_FARM_THEN_ENTER / CASTLE_KIT_PICKUP, all off; `nhbot/castle_tune.py`,
+  workspace `research/strong_castle.md`):** on top of CASTLE_PASSTUNE. BASECAMP: a known scroll of scare monster is
+  dropped on the first tune square we stand on (onscary: minotaurs, @ and eels too) -- rest there instead of pausing,
+  strike from it (never with an Elbereth under it), no minotaur/crowd/sea aborts on it, never picked up again; without
+  one, a camp on a west-courtyard square with no water beside it ((03,08) first) with a burned (wand of fire) /
+  durable / dust Elbereth, rested to PT_CAMP_HP before every walk to the tune square, when hurt after a sea monster
+  showed, and instead of the low-HP pause; walks keep off squares beside water. FARM_THEN_ENTER: the crusher (and eels
+  from the base) runs until XL >= PT_FARM_XL and max HP >= PT_FARM_HP or its budgets, rests to PT_FARM_ENTER_HP, then
+  hands over to the front walk. KIT_PICKUP: one tonal instrument and every known scare monster scroll kept ahead of
+  thrown weapons/food, known scare scrolls never dropped, dropped ones never re-picked (blessed ones may come back
+  once: pickup.c), known-cursed floor ones left alone, and the dive takes such an item under it or within PT_KIT_DIST.
+  Tests (fakes): `python tests/test_castle_basecamp.py`, `python tests/test_castle_kit.py`.
+- **castle-lane v2 (PT_V2, acts only with CASTLE_PASSTUNE on; workspace `research/castle_debug.md`):** fixes from the
+  tc1 forensics of 17 lane games. Held by a sea monster -> Elbereth (a scared holder lets go) instead of ending the
+  lane; the Elbereth budgets count failed writes only; the crusher never raises on what the bridge can't touch
+  (passes_walls / noncorporeal: xorns, earth elementals, ghosts); the farm ends at XL >= PT_FARM_XL whatever the max
+  HP, or after PT_FARM_STALL turns without experience; on the walk to the tune square a land hostile next to us hands
+  the step to the survival layers (no digging under its blows); the walk gives up after PT_GO_TURNS; a hand-over
+  after a quiet crusher skips FRONT_V3's maze-mouth hold. Tests (fakes): `python tests/test_castle_lane_v2.py`.
+
+- **ports3** (unrouted specialists for dev audits, `research/competitor_scan2.md` N4-N6; `bot.SPECIALISTS` unchanged):
+  `pf_cs911` (CleverShovel 911c949 pf_base, their wiz-hum-neu engine), `pf_dt284` (DT6A f284bd2 jawfish, their
+  hea-hum/tou engine), `pf_s25p8m` (pf_s25p8 + daglar 50fa3c4's MINES_TOOL_TRIP line in `use_mines`). nhbot:
+  `INV_FULL_LIST` (off; vkurenkov 4921bc3): a container check that raises mid-parse no longer leaves the item list cut.
+
+- **vk-castle (all OFF)**: a port of vkurenkov/nethacker s26 (4921bc3, MIT, AutoAscend lineage) castle work behind
+  default-off switches: `castle_crusher.py` + `passtune.py` (PASSTUNE_CRUSHER: the drawbridge tune by Mastermind,
+  then the bridge as a crusher), `castle_inner.py` (CASTLE_INNER: the walk from inside the shell to the tower chest's
+  wand of wishing; LIFT_EAST_DROP), the landing lane (LANDING_CRUSH_FIRST / LANDING_DIRECT / LANDING_ROUTE /
+  LANDING_FOCUS), route fixes (CASTLE_ZAP_RECOGNIZE, XORN_STAIRS_NOTE, POLY_RESUME, EAST_LATE_DOOR, WISH_ROUTE_FIRST,
+  INV_FULL_LIST, PREEMPT_SAFE's castle parts) and the wish route's T_ROUTE_FIRE / T_ROUTE_EARLY_CHARGE / T_ROUTE_TOP /
+  ROUTE_ELBERETH / ROUTE_RING_SWAP / WISH_PRAYER_HOLD. Not ported: castle_poly, supply/shop buying, wish_source
+  (lamps, thrones), id_engine, MATTOCK_SHIELD, Medusa re-entry. Tests: `tests/test_vk_castle.py`.
