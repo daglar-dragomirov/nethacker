@@ -1,6 +1,6 @@
 {
   "schema": "nethackers.solution/v1",
-  "name": "daglar-zPublicValkCurrentObservedArmorErosion",
+  "name": "daglar-zLeadersBest3377449",
   "root": ".",
   "parents": [
     "github.com/daglar-dragomirov/nethacker@ccfb1251179bad749ece88d384956363ffb2db56",
@@ -42,7 +42,22 @@
     "github.com/daglar-dragomirov/nethacker@a4c2c2f5d4a2ca3da7091ba0e439959c23ee4e47",
     "github.com/DT6A/nethacker@cd7b27193f40efba24f74cc9125240a5c41ae50a",
     "github.com/daglar-dragomirov/nethacker@96597c11db0a602f3e12b2ee6d03275d9c4bcddd",
-    "github.com/daglar-dragomirov/nethacker@3cb890b9c29934f161cbabf68f60dc55422bdac0"
+    "github.com/daglar-dragomirov/nethacker@3cb890b9c29934f161cbabf68f60dc55422bdac0",
+    "github.com/CleverShovel/nethacker@0e6841c772e8e27a2825365bc807da0ab8e1389e",
+    "github.com/CleverShovel/nethacker@911c9493762a36cb20e806a132f351d290334644",
+    "github.com/CleverShovel/nethacker@e13ed4057c432514ff142bed65f16c0cd8f4d34d",
+    "github.com/DT6A/nethacker@070aea3c878c9ff54c9c109520fb82ad3af47e63",
+    "github.com/DT6A/nethacker@3e64892a95c530d49010ffe4f7ed3a24bbbcae68",
+    "github.com/DT6A/nethacker@751f31dcff9ec937fd1659d5690c99661f233773",
+    "github.com/DT6A/nethacker@7a341b7450c004ddebee26e52364be552562eea4",
+    "github.com/DT6A/nethacker@e97fc7d62eca684a7820d20570937828d2539228",
+    "github.com/HalcyonForest/nethacker@6fa1dfd2afb35b6fa6299c5e5d7cc4d0c7d731f6",
+    "github.com/Luab/nethacker@a783b6dcd62efde66493eeef80faf855604c7566",
+    "github.com/Luab/nethacker@b16051fcb602ee095c632f293aef259bcb9172a5",
+    "github.com/PetrAnokhin/nethacker@5c1186c8051ca8a885b79216d8dde7aa13e28594",
+    "github.com/alexeyshmelev/nethacker@cc37d9c58cb322ddca05844331a5d01a02e97db3",
+    "github.com/zarutskiysy/nethack@69f6da875ef24c95614a910b3444ad39112a0d8c",
+    "github.com/zarutskiysy/nethack@bb082511ff4f8633c2a9b28c2eeab387bb64f368"
   ],
   "influences": [
     "github.com/CleverShovel/nethacker@0d1fb22498024cdcac06be9d15d0f70e8cae803c",
