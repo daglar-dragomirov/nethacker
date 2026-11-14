@@ -1,6 +1,6 @@
 {
   "schema": "nethackers.solution/v1",
-  "name": "daglar-zPublicValkCurrentObservedArmorErosion",
+  "name": "daglar-zLeadersBest3528931",
   "root": ".",
   "parents": [
     "github.com/daglar-dragomirov/nethacker@ccfb1251179bad749ece88d384956363ffb2db56",
