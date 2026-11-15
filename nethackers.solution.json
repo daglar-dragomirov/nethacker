@@ -1,6 +1,6 @@
 {
   "schema": "nethackers.solution/v1",
-  "name": "daglar-zPublicValkCurrentObservedArmorErosion",
+  "name": "daglar-zTieBreak201",
   "root": ".",
   "parents": [
     "github.com/daglar-dragomirov/nethacker@ccfb1251179bad749ece88d384956363ffb2db56",
@@ -42,7 +42,9 @@
     "github.com/daglar-dragomirov/nethacker@a4c2c2f5d4a2ca3da7091ba0e439959c23ee4e47",
     "github.com/DT6A/nethacker@cd7b27193f40efba24f74cc9125240a5c41ae50a",
     "github.com/daglar-dragomirov/nethacker@96597c11db0a602f3e12b2ee6d03275d9c4bcddd",
-    "github.com/daglar-dragomirov/nethacker@3cb890b9c29934f161cbabf68f60dc55422bdac0"
+    "github.com/daglar-dragomirov/nethacker@3cb890b9c29934f161cbabf68f60dc55422bdac0",
+    "github.com/daglar-dragomirov/nethacker@51949d511607544af62faeedada718c288039be3",
+    "github.com/daglar-dragomirov/nethacker@b3eb37bea12a2fad6cc7e9bc423bd95bf0657355"
   ],
   "influences": [
     "github.com/CleverShovel/nethacker@0d1fb22498024cdcac06be9d15d0f70e8cae803c",
