@@ -1,0 +1,7 @@
+{
+  "schema": "nethackers.solution/v1",
+  "root": ".",
+  "entrypoint": "bot.py",
+  "parents": ["github.com/daglar-dragomirov/nethacker@a08f497e41973bf74f99ef147f327b08f02198a1"],
+  "influences": []
+}
